@@ -1,0 +1,120 @@
+{
+  "pep": 806,
+  "gold_total": 5,
+  "gold_recoverable": 5,
+  "predicted_options": 4,
+  "predicted_rejected": 1,
+  "predicted_by_kind": {
+    "confirmed": 1,
+    "inferred": 0
+  },
+  "matched": 0,
+  "matched_by_kind": {
+    "confirmed": 0,
+    "inferred": 0
+  },
+  "matched_recoverable": 0,
+  "recall_recoverable": 0.0,
+  "precision_strict": 0.0,
+  "precision_by_kind": {
+    "confirmed": 0.0,
+    "inferred": null
+  },
+  "reason_agreement": 0.0,
+  "evidence_backed_recall": 0.0,
+  "matched_outside_post1": 0,
+  "recall_any_status": 0.2,
+  "matching": "similarity",
+  "closed_book_ideas": 19,
+  "closed_book_recall": 0.2,
+  "model": "qwen2.5:1.5b",
+  "model_digest": "65ec06548149b04c096a120e4a6da9d4017ea809c91734ea5631e89f96ddc57b",
+  "ollama_version": "0.40.13",
+  "mode": "live",
+  "prompt_version": "decrack-prompts-3",
+  "llm_calls": 3,
+  "minutes": 0.37,
+  "posts": 29,
+  "leak_blanked": 0,
+  "search_recall_at_5": null,
+  "search_hits": 0,
+  "search_misses": [],
+  "closed_book": [
+    {
+      "idea": "Use `async` context managers for asynchronous operations",
+      "reason": "To clearly indicate that the context manager is intended for use with asynchronous code, making it easier to distinguish between synchronous and asynchronous contexts."
+    },
+    {
+      "idea": "Avoid `async with` for synchronous operations",
+      "reason": "To prevent confusion and potential misuse, as `async with` is reserved for asynchronous contexts."
+    },
+    {
+      "idea": "Use `async` for all context managers",
+      "reason": "To ensure consistency and clarity, all context managers should be marked as `async` to avoid any ambiguity."
+    },
+    {
+      "idea": "Provide a `sync` context manager for synchronous operations",
+      "reason": "To offer a clear distinction between synchronous and asynchronous contexts, allowing developers to easily identify which context manager applies to their code."
+    },
+    {
+      "idea": "Use `await` for asynchronous operations",
+      "reason": "To explicitly indicate that the operation is asynchronous, making it easier to understand the intended behavior."
+    },
+    {
+      "idea": "Avoid `async` for synchronous operations",
+      "reason": "To prevent confusion and potential misuse, as `async` is reserved for asynchronous contexts."
+    },
+    {
+      "idea": "Use `await` for all operations",
+      "reason": "To ensure consistency and clarity, all operations should be marked as `await` to avoid any ambiguity."
+    },
+    {
+      "idea": "Provide a `sync` context manager for synchronous operations",
+      "reason": "To offer a clear distinction between synchronous and asynchronous contexts, allowing developers to easily identify which context manager applies to their code."
+    },
+    {
+      "idea": "Use `async` for all context managers",
+      "reason": "To ensure consistency and clarity, all context managers should be marked as `async` to avoid any ambiguity."
+    },
+    {
+      "idea": "Use `await` for all operations",
+      "reason": "To ensure consistency and clarity, all operations should be marked as `await` to avoid any ambiguity."
+    },
+    {
+      "idea": "Provide a `sync` context manager for synchronous operations",
+      "reason": "To offer a clear distinction between synchronous and asynchronous contexts, allowing developers to easily identify which context manager applies to their code."
+    },
+    {
+      "idea": "Use `async` for all context managers",
+      "reason": "To ensure consistency and clarity, all context managers should be marked as `async` to avoid any ambiguity."
+    },
+    {
+      "idea": "Use `await` for all operations",
+      "reason": "To ensure consistency and clarity, all operations should be marked as `await` to avoid any ambiguity."
+    },
+    {
+      "idea": "Provide a `sync` context manager for synchronous operations",
+      "reason": "To offer a clear distinction between synchronous and asynchronous contexts, allowing developers to easily identify which context manager applies to their code."
+    },
+    {
+      "idea": "Use `async` for all context managers",
+      "reason": "To ensure consistency and clarity, all context managers should be marked as `async` to avoid any ambiguity."
+    },
+    {
+      "idea": "Use `await` for all operations",
+      "reason": "To ensure consistency and clarity, all operations should be marked as `await` to avoid any ambiguity."
+    },
+    {
+      "idea": "Provide a `sync` context manager for synchronous operations",
+      "reason": "To offer a clear distinction between synchronous and asynchronous contexts, allowing developers to easily identify which context manager applies to their code."
+    },
+    {
+      "idea": "Use `async` for all context managers",
+      "reason": "To ensure consistency and clarity, all context managers should be marked as `async` to avoid any ambiguity."
+    },
+    {
+      "idea": "Use `await` for all operations",
+      "reason": "To ensure consistency and clarity, all operations should be marked as `await` to avoid any ambiguity."
+    }
+  ]
+}

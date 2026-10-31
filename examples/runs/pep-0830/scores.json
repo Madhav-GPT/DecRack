@@ -1,0 +1,116 @@
+{
+  "pep": 830,
+  "gold_total": 13,
+  "gold_recoverable": 13,
+  "predicted_options": 4,
+  "predicted_rejected": 3,
+  "predicted_by_kind": {
+    "confirmed": 0,
+    "inferred": 3
+  },
+  "matched": 1,
+  "matched_by_kind": {
+    "confirmed": 0,
+    "inferred": 1
+  },
+  "matched_recoverable": 1,
+  "recall_recoverable": 0.077,
+  "precision_strict": 0.333,
+  "precision_by_kind": {
+    "confirmed": null,
+    "inferred": 0.333
+  },
+  "reason_agreement": 1.0,
+  "evidence_backed_recall": 0.077,
+  "matched_outside_post1": 1,
+  "recall_any_status": 0.154,
+  "matching": "similarity",
+  "closed_book_ideas": 18,
+  "closed_book_recall": 0.231,
+  "model": "qwen2.5:1.5b",
+  "model_digest": "65ec06548149b04c096a120e4a6da9d4017ea809c91734ea5631e89f96ddc57b",
+  "ollama_version": "0.40.13",
+  "mode": "live",
+  "prompt_version": "decrack-prompts-3",
+  "llm_calls": 3,
+  "minutes": 0.79,
+  "posts": 29,
+  "leak_blanked": 0,
+  "search_recall_at_5": 1.0,
+  "search_hits": 1,
+  "search_misses": [],
+  "closed_book": [
+    {
+      "idea": "Add timestamps to exceptions and tracebacks",
+      "reason": "To provide more context and help in debugging by showing the time of the exception or traceback."
+    },
+    {
+      "idea": "Add timestamps to function calls",
+      "reason": "To track the timing of function execution and improve performance analysis."
+    },
+    {
+      "idea": "Add timestamps to file system operations",
+      "reason": "To record the time of file system operations for auditing and performance monitoring."
+    },
+    {
+      "idea": "Add timestamps to network requests",
+      "reason": "To track the time taken for network operations and improve network performance analysis."
+    },
+    {
+      "idea": "Add timestamps to database queries",
+      "reason": "To measure the time taken for database operations and optimize queries."
+    },
+    {
+      "idea": "Add timestamps to CPU usage",
+      "reason": "To track the time spent on CPU operations and improve CPU utilization analysis."
+    },
+    {
+      "idea": "Add timestamps to memory usage",
+      "reason": "To measure the time spent on memory operations and optimize memory usage."
+    },
+    {
+      "idea": "Add timestamps to disk I/O operations",
+      "reason": "To record the time taken for disk I/O operations and improve disk performance analysis."
+    },
+    {
+      "idea": "Add timestamps to thread execution",
+      "reason": "To track the time spent on thread execution and improve thread performance analysis."
+    },
+    {
+      "idea": "Add timestamps to process creation",
+      "reason": "To measure the time taken for process creation and optimize process management."
+    },
+    {
+      "idea": "Add timestamps to file system operations",
+      "reason": "To record the time of file system operations for auditing and performance monitoring."
+    },
+    {
+      "idea": "Add timestamps to network requests",
+      "reason": "To track the time taken for network operations and improve network performance analysis."
+    },
+    {
+      "idea": "Add timestamps to database queries",
+      "reason": "To measure the time taken for database operations and optimize queries."
+    },
+    {
+      "idea": "Add timestamps to CPU usage",
+      "reason": "To track the time spent on CPU operations and improve CPU utilization analysis."
+    },
+    {
+      "idea": "Add timestamps to memory usage",
+      "reason": "To measure the time spent on memory operations and optimize memory usage."
+    },
+    {
+      "idea": "Add timestamps to disk I/O operations",
+      "reason": "To record the time taken for disk I/O operations and improve disk performance analysis."
+    },
+    {
+      "idea": "Add timestamps to thread execution",
+      "reason": "To track the time spent on thread execution and improve thread performance analysis."
+    },
+    {
+      "idea": "Add timestamps to process creation",
+      "reason": "To measure the time taken for process creation and optimize process management."
+    }
+  ]
+}

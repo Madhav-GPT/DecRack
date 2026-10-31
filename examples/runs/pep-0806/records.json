@@ -1,0 +1,1812 @@
+[
+  {
+    "id": "dr-5f7bb216",
+    "thread_id": "pep:806",
+    "thread_url": "https://discuss.python.org/t/pep-806-mixed-sync-async-context-managers-with-precise-async-marking/103971",
+    "question": "PEP 806: Mixed sync/async context managers with precise async marking",
+    "outcome": "4 options: 3 rejected, 1 unresolved",
+    "options": [
+      {
+        "key": "A1",
+        "title": "Allow `async with` to accept both sync and async context managers in",
+        "summary": "This proposal allows for a cleaner and more readable code, eliminating the need for nested indentation and making it easier",
+        "status": "unresolved",
+        "status_kind": "unresolved",
+        "status_basis": "none",
+        "status_post": null,
+        "decided_by": null,
+        "status_note": "",
+        "status_history": [
+          {
+            "post_id": "dpo:92939:250128",
+            "act": "accept",
+            "role": "author",
+            "author": "Zac-HD",
+            "evidence_type": "author_position",
+            "evidence": [
+              {
+                "post_id": "dpo:92939:250128",
+                "post_version": 1,
+                "post_sha256": "97e279a6fb60929697ce11b4d1bc59705be2689a4d1e186fc34594325d806c76",
+                "sentence_indexes": [
+                  1,
+                  2,
+                  3
+                ],
+                "start": 0,
+                "end": 278,
+                "quote": "TL;DR: Let’s allow `async with` to accept both sync and async context managers in a single statement, as long as there’s at least one async context manager present. This would eliminate the nested indentation that currently plagues mixed context manager code. GitHub issue here.",
+                "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/1",
+                "author": "Zac-HD",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "decision_statement"
+              },
+              {
+                "post_id": "dpo:92939:250128",
+                "post_version": 1,
+                "post_sha256": "97e279a6fb60929697ce11b4d1bc59705be2689a4d1e186fc34594325d806c76",
+                "sentence_indexes": [
+                  2,
+                  3
+                ],
+                "start": 165,
+                "end": 278,
+                "quote": "This would eliminate the nested indentation that currently plagues mixed context manager code. GitHub issue here.",
+                "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/1",
+                "author": "Zac-HD",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "author_position"
+              }
+            ],
+            "support": "unchecked",
+            "status_after": "unresolved"
+          }
+        ],
+        "reasons": [
+          {
+            "stance": "pro",
+            "text": "This proposal allows for a cleaner and more readable code, eliminating the need for nested indentation and making it easier to understand the context managers used.",
+            "evidence": [
+              {
+                "post_id": "dpo:92939:250128",
+                "post_version": 1,
+                "post_sha256": "97e279a6fb60929697ce11b4d1bc59705be2689a4d1e186fc34594325d806c76",
+                "sentence_indexes": [
+                  1,
+                  2,
+                  3
+                ],
+                "start": 0,
+                "end": 278,
+                "quote": "TL;DR: Let’s allow `async with` to accept both sync and async context managers in a single statement, as long as there’s at least one async context manager present. This would eliminate the nested indentation that currently plagues mixed context manager code. GitHub issue here.",
+                "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/1",
+                "author": "Zac-HD",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "decision_statement"
+              },
+              {
+                "post_id": "dpo:92939:250128",
+                "post_version": 1,
+                "post_sha256": "97e279a6fb60929697ce11b4d1bc59705be2689a4d1e186fc34594325d806c76",
+                "sentence_indexes": [
+                  2,
+                  3
+                ],
+                "start": 165,
+                "end": 278,
+                "quote": "This would eliminate the nested indentation that currently plagues mixed context manager code. GitHub issue here.",
+                "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/1",
+                "author": "Zac-HD",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "author_position"
+              }
+            ],
+            "support": "unchecked"
+          },
+          {
+            "stance": "pro",
+            "text": "The proposal allows for a cleaner and more readable code, eliminating the need for nested indentation and making it easier to maintain and understand.",
+            "evidence": [
+              {
+                "post_id": "dpo:92939:250128",
+                "post_version": 1,
+                "post_sha256": "97e279a6fb60929697ce11b4d1bc59705be2689a4d1e186fc34594325d806c76",
+                "sentence_indexes": [
+                  1,
+                  2,
+                  3
+                ],
+                "start": 0,
+                "end": 278,
+                "quote": "TL;DR: Let’s allow `async with` to accept both sync and async context managers in a single statement, as long as there’s at least one async context manager present. This would eliminate the nested indentation that currently plagues mixed context manager code. GitHub issue here.",
+                "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/1",
+                "author": "Zac-HD",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "decision_statement"
+              }
+            ],
+            "support": "unchecked"
+          }
+        ],
+        "evidence": [
+          {
+            "post_id": "dpo:92939:250128",
+            "post_version": 1,
+            "post_sha256": "97e279a6fb60929697ce11b4d1bc59705be2689a4d1e186fc34594325d806c76",
+            "sentence_indexes": [
+              1,
+              2,
+              3
+            ],
+            "start": 0,
+            "end": 278,
+            "quote": "TL;DR: Let’s allow `async with` to accept both sync and async context managers in a single statement, as long as there’s at least one async context manager present. This would eliminate the nested indentation that currently plagues mixed context manager code. GitHub issue here.",
+            "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/1",
+            "author": "Zac-HD",
+            "source_check": "valid",
+            "support": "unchecked",
+            "evidence_type": "decision_statement"
+          },
+          {
+            "post_id": "dpo:92939:250128",
+            "post_version": 1,
+            "post_sha256": "97e279a6fb60929697ce11b4d1bc59705be2689a4d1e186fc34594325d806c76",
+            "sentence_indexes": [
+              2,
+              3
+            ],
+            "start": 165,
+            "end": 278,
+            "quote": "This would eliminate the nested indentation that currently plagues mixed context manager code. GitHub issue here.",
+            "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/1",
+            "author": "Zac-HD",
+            "source_check": "valid",
+            "support": "unchecked",
+            "evidence_type": "author_position"
+          }
+        ],
+        "confidence": "low"
+      },
+      {
+        "key": "A2",
+        "title": "Use `async with` when someone uses it for a sync manager,",
+        "summary": "This solution ensures that the correct context managers are used and makes the code more explicit, avoiding potential issues with",
+        "status": "rejected",
+        "status_kind": "contested",
+        "status_basis": "author_statement",
+        "status_post": "dpo:92939:250128",
+        "decided_by": {
+          "handle": "Zac-HD",
+          "role": "author"
+        },
+        "status_note": "",
+        "status_history": [
+          {
+            "post_id": "dpo:92939:250128",
+            "act": "reject",
+            "role": "author",
+            "author": "Zac-HD",
+            "evidence_type": "decision_statement",
+            "evidence": [
+              {
+                "post_id": "dpo:92939:250128",
+                "post_version": 1,
+                "post_sha256": "97e279a6fb60929697ce11b4d1bc59705be2689a4d1e186fc34594325d806c76",
+                "sentence_indexes": [
+                  1,
+                  2,
+                  3
+                ],
+                "start": 0,
+                "end": 278,
+                "quote": "TL;DR: Let’s allow `async with` to accept both sync and async context managers in a single statement, as long as there’s at least one async context manager present. This would eliminate the nested indentation that currently plagues mixed context manager code. GitHub issue here.",
+                "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/1",
+                "author": "Zac-HD",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "decision_statement"
+              }
+            ],
+            "support": "unchecked",
+            "status_after": "rejected"
+          },
+          {
+            "post_id": "dpo:92939:250924",
+            "act": "accept",
+            "role": "author",
+            "author": "Zac-HD",
+            "evidence_type": "author_position",
+            "evidence": [
+              {
+                "post_id": "dpo:92939:250922",
+                "post_version": 1,
+                "post_sha256": "dbf9a385dbcecf4870c6bc425c5bd1484ddab2851fce917b957177977673b288",
+                "sentence_indexes": [
+                  2
+                ],
+                "start": 158,
+                "end": 384,
+                "quote": "Trio goes to considerable lengths to ensure that every time you see the `await`, `async for`, or `async with` keyword, it’s executing a checkpoint where the event loop has a chance to cancel the task or schedule other work[1].",
+                "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/11",
+                "author": "Zac-HD",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "author_position"
+              },
+              {
+                "post_id": "dpo:92939:250924",
+                "post_version": 1,
+                "post_sha256": "b1ef3a249b1f31838d78c2ff5d902f6ea433ff48c930e95ec6c20e721eb3eacd",
+                "sentence_indexes": [
+                  1
+                ],
+                "start": 0,
+                "end": 105,
+                "quote": "This seems like an elegant and explicit solution to me, although as new syntax it’s also a larger change.",
+                "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/12",
+                "author": "Zac-HD",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "author_position"
+              }
+            ],
+            "support": "unchecked",
+            "status_after": "rejected"
+          }
+        ],
+        "reasons": [
+          {
+            "stance": "con",
+            "text": "This solution ensures that the correct context managers are used and makes the code more explicit, avoiding potential issues with the current nested indentation.",
+            "evidence": [
+              {
+                "post_id": "dpo:92939:250128",
+                "post_version": 1,
+                "post_sha256": "97e279a6fb60929697ce11b4d1bc59705be2689a4d1e186fc34594325d806c76",
+                "sentence_indexes": [
+                  1,
+                  2,
+                  3
+                ],
+                "start": 0,
+                "end": 278,
+                "quote": "TL;DR: Let’s allow `async with` to accept both sync and async context managers in a single statement, as long as there’s at least one async context manager present. This would eliminate the nested indentation that currently plagues mixed context manager code. GitHub issue here.",
+                "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/1",
+                "author": "Zac-HD",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "decision_statement"
+              }
+            ],
+            "support": "unchecked"
+          },
+          {
+            "stance": "pro",
+            "text": "This solution ensures that the correct context managers are used and makes the code more explicit, avoiding potential issues with deadlocks and task switching.",
+            "evidence": [
+              {
+                "post_id": "dpo:92939:250922",
+                "post_version": 1,
+                "post_sha256": "dbf9a385dbcecf4870c6bc425c5bd1484ddab2851fce917b957177977673b288",
+                "sentence_indexes": [
+                  2
+                ],
+                "start": 158,
+                "end": 384,
+                "quote": "Trio goes to considerable lengths to ensure that every time you see the `await`, `async for`, or `async with` keyword, it’s executing a checkpoint where the event loop has a chance to cancel the task or schedule other work[1].",
+                "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/11",
+                "author": "Zac-HD",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "author_position"
+              },
+              {
+                "post_id": "dpo:92939:250924",
+                "post_version": 1,
+                "post_sha256": "b1ef3a249b1f31838d78c2ff5d902f6ea433ff48c930e95ec6c20e721eb3eacd",
+                "sentence_indexes": [
+                  1
+                ],
+                "start": 0,
+                "end": 105,
+                "quote": "This seems like an elegant and explicit solution to me, although as new syntax it’s also a larger change.",
+                "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/12",
+                "author": "Zac-HD",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "author_position"
+              }
+            ],
+            "support": "unchecked"
+          }
+        ],
+        "evidence": [
+          {
+            "post_id": "dpo:92939:250128",
+            "post_version": 1,
+            "post_sha256": "97e279a6fb60929697ce11b4d1bc59705be2689a4d1e186fc34594325d806c76",
+            "sentence_indexes": [
+              1,
+              2,
+              3
+            ],
+            "start": 0,
+            "end": 278,
+            "quote": "TL;DR: Let’s allow `async with` to accept both sync and async context managers in a single statement, as long as there’s at least one async context manager present. This would eliminate the nested indentation that currently plagues mixed context manager code. GitHub issue here.",
+            "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/1",
+            "author": "Zac-HD",
+            "source_check": "valid",
+            "support": "unchecked",
+            "evidence_type": "decision_statement"
+          },
+          {
+            "post_id": "dpo:92939:250922",
+            "post_version": 1,
+            "post_sha256": "dbf9a385dbcecf4870c6bc425c5bd1484ddab2851fce917b957177977673b288",
+            "sentence_indexes": [
+              2
+            ],
+            "start": 158,
+            "end": 384,
+            "quote": "Trio goes to considerable lengths to ensure that every time you see the `await`, `async for`, or `async with` keyword, it’s executing a checkpoint where the event loop has a chance to cancel the task or schedule other work[1].",
+            "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/11",
+            "author": "Zac-HD",
+            "source_check": "valid",
+            "support": "unchecked",
+            "evidence_type": "author_position"
+          },
+          {
+            "post_id": "dpo:92939:250924",
+            "post_version": 1,
+            "post_sha256": "b1ef3a249b1f31838d78c2ff5d902f6ea433ff48c930e95ec6c20e721eb3eacd",
+            "sentence_indexes": [
+              1
+            ],
+            "start": 0,
+            "end": 105,
+            "quote": "This seems like an elegant and explicit solution to me, although as new syntax it’s also a larger change.",
+            "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/12",
+            "author": "Zac-HD",
+            "source_check": "valid",
+            "support": "unchecked",
+            "evidence_type": "author_position"
+          }
+        ],
+        "confidence": "low"
+      },
+      {
+        "key": "A3",
+        "title": "Move `async` keyword inside the parens,",
+        "summary": "This change makes the code more readable and explicit, allowing for a clearer distinction between sync and async context managers.",
+        "status": "rejected",
+        "status_kind": "confirmed",
+        "status_basis": "author_statement",
+        "status_post": "dpo:92939:250128",
+        "decided_by": {
+          "handle": "Zac-HD",
+          "role": "author"
+        },
+        "status_note": "",
+        "status_history": [
+          {
+            "post_id": "dpo:92939:250128",
+            "act": "reject",
+            "role": "author",
+            "author": "Zac-HD",
+            "evidence_type": "decision_statement",
+            "evidence": [
+              {
+                "post_id": "dpo:92939:250128",
+                "post_version": 1,
+                "post_sha256": "97e279a6fb60929697ce11b4d1bc59705be2689a4d1e186fc34594325d806c76",
+                "sentence_indexes": [
+                  1,
+                  2,
+                  3
+                ],
+                "start": 0,
+                "end": 278,
+                "quote": "TL;DR: Let’s allow `async with` to accept both sync and async context managers in a single statement, as long as there’s at least one async context manager present. This would eliminate the nested indentation that currently plagues mixed context manager code. GitHub issue here.",
+                "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/1",
+                "author": "Zac-HD",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "decision_statement"
+              }
+            ],
+            "support": "unchecked",
+            "status_after": "rejected"
+          },
+          {
+            "post_id": "dpo:92939:250637",
+            "act": "accept",
+            "role": "participant",
+            "author": "rrolls",
+            "evidence_type": "support",
+            "evidence": [
+              {
+                "post_id": "dpo:92939:250637",
+                "post_version": 1,
+                "post_sha256": "a4b3db4f6d315b48eb44b301fd8afb7c7752b13e6e78d58d66661ee9d4d001aa",
+                "sentence_indexes": [
+                  2,
+                  3
+                ],
+                "start": 62,
+                "end": 578,
+                "quote": "```\nwith (\n    async acquire_lock() as lock,\n    open('config.json') as f,\n    async connect_to_db() as db,\n    temp_directory() as tmpdir,\n):\n\n```\n\nNow you can mix sync and async context managers in a single `with` block, and, unlike with the OP’s solution as-is, it’s abundantly clear to anyone reading the code which context managers are async and which aren’t, and the interpreter doesn’t have to waste any time checking, either - it can raise `RuntimeError` if any of the context managers are of the wrong kind.",
+                "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/10",
+                "author": "rrolls",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "support"
+              }
+            ],
+            "support": "unchecked",
+            "status_after": "rejected"
+          }
+        ],
+        "reasons": [
+          {
+            "stance": "con",
+            "text": "This change makes the code more readable and explicit, allowing for a clearer distinction between sync and async context managers, but it does not address the issue of nested indentation.",
+            "evidence": [
+              {
+                "post_id": "dpo:92939:250128",
+                "post_version": 1,
+                "post_sha256": "97e279a6fb60929697ce11b4d1bc59705be2689a4d1e186fc34594325d806c76",
+                "sentence_indexes": [
+                  1,
+                  2,
+                  3
+                ],
+                "start": 0,
+                "end": 278,
+                "quote": "TL;DR: Let’s allow `async with` to accept both sync and async context managers in a single statement, as long as there’s at least one async context manager present. This would eliminate the nested indentation that currently plagues mixed context manager code. GitHub issue here.",
+                "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/1",
+                "author": "Zac-HD",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "decision_statement"
+              }
+            ],
+            "support": "unchecked"
+          },
+          {
+            "stance": "con",
+            "text": "The proposal makes the code more readable and explicit, allowing for a clearer distinction between sync and async context managers.",
+            "evidence": [
+              {
+                "post_id": "dpo:92939:250128",
+                "post_version": 1,
+                "post_sha256": "97e279a6fb60929697ce11b4d1bc59705be2689a4d1e186fc34594325d806c76",
+                "sentence_indexes": [
+                  1,
+                  2,
+                  3
+                ],
+                "start": 0,
+                "end": 278,
+                "quote": "TL;DR: Let’s allow `async with` to accept both sync and async context managers in a single statement, as long as there’s at least one async context manager present. This would eliminate the nested indentation that currently plagues mixed context manager code. GitHub issue here.",
+                "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/1",
+                "author": "Zac-HD",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "decision_statement"
+              }
+            ],
+            "support": "unchecked"
+          },
+          {
+            "stance": "pro",
+            "text": "This change makes the code more readable and explicit, allowing for a clearer distinction between sync and async context managers.",
+            "evidence": [
+              {
+                "post_id": "dpo:92939:250637",
+                "post_version": 1,
+                "post_sha256": "a4b3db4f6d315b48eb44b301fd8afb7c7752b13e6e78d58d66661ee9d4d001aa",
+                "sentence_indexes": [
+                  2,
+                  3
+                ],
+                "start": 62,
+                "end": 578,
+                "quote": "```\nwith (\n    async acquire_lock() as lock,\n    open('config.json') as f,\n    async connect_to_db() as db,\n    temp_directory() as tmpdir,\n):\n\n```\n\nNow you can mix sync and async context managers in a single `with` block, and, unlike with the OP’s solution as-is, it’s abundantly clear to anyone reading the code which context managers are async and which aren’t, and the interpreter doesn’t have to waste any time checking, either - it can raise `RuntimeError` if any of the context managers are of the wrong kind.",
+                "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/10",
+                "author": "rrolls",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "support"
+              }
+            ],
+            "support": "unchecked"
+          }
+        ],
+        "evidence": [
+          {
+            "post_id": "dpo:92939:250128",
+            "post_version": 1,
+            "post_sha256": "97e279a6fb60929697ce11b4d1bc59705be2689a4d1e186fc34594325d806c76",
+            "sentence_indexes": [
+              1,
+              2,
+              3
+            ],
+            "start": 0,
+            "end": 278,
+            "quote": "TL;DR: Let’s allow `async with` to accept both sync and async context managers in a single statement, as long as there’s at least one async context manager present. This would eliminate the nested indentation that currently plagues mixed context manager code. GitHub issue here.",
+            "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/1",
+            "author": "Zac-HD",
+            "source_check": "valid",
+            "support": "unchecked",
+            "evidence_type": "decision_statement"
+          },
+          {
+            "post_id": "dpo:92939:250637",
+            "post_version": 1,
+            "post_sha256": "a4b3db4f6d315b48eb44b301fd8afb7c7752b13e6e78d58d66661ee9d4d001aa",
+            "sentence_indexes": [
+              2,
+              3
+            ],
+            "start": 62,
+            "end": 578,
+            "quote": "```\nwith (\n    async acquire_lock() as lock,\n    open('config.json') as f,\n    async connect_to_db() as db,\n    temp_directory() as tmpdir,\n):\n\n```\n\nNow you can mix sync and async context managers in a single `with` block, and, unlike with the OP’s solution as-is, it’s abundantly clear to anyone reading the code which context managers are async and which aren’t, and the interpreter doesn’t have to waste any time checking, either - it can raise `RuntimeError` if any of the context managers are of the wrong kind.",
+            "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/10",
+            "author": "rrolls",
+            "source_check": "valid",
+            "support": "unchecked",
+            "evidence_type": "support"
+          }
+        ],
+        "confidence": "high"
+      },
+      {
+        "key": "A4",
+        "title": "Allow `with async foo as bar` as an equivalent to `async with",
+        "summary": "This solution maintains the syntactic visibility of context managers and avoids the need for additional checks, making the code more",
+        "status": "rejected",
+        "status_kind": "contested",
+        "status_basis": "author_statement",
+        "status_post": "dpo:92939:250128",
+        "decided_by": {
+          "handle": "Zac-HD",
+          "role": "author"
+        },
+        "status_note": "",
+        "status_history": [
+          {
+            "post_id": "dpo:92939:250128",
+            "act": "reject",
+            "role": "author",
+            "author": "Zac-HD",
+            "evidence_type": "decision_statement",
+            "evidence": [
+              {
+                "post_id": "dpo:92939:250128",
+                "post_version": 1,
+                "post_sha256": "97e279a6fb60929697ce11b4d1bc59705be2689a4d1e186fc34594325d806c76",
+                "sentence_indexes": [
+                  1,
+                  2,
+                  3
+                ],
+                "start": 0,
+                "end": 278,
+                "quote": "TL;DR: Let’s allow `async with` to accept both sync and async context managers in a single statement, as long as there’s at least one async context manager present. This would eliminate the nested indentation that currently plagues mixed context manager code. GitHub issue here.",
+                "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/1",
+                "author": "Zac-HD",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "decision_statement"
+              }
+            ],
+            "support": "unchecked",
+            "status_after": "rejected"
+          },
+          {
+            "post_id": "dpo:92939:250922",
+            "act": "accept",
+            "role": "author",
+            "author": "Zac-HD",
+            "evidence_type": "author_position",
+            "evidence": [
+              {
+                "post_id": "dpo:92939:250637",
+                "post_version": 1,
+                "post_sha256": "a4b3db4f6d315b48eb44b301fd8afb7c7752b13e6e78d58d66661ee9d4d001aa",
+                "sentence_indexes": [
+                  4
+                ],
+                "start": 580,
+                "end": 792,
+                "quote": "For completeness, I suppose we should probably also allow `with async foo as bar` as an equivalent to `async with foo as bar` (for the case where you’re only entering one context manager and not a bunch of them).",
+                "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/10",
+                "author": "rrolls",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "author_position"
+              },
+              {
+                "post_id": "dpo:92939:250922",
+                "post_version": 1,
+                "post_sha256": "dbf9a385dbcecf4870c6bc425c5bd1484ddab2851fce917b957177977673b288",
+                "sentence_indexes": [
+                  2
+                ],
+                "start": 158,
+                "end": 384,
+                "quote": "Trio goes to considerable lengths to ensure that every time you see the `await`, `async for`, or `async with` keyword, it’s executing a checkpoint where the event loop has a chance to cancel the task or schedule other work[1].",
+                "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/11",
+                "author": "Zac-HD",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "author_position"
+              }
+            ],
+            "support": "unchecked",
+            "status_after": "rejected"
+          }
+        ],
+        "reasons": [
+          {
+            "stance": "con",
+            "text": "This solution maintains the syntactic visibility of context managers and avoids the need for additional checks, making the code more readable and explicit, but it does not address the issue of nested indentation.",
+            "evidence": [
+              {
+                "post_id": "dpo:92939:250128",
+                "post_version": 1,
+                "post_sha256": "97e279a6fb60929697ce11b4d1bc59705be2689a4d1e186fc34594325d806c76",
+                "sentence_indexes": [
+                  1,
+                  2,
+                  3
+                ],
+                "start": 0,
+                "end": 278,
+                "quote": "TL;DR: Let’s allow `async with` to accept both sync and async context managers in a single statement, as long as there’s at least one async context manager present. This would eliminate the nested indentation that currently plagues mixed context manager code. GitHub issue here.",
+                "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/1",
+                "author": "Zac-HD",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "decision_statement"
+              }
+            ],
+            "support": "unchecked"
+          },
+          {
+            "stance": "con",
+            "text": "The proposal maintains the syntactic visibility of context managers and avoids the need for additional checks, making the code more readable and maintainable.",
+            "evidence": [
+              {
+                "post_id": "dpo:92939:250128",
+                "post_version": 1,
+                "post_sha256": "97e279a6fb60929697ce11b4d1bc59705be2689a4d1e186fc34594325d806c76",
+                "sentence_indexes": [
+                  1,
+                  2,
+                  3
+                ],
+                "start": 0,
+                "end": 278,
+                "quote": "TL;DR: Let’s allow `async with` to accept both sync and async context managers in a single statement, as long as there’s at least one async context manager present. This would eliminate the nested indentation that currently plagues mixed context manager code. GitHub issue here.",
+                "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/1",
+                "author": "Zac-HD",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "decision_statement"
+              }
+            ],
+            "support": "unchecked"
+          },
+          {
+            "stance": "pro",
+            "text": "This solution maintains the syntactic visibility of context managers and avoids the need for additional checks, making the code more understandable and maintainable.",
+            "evidence": [
+              {
+                "post_id": "dpo:92939:250637",
+                "post_version": 1,
+                "post_sha256": "a4b3db4f6d315b48eb44b301fd8afb7c7752b13e6e78d58d66661ee9d4d001aa",
+                "sentence_indexes": [
+                  4
+                ],
+                "start": 580,
+                "end": 792,
+                "quote": "For completeness, I suppose we should probably also allow `with async foo as bar` as an equivalent to `async with foo as bar` (for the case where you’re only entering one context manager and not a bunch of them).",
+                "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/10",
+                "author": "rrolls",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "author_position"
+              },
+              {
+                "post_id": "dpo:92939:250922",
+                "post_version": 1,
+                "post_sha256": "dbf9a385dbcecf4870c6bc425c5bd1484ddab2851fce917b957177977673b288",
+                "sentence_indexes": [
+                  2
+                ],
+                "start": 158,
+                "end": 384,
+                "quote": "Trio goes to considerable lengths to ensure that every time you see the `await`, `async for`, or `async with` keyword, it’s executing a checkpoint where the event loop has a chance to cancel the task or schedule other work[1].",
+                "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/11",
+                "author": "Zac-HD",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "author_position"
+              }
+            ],
+            "support": "unchecked"
+          }
+        ],
+        "evidence": [
+          {
+            "post_id": "dpo:92939:250128",
+            "post_version": 1,
+            "post_sha256": "97e279a6fb60929697ce11b4d1bc59705be2689a4d1e186fc34594325d806c76",
+            "sentence_indexes": [
+              1,
+              2,
+              3
+            ],
+            "start": 0,
+            "end": 278,
+            "quote": "TL;DR: Let’s allow `async with` to accept both sync and async context managers in a single statement, as long as there’s at least one async context manager present. This would eliminate the nested indentation that currently plagues mixed context manager code. GitHub issue here.",
+            "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/1",
+            "author": "Zac-HD",
+            "source_check": "valid",
+            "support": "unchecked",
+            "evidence_type": "decision_statement"
+          },
+          {
+            "post_id": "dpo:92939:250637",
+            "post_version": 1,
+            "post_sha256": "a4b3db4f6d315b48eb44b301fd8afb7c7752b13e6e78d58d66661ee9d4d001aa",
+            "sentence_indexes": [
+              4
+            ],
+            "start": 580,
+            "end": 792,
+            "quote": "For completeness, I suppose we should probably also allow `with async foo as bar` as an equivalent to `async with foo as bar` (for the case where you’re only entering one context manager and not a bunch of them).",
+            "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/10",
+            "author": "rrolls",
+            "source_check": "valid",
+            "support": "unchecked",
+            "evidence_type": "author_position"
+          },
+          {
+            "post_id": "dpo:92939:250922",
+            "post_version": 1,
+            "post_sha256": "dbf9a385dbcecf4870c6bc425c5bd1484ddab2851fce917b957177977673b288",
+            "sentence_indexes": [
+              2
+            ],
+            "start": 158,
+            "end": 384,
+            "quote": "Trio goes to considerable lengths to ensure that every time you see the `await`, `async for`, or `async with` keyword, it’s executing a checkpoint where the event loop has a chance to cancel the task or schedule other work[1].",
+            "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/11",
+            "author": "Zac-HD",
+            "source_check": "valid",
+            "support": "unchecked",
+            "evidence_type": "author_position"
+          }
+        ],
+        "confidence": "low"
+      }
+    ],
+    "decided_by": {
+      "handle": "Zac-HD",
+      "role": "author"
+    },
+    "decided_in_post": "dpo:92939:250128",
+    "code_links": [],
+    "verification": "unverified",
+    "run": {
+      "mode": "live",
+      "decrack_version": "0.1.0",
+      "model": "qwen2.5:1.5b",
+      "model_digest": "65ec06548149b04c096a120e4a6da9d4017ea809c91734ea5631e89f96ddc57b",
+      "ollama_version": "0.40.13",
+      "params": {
+        "num_ctx": 8192,
+        "temperature": 0,
+        "num_predict": 2048,
+        "think": false,
+        "window_max_tokens": 3000,
+        "window_overlap_tokens": 300,
+        "support_check": false
+      },
+      "prompt_version": "decrack-prompts-3",
+      "schema_version": "decrack-record/0.2",
+      "started_at": "2026-10-31T22:49:03.479331Z",
+      "seconds": 22.15,
+      "llm_calls": 3,
+      "cache_hits": 0,
+      "tokens_in": 8474,
+      "tokens_out": 1000,
+      "windows": 3,
+      "candidates_total": 13,
+      "candidates_verified": 13,
+      "support_checked": false,
+      "alias_map": {
+        "p1.s1": {
+          "post_id": "dpo:92939:250128",
+          "version": 1,
+          "index": 1
+        },
+        "p1.s2": {
+          "post_id": "dpo:92939:250128",
+          "version": 1,
+          "index": 2
+        },
+        "p1.s3": {
+          "post_id": "dpo:92939:250128",
+          "version": 1,
+          "index": 3
+        },
+        "p1.s4": {
+          "post_id": "dpo:92939:250128",
+          "version": 1,
+          "index": 4
+        },
+        "p1.s5": {
+          "post_id": "dpo:92939:250128",
+          "version": 1,
+          "index": 5
+        },
+        "p1.s6": {
+          "post_id": "dpo:92939:250128",
+          "version": 1,
+          "index": 6
+        },
+        "p1.s7": {
+          "post_id": "dpo:92939:250128",
+          "version": 1,
+          "index": 7
+        },
+        "p1.s8": {
+          "post_id": "dpo:92939:250128",
+          "version": 1,
+          "index": 8
+        },
+        "p1.s9": {
+          "post_id": "dpo:92939:250128",
+          "version": 1,
+          "index": 9
+        },
+        "p1.s10": {
+          "post_id": "dpo:92939:250128",
+          "version": 1,
+          "index": 10
+        },
+        "p1.s11": {
+          "post_id": "dpo:92939:250128",
+          "version": 1,
+          "index": 11
+        },
+        "p1.s12": {
+          "post_id": "dpo:92939:250128",
+          "version": 1,
+          "index": 12
+        },
+        "p1.s13": {
+          "post_id": "dpo:92939:250128",
+          "version": 1,
+          "index": 13
+        },
+        "p1.s14": {
+          "post_id": "dpo:92939:250128",
+          "version": 1,
+          "index": 14
+        },
+        "p1.s15": {
+          "post_id": "dpo:92939:250128",
+          "version": 1,
+          "index": 15
+        },
+        "p1.s16": {
+          "post_id": "dpo:92939:250128",
+          "version": 1,
+          "index": 16
+        },
+        "p1.s17": {
+          "post_id": "dpo:92939:250128",
+          "version": 1,
+          "index": 17
+        },
+        "p1.s18": {
+          "post_id": "dpo:92939:250128",
+          "version": 1,
+          "index": 18
+        },
+        "p1.s19": {
+          "post_id": "dpo:92939:250128",
+          "version": 1,
+          "index": 19
+        },
+        "p1.s20": {
+          "post_id": "dpo:92939:250128",
+          "version": 1,
+          "index": 20
+        },
+        "p1.s21": {
+          "post_id": "dpo:92939:250128",
+          "version": 1,
+          "index": 21
+        },
+        "p1.s22": {
+          "post_id": "dpo:92939:250128",
+          "version": 1,
+          "index": 22
+        },
+        "p1.s23": {
+          "post_id": "dpo:92939:250128",
+          "version": 1,
+          "index": 23
+        },
+        "p1.s24": {
+          "post_id": "dpo:92939:250128",
+          "version": 1,
+          "index": 24
+        },
+        "p1.s25": {
+          "post_id": "dpo:92939:250128",
+          "version": 1,
+          "index": 25
+        },
+        "p1.s26": {
+          "post_id": "dpo:92939:250128",
+          "version": 1,
+          "index": 26
+        },
+        "p1.s27": {
+          "post_id": "dpo:92939:250128",
+          "version": 1,
+          "index": 27
+        },
+        "p1.s28": {
+          "post_id": "dpo:92939:250128",
+          "version": 1,
+          "index": 28
+        },
+        "p1.s29": {
+          "post_id": "dpo:92939:250128",
+          "version": 1,
+          "index": 29
+        },
+        "p1.s30": {
+          "post_id": "dpo:92939:250128",
+          "version": 1,
+          "index": 30
+        },
+        "p1.s31": {
+          "post_id": "dpo:92939:250128",
+          "version": 1,
+          "index": 31
+        },
+        "p1.s32": {
+          "post_id": "dpo:92939:250128",
+          "version": 1,
+          "index": 32
+        },
+        "p1.s33": {
+          "post_id": "dpo:92939:250128",
+          "version": 1,
+          "index": 33
+        },
+        "p1.s34": {
+          "post_id": "dpo:92939:250128",
+          "version": 1,
+          "index": 34
+        },
+        "p1.s35": {
+          "post_id": "dpo:92939:250128",
+          "version": 1,
+          "index": 35
+        },
+        "p1.s36": {
+          "post_id": "dpo:92939:250128",
+          "version": 1,
+          "index": 36
+        },
+        "p1.s37": {
+          "post_id": "dpo:92939:250128",
+          "version": 1,
+          "index": 37
+        },
+        "p2.s1": {
+          "post_id": "dpo:92939:250130",
+          "version": 1,
+          "index": 1
+        },
+        "p2.s2": {
+          "post_id": "dpo:92939:250130",
+          "version": 1,
+          "index": 2
+        },
+        "p2.s3": {
+          "post_id": "dpo:92939:250130",
+          "version": 1,
+          "index": 3
+        },
+        "p3.s1": {
+          "post_id": "dpo:92939:250132",
+          "version": 2,
+          "index": 1
+        },
+        "p3.s2": {
+          "post_id": "dpo:92939:250132",
+          "version": 2,
+          "index": 2
+        },
+        "p4.s1": {
+          "post_id": "dpo:92939:250133",
+          "version": 1,
+          "index": 1
+        },
+        "p4.s2": {
+          "post_id": "dpo:92939:250133",
+          "version": 1,
+          "index": 2
+        },
+        "p4.s3": {
+          "post_id": "dpo:92939:250133",
+          "version": 1,
+          "index": 3
+        },
+        "p4.s4": {
+          "post_id": "dpo:92939:250133",
+          "version": 1,
+          "index": 4
+        },
+        "p5.s1": {
+          "post_id": "dpo:92939:250173",
+          "version": 1,
+          "index": 1
+        },
+        "p5.s2": {
+          "post_id": "dpo:92939:250173",
+          "version": 1,
+          "index": 2
+        },
+        "p5.s3": {
+          "post_id": "dpo:92939:250173",
+          "version": 1,
+          "index": 3
+        },
+        "p5.s4": {
+          "post_id": "dpo:92939:250173",
+          "version": 1,
+          "index": 4
+        },
+        "p5.s5": {
+          "post_id": "dpo:92939:250173",
+          "version": 1,
+          "index": 5
+        },
+        "p5.s6": {
+          "post_id": "dpo:92939:250173",
+          "version": 1,
+          "index": 6
+        },
+        "p5.s7": {
+          "post_id": "dpo:92939:250173",
+          "version": 1,
+          "index": 7
+        },
+        "p5.s8": {
+          "post_id": "dpo:92939:250173",
+          "version": 1,
+          "index": 8
+        },
+        "p5.s9": {
+          "post_id": "dpo:92939:250173",
+          "version": 1,
+          "index": 9
+        },
+        "p5.s10": {
+          "post_id": "dpo:92939:250173",
+          "version": 1,
+          "index": 10
+        },
+        "p5.s11": {
+          "post_id": "dpo:92939:250173",
+          "version": 1,
+          "index": 11
+        },
+        "p5.s12": {
+          "post_id": "dpo:92939:250173",
+          "version": 1,
+          "index": 12
+        },
+        "p5.s13": {
+          "post_id": "dpo:92939:250173",
+          "version": 1,
+          "index": 13
+        },
+        "p5.s14": {
+          "post_id": "dpo:92939:250173",
+          "version": 1,
+          "index": 14
+        },
+        "p6.s1": {
+          "post_id": "dpo:92939:250335",
+          "version": 1,
+          "index": 1
+        },
+        "p6.s2": {
+          "post_id": "dpo:92939:250335",
+          "version": 1,
+          "index": 2
+        },
+        "p7.s1": {
+          "post_id": "dpo:92939:250342",
+          "version": 1,
+          "index": 1
+        },
+        "p7.s2": {
+          "post_id": "dpo:92939:250342",
+          "version": 1,
+          "index": 2
+        },
+        "p8.s1": {
+          "post_id": "dpo:92939:250344",
+          "version": 1,
+          "index": 1
+        },
+        "p8.s2": {
+          "post_id": "dpo:92939:250344",
+          "version": 1,
+          "index": 2
+        },
+        "p8.s3": {
+          "post_id": "dpo:92939:250344",
+          "version": 1,
+          "index": 3
+        },
+        "p8.s4": {
+          "post_id": "dpo:92939:250344",
+          "version": 1,
+          "index": 4
+        },
+        "p9.s1": {
+          "post_id": "dpo:92939:250472",
+          "version": 1,
+          "index": 1
+        },
+        "p9.s2": {
+          "post_id": "dpo:92939:250472",
+          "version": 1,
+          "index": 2
+        },
+        "p9.s3": {
+          "post_id": "dpo:92939:250472",
+          "version": 1,
+          "index": 3
+        },
+        "p9.s4": {
+          "post_id": "dpo:92939:250472",
+          "version": 1,
+          "index": 4
+        },
+        "p10.s1": {
+          "post_id": "dpo:92939:250637",
+          "version": 1,
+          "index": 1
+        },
+        "p10.s2": {
+          "post_id": "dpo:92939:250637",
+          "version": 1,
+          "index": 2
+        },
+        "p10.s3": {
+          "post_id": "dpo:92939:250637",
+          "version": 1,
+          "index": 3
+        },
+        "p10.s4": {
+          "post_id": "dpo:92939:250637",
+          "version": 1,
+          "index": 4
+        },
+        "p11.s1": {
+          "post_id": "dpo:92939:250922",
+          "version": 1,
+          "index": 1
+        },
+        "p11.s2": {
+          "post_id": "dpo:92939:250922",
+          "version": 1,
+          "index": 2
+        },
+        "p11.s3": {
+          "post_id": "dpo:92939:250922",
+          "version": 1,
+          "index": 3
+        },
+        "p11.s4": {
+          "post_id": "dpo:92939:250922",
+          "version": 1,
+          "index": 4
+        },
+        "p12.s1": {
+          "post_id": "dpo:92939:250924",
+          "version": 1,
+          "index": 1
+        },
+        "p13.s1": {
+          "post_id": "dpo:92939:251240",
+          "version": 1,
+          "index": 1
+        },
+        "p14.s1": {
+          "post_id": "dpo:92939:251337",
+          "version": 2,
+          "index": 1
+        },
+        "p14.s2": {
+          "post_id": "dpo:92939:251337",
+          "version": 2,
+          "index": 2
+        },
+        "p14.s3": {
+          "post_id": "dpo:92939:251337",
+          "version": 2,
+          "index": 3
+        },
+        "p14.s4": {
+          "post_id": "dpo:92939:251337",
+          "version": 2,
+          "index": 4
+        },
+        "p15.s1": {
+          "post_id": "dpo:92939:251349",
+          "version": 1,
+          "index": 1
+        },
+        "p16.s1": {
+          "post_id": "dpo:103971:272254",
+          "version": 1,
+          "index": 1
+        },
+        "p16.s2": {
+          "post_id": "dpo:103971:272254",
+          "version": 1,
+          "index": 2
+        },
+        "p16.s3": {
+          "post_id": "dpo:103971:272254",
+          "version": 1,
+          "index": 3
+        },
+        "p16.s4": {
+          "post_id": "dpo:103971:272254",
+          "version": 1,
+          "index": 4
+        },
+        "p16.s5": {
+          "post_id": "dpo:103971:272254",
+          "version": 1,
+          "index": 5
+        },
+        "p16.s6": {
+          "post_id": "dpo:103971:272254",
+          "version": 1,
+          "index": 6
+        },
+        "p16.s7": {
+          "post_id": "dpo:103971:272254",
+          "version": 1,
+          "index": 7
+        },
+        "p16.s8": {
+          "post_id": "dpo:103971:272254",
+          "version": 1,
+          "index": 8
+        },
+        "p16.s9": {
+          "post_id": "dpo:103971:272254",
+          "version": 1,
+          "index": 9
+        },
+        "p16.s10": {
+          "post_id": "dpo:103971:272254",
+          "version": 1,
+          "index": 10
+        },
+        "p16.s11": {
+          "post_id": "dpo:103971:272254",
+          "version": 1,
+          "index": 11
+        },
+        "p16.s12": {
+          "post_id": "dpo:103971:272254",
+          "version": 1,
+          "index": 12
+        },
+        "p17.s1": {
+          "post_id": "dpo:103971:272290",
+          "version": 1,
+          "index": 1
+        },
+        "p17.s2": {
+          "post_id": "dpo:103971:272290",
+          "version": 1,
+          "index": 2
+        },
+        "p18.s1": {
+          "post_id": "dpo:103971:272298",
+          "version": 1,
+          "index": 1
+        },
+        "p18.s2": {
+          "post_id": "dpo:103971:272298",
+          "version": 1,
+          "index": 2
+        },
+        "p19.s1": {
+          "post_id": "dpo:103971:272371",
+          "version": 1,
+          "index": 1
+        },
+        "p19.s2": {
+          "post_id": "dpo:103971:272371",
+          "version": 1,
+          "index": 2
+        },
+        "p19.s3": {
+          "post_id": "dpo:103971:272371",
+          "version": 1,
+          "index": 3
+        },
+        "p19.s4": {
+          "post_id": "dpo:103971:272371",
+          "version": 1,
+          "index": 4
+        },
+        "p19.s5": {
+          "post_id": "dpo:103971:272371",
+          "version": 1,
+          "index": 5
+        },
+        "p19.s6": {
+          "post_id": "dpo:103971:272371",
+          "version": 1,
+          "index": 6
+        },
+        "p19.s7": {
+          "post_id": "dpo:103971:272371",
+          "version": 1,
+          "index": 7
+        },
+        "p20.s1": {
+          "post_id": "dpo:103971:272516",
+          "version": 1,
+          "index": 1
+        },
+        "p20.s2": {
+          "post_id": "dpo:103971:272516",
+          "version": 1,
+          "index": 2
+        },
+        "p20.s3": {
+          "post_id": "dpo:103971:272516",
+          "version": 1,
+          "index": 3
+        },
+        "p21.s1": {
+          "post_id": "dpo:103971:272527",
+          "version": 1,
+          "index": 1
+        },
+        "p21.s2": {
+          "post_id": "dpo:103971:272527",
+          "version": 1,
+          "index": 2
+        },
+        "p21.s3": {
+          "post_id": "dpo:103971:272527",
+          "version": 1,
+          "index": 3
+        },
+        "p21.s4": {
+          "post_id": "dpo:103971:272527",
+          "version": 1,
+          "index": 4
+        },
+        "p22.s1": {
+          "post_id": "dpo:103971:272543",
+          "version": 2,
+          "index": 1
+        },
+        "p22.s2": {
+          "post_id": "dpo:103971:272543",
+          "version": 2,
+          "index": 2
+        },
+        "p22.s3": {
+          "post_id": "dpo:103971:272543",
+          "version": 2,
+          "index": 3
+        },
+        "p22.s4": {
+          "post_id": "dpo:103971:272543",
+          "version": 2,
+          "index": 4
+        },
+        "p22.s5": {
+          "post_id": "dpo:103971:272543",
+          "version": 2,
+          "index": 5
+        },
+        "p22.s6": {
+          "post_id": "dpo:103971:272543",
+          "version": 2,
+          "index": 6
+        },
+        "p22.s7": {
+          "post_id": "dpo:103971:272543",
+          "version": 2,
+          "index": 7
+        },
+        "p23.s1": {
+          "post_id": "dpo:103971:273678",
+          "version": 1,
+          "index": 1
+        },
+        "p23.s2": {
+          "post_id": "dpo:103971:273678",
+          "version": 1,
+          "index": 2
+        },
+        "p23.s3": {
+          "post_id": "dpo:103971:273678",
+          "version": 1,
+          "index": 3
+        },
+        "p23.s4": {
+          "post_id": "dpo:103971:273678",
+          "version": 1,
+          "index": 4
+        },
+        "p23.s5": {
+          "post_id": "dpo:103971:273678",
+          "version": 1,
+          "index": 5
+        },
+        "p23.s6": {
+          "post_id": "dpo:103971:273678",
+          "version": 1,
+          "index": 6
+        },
+        "p23.s7": {
+          "post_id": "dpo:103971:273678",
+          "version": 1,
+          "index": 7
+        },
+        "p23.s8": {
+          "post_id": "dpo:103971:273678",
+          "version": 1,
+          "index": 8
+        },
+        "p24.s1": {
+          "post_id": "dpo:103971:274723",
+          "version": 2,
+          "index": 1
+        },
+        "p24.s2": {
+          "post_id": "dpo:103971:274723",
+          "version": 2,
+          "index": 2
+        },
+        "p24.s3": {
+          "post_id": "dpo:103971:274723",
+          "version": 2,
+          "index": 3
+        },
+        "p24.s4": {
+          "post_id": "dpo:103971:274723",
+          "version": 2,
+          "index": 4
+        },
+        "p24.s5": {
+          "post_id": "dpo:103971:274723",
+          "version": 2,
+          "index": 5
+        },
+        "p24.s6": {
+          "post_id": "dpo:103971:274723",
+          "version": 2,
+          "index": 6
+        },
+        "p24.s7": {
+          "post_id": "dpo:103971:274723",
+          "version": 2,
+          "index": 7
+        },
+        "p24.s8": {
+          "post_id": "dpo:103971:274723",
+          "version": 2,
+          "index": 8
+        },
+        "p24.s9": {
+          "post_id": "dpo:103971:274723",
+          "version": 2,
+          "index": 9
+        },
+        "p25.s1": {
+          "post_id": "dpo:103971:274788",
+          "version": 1,
+          "index": 1
+        },
+        "p25.s2": {
+          "post_id": "dpo:103971:274788",
+          "version": 1,
+          "index": 2
+        },
+        "p25.s3": {
+          "post_id": "dpo:103971:274788",
+          "version": 1,
+          "index": 3
+        },
+        "p25.s4": {
+          "post_id": "dpo:103971:274788",
+          "version": 1,
+          "index": 4
+        },
+        "p26.s1": {
+          "post_id": "dpo:103971:274812",
+          "version": 2,
+          "index": 1
+        },
+        "p26.s2": {
+          "post_id": "dpo:103971:274812",
+          "version": 2,
+          "index": 2
+        },
+        "p26.s3": {
+          "post_id": "dpo:103971:274812",
+          "version": 2,
+          "index": 3
+        },
+        "p27.s1": {
+          "post_id": "dpo:103971:291002",
+          "version": 1,
+          "index": 1
+        },
+        "p27.s2": {
+          "post_id": "dpo:103971:291002",
+          "version": 1,
+          "index": 2
+        },
+        "p27.s3": {
+          "post_id": "dpo:103971:291002",
+          "version": 1,
+          "index": 3
+        },
+        "p27.s4": {
+          "post_id": "dpo:103971:291002",
+          "version": 1,
+          "index": 4
+        },
+        "p27.s5": {
+          "post_id": "dpo:103971:291002",
+          "version": 1,
+          "index": 5
+        },
+        "p27.s6": {
+          "post_id": "dpo:103971:291002",
+          "version": 1,
+          "index": 6
+        },
+        "p27.s7": {
+          "post_id": "dpo:103971:291002",
+          "version": 1,
+          "index": 7
+        },
+        "p27.s8": {
+          "post_id": "dpo:103971:291002",
+          "version": 1,
+          "index": 8
+        },
+        "p27.s9": {
+          "post_id": "dpo:103971:291002",
+          "version": 1,
+          "index": 9
+        },
+        "p27.s10": {
+          "post_id": "dpo:103971:291002",
+          "version": 1,
+          "index": 10
+        },
+        "p27.s11": {
+          "post_id": "dpo:103971:291002",
+          "version": 1,
+          "index": 11
+        },
+        "p27.s12": {
+          "post_id": "dpo:103971:291002",
+          "version": 1,
+          "index": 12
+        },
+        "p28.s1": {
+          "post_id": "dpo:103971:291045",
+          "version": 1,
+          "index": 1
+        },
+        "p28.s2": {
+          "post_id": "dpo:103971:291045",
+          "version": 1,
+          "index": 2
+        },
+        "p28.s3": {
+          "post_id": "dpo:103971:291045",
+          "version": 1,
+          "index": 3
+        },
+        "p29.s1": {
+          "post_id": "dpo:103971:291055",
+          "version": 1,
+          "index": 1
+        },
+        "p29.s2": {
+          "post_id": "dpo:103971:291055",
+          "version": 1,
+          "index": 2
+        }
+      },
+      "source_allowlist": [
+        {
+          "post_id": "dpo:92939:250128",
+          "version": 1,
+          "sha256": "97e279a6fb60929697ce11b4d1bc59705be2689a4d1e186fc34594325d806c76"
+        },
+        {
+          "post_id": "dpo:92939:250130",
+          "version": 1,
+          "sha256": "25b104d24a72e1db5bba1021e8563aa851a7515366d40dc2727ca5d4e2a96d85"
+        },
+        {
+          "post_id": "dpo:92939:250132",
+          "version": 2,
+          "sha256": "e303ee8606c4e57865eeea2202bfd07ab0f892a45c915d4e31e013cb60dfaddd"
+        },
+        {
+          "post_id": "dpo:92939:250133",
+          "version": 1,
+          "sha256": "d46796759d6c06253e0724bfcffad2b5b935d1b0e867ec28f1fb8aa65f40c89f"
+        },
+        {
+          "post_id": "dpo:92939:250173",
+          "version": 1,
+          "sha256": "bed82beccc0c4aa004d92bae5899d481a9e8f9fc0bf9d118f8f7edfd9c23134f"
+        },
+        {
+          "post_id": "dpo:92939:250335",
+          "version": 1,
+          "sha256": "f3d5990bfe40c4851656d3298c7faf14a43be465a8ed8fae5b4fb6871ec4bfcd"
+        },
+        {
+          "post_id": "dpo:92939:250342",
+          "version": 1,
+          "sha256": "cc399f37aaa1fb3df98972865d5167680863afe681cf99ba17d7757be02f6524"
+        },
+        {
+          "post_id": "dpo:92939:250344",
+          "version": 1,
+          "sha256": "d983454697d7338549879db7599b991f2a7598b2233cb42b38c6a16fccd40c2e"
+        },
+        {
+          "post_id": "dpo:92939:250472",
+          "version": 1,
+          "sha256": "c575fc1470983dddfaf1359ae929e5d29432e1900a4a4df725a44f0227512161"
+        },
+        {
+          "post_id": "dpo:92939:250637",
+          "version": 1,
+          "sha256": "a4b3db4f6d315b48eb44b301fd8afb7c7752b13e6e78d58d66661ee9d4d001aa"
+        },
+        {
+          "post_id": "dpo:92939:250922",
+          "version": 1,
+          "sha256": "dbf9a385dbcecf4870c6bc425c5bd1484ddab2851fce917b957177977673b288"
+        },
+        {
+          "post_id": "dpo:92939:250924",
+          "version": 1,
+          "sha256": "b1ef3a249b1f31838d78c2ff5d902f6ea433ff48c930e95ec6c20e721eb3eacd"
+        },
+        {
+          "post_id": "dpo:92939:251240",
+          "version": 1,
+          "sha256": "78a8a85ca72ae5804db12ae63786f0f08f2eaa3c9fd3a0bc49a10bdff6092372"
+        },
+        {
+          "post_id": "dpo:92939:251337",
+          "version": 2,
+          "sha256": "292bae171b054a4465ce2a306b9d60db861a800bd4b9531cd69bbf31d881917a"
+        },
+        {
+          "post_id": "dpo:92939:251349",
+          "version": 1,
+          "sha256": "d083f901beb6f0cf34b4ed7f3d138891f1c078bbbf85580e875d79140fb76bd1"
+        },
+        {
+          "post_id": "dpo:103971:272254",
+          "version": 1,
+          "sha256": "ba08e41ad4164f4bc9be006494f91f8d305bd9cc2f52c63cf8d51ccc975e6740"
+        },
+        {
+          "post_id": "dpo:103971:272290",
+          "version": 1,
+          "sha256": "e7faf2a80eec45a8a9ac248a557043869135ee47de18df2909d1c6dfcf7f1aad"
+        },
+        {
+          "post_id": "dpo:103971:272298",
+          "version": 1,
+          "sha256": "826f14d1ad219acec1d2d8ec9e6aaa1b3f45b4b9dda5142675031ffcb9c0d3f1"
+        },
+        {
+          "post_id": "dpo:103971:272371",
+          "version": 1,
+          "sha256": "5e72e87a6b1f1836d0195a2fdfb5e62eaa319f3519796274a6f76950c6f0247f"
+        },
+        {
+          "post_id": "dpo:103971:272516",
+          "version": 1,
+          "sha256": "f062c8a93182667b0926f9ed65cb3461989880303458e10a12ef3e224c50df75"
+        },
+        {
+          "post_id": "dpo:103971:272527",
+          "version": 1,
+          "sha256": "50b959a2693a2d2f8df21cbb3419952caf01fd1370b7654fcb4daaca0ba848ca"
+        },
+        {
+          "post_id": "dpo:103971:272543",
+          "version": 2,
+          "sha256": "8aa36024f72c513ad8cda458bf16ff7d782d71b839cfb0ade05007315d9d7745"
+        },
+        {
+          "post_id": "dpo:103971:273678",
+          "version": 1,
+          "sha256": "ecd60ad1258fd898a8410d9093d80d8edad97553a8a4f2317d325ef2fbb724fc"
+        },
+        {
+          "post_id": "dpo:103971:274723",
+          "version": 2,
+          "sha256": "3e680ca3758c390b90e08d203d440d5fbbd3c27a3915aaf0a61b03055575846e"
+        },
+        {
+          "post_id": "dpo:103971:274788",
+          "version": 1,
+          "sha256": "fa6043f9a3279c0e20a1bf2628575a2692203bdd6ab0917554ad2440afcbf027"
+        },
+        {
+          "post_id": "dpo:103971:274812",
+          "version": 2,
+          "sha256": "0ac226a60ff301f81796144b8329c8deca26b5be0b66d85656ae8ec720253689"
+        },
+        {
+          "post_id": "dpo:103971:291002",
+          "version": 1,
+          "sha256": "d50aa37e90cbcd90155efa57cab41dbceceb95bb9a29b3b4ecd1e5d623a0e62f"
+        },
+        {
+          "post_id": "dpo:103971:291045",
+          "version": 1,
+          "sha256": "d92e2f9795b90ba57dfbdfa3d87e13fa5bc0512ac35ba7c62df323cea4e9ee53"
+        },
+        {
+          "post_id": "dpo:103971:291055",
+          "version": 1,
+          "sha256": "9691106c4db8ab03695aa66740be4bbd61145fc2d0bc64b65dd0b7ba23e8b30b"
+        }
+      ]
+    }
+  }
+]

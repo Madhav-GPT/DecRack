@@ -1,0 +1,46 @@
+[
+  {
+    "gold_id": "pep799-r1",
+    "idea": "Renaming cProfile",
+    "recoverable": null,
+    "matched": false,
+    "option_key": "A5",
+    "title": "Use a decorator",
+    "status": "rejected",
+    "status_kind": "inferred",
+    "score": 0.188
+  },
+  {
+    "gold_id": "pep799-r2",
+    "idea": "Using profilers as the Module Name",
+    "recoverable": null,
+    "matched": false,
+    "option_key": "A5",
+    "title": "Use a decorator",
+    "status": "rejected",
+    "status_kind": "inferred",
+    "score": 0.245
+  },
+  {
+    "gold_id": "pep799-r3",
+    "idea": "Multiple Names for the Sampling Profiler",
+    "recoverable": null,
+    "matched": false,
+    "option_key": "A5",
+    "title": "Use a decorator",
+    "status": "rejected",
+    "status_kind": "inferred",
+    "score": 0.364
+  },
+  {
+    "gold_id": "pep799-r4",
+    "idea": "Top-Level tachyon Module",
+    "recoverable": null,
+    "matched": false,
+    "option_key": "A5",
+    "title": "Use a decorator",
+    "status": "rejected",
+    "status_kind": "inferred",
+    "score": 0.103
+  }
+]

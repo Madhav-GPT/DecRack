@@ -1,0 +1,2091 @@
+{
+  "id": "pep:830",
+  "kind": "discourse",
+  "url": "https://discuss.python.org/t/pep-830-add-timestamps-to-exceptions-and-tracebacks/106942",
+  "title": "PEP 830: Add timestamps to exceptions and tracebacks",
+  "posts": [
+    {
+      "id": "dpo:106942:290074",
+      "source_id": "dpo:t106942",
+      "source_post_number": 1,
+      "seq": 1,
+      "version": 1,
+      "author": "gpshead",
+      "role": "author",
+      "created_at": "2026-04-12T20:36:43.018000Z",
+      "reply_to": null,
+      "quotes": [],
+      "url": "https://discuss.python.org/t/pep-830-add-timestamps-to-exceptions-and-tracebacks/106942/1",
+      "text": "This PEP adds an optional timestamp to all exceptions that records when the exception was instantiated with no observable overhead. When enabled via environment variable or command-line flag, formatted tracebacks display this timestamp alongside the exception message.\n\nIf you’ve ever debugged a production Python system involving many forms of concurrency and wished you had more information about what happened when, this PEP may be for you. The point at which an exception is logged or rendered with a logging system supplied timestamp is often not the same as the time it happened.\n\nIf you never debug complex applications like that, you won’t even notice that this feature exists. It is off by default, to be enabled only by those in environments who feel the above pain. Win win.",
+      "sentences": [
+        "This PEP adds an optional timestamp to all exceptions that records when the exception was instantiated with no observable overhead.",
+        "When enabled via environment variable or command-line flag, formatted tracebacks display this timestamp alongside the exception message.",
+        "If you’ve ever debugged a production Python system involving many forms of concurrency and wished you had more information about what happened when, this PEP may be for you.",
+        "The point at which an exception is logged or rendered with a logging system supplied timestamp is often not the same as the time it happened.",
+        "If you never debug complex applications like that, you won’t even notice that this feature exists.",
+        "It is off by default, to be enabled only by those in environments who feel the above pain.",
+        "Win win."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 131
+        },
+        {
+          "index": 2,
+          "start": 132,
+          "end": 268
+        },
+        {
+          "index": 3,
+          "start": 270,
+          "end": 443
+        },
+        {
+          "index": 4,
+          "start": 444,
+          "end": 585
+        },
+        {
+          "index": 5,
+          "start": 587,
+          "end": 685
+        },
+        {
+          "index": 6,
+          "start": 686,
+          "end": 776
+        },
+        {
+          "index": 7,
+          "start": 777,
+          "end": 785
+        }
+      ],
+      "sha256": "25719f1f45e2cd897fd2cc0c87b19901f9cbfdcfd2de95afc09638ce64ebe155",
+      "meta": {
+        "topic_id": 106942,
+        "post_number": 1,
+        "username": "gpshead",
+        "name": "Gregory P. Smith",
+        "user_title": "CPython core developer",
+        "flair_name": "committers",
+        "primary_group_name": "committers",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": null,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:106942:290075",
+      "source_id": "dpo:t106942",
+      "source_post_number": 2,
+      "seq": 2,
+      "version": 1,
+      "author": "iritkatriel",
+      "role": "maintainer",
+      "created_at": "2026-04-12T21:01:31.079000Z",
+      "reply_to": null,
+      "quotes": [],
+      "url": "https://discuss.python.org/t/pep-830-add-timestamps-to-exceptions-and-tracebacks/106942/2",
+      "text": "I think the time it was raised may be more interesting than the time it was instantiated.",
+      "sentences": [
+        "I think the time it was raised may be more interesting than the time it was instantiated."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 89
+        }
+      ],
+      "sha256": "afd534ee819fa1c500b40cd6acfd11472359f763e7d7b22a4807c81e5e1427d5",
+      "meta": {
+        "topic_id": 106942,
+        "post_number": 2,
+        "username": "iritkatriel",
+        "name": "Irit Katriel",
+        "user_title": "CPython core developer",
+        "flair_name": "committers",
+        "primary_group_name": "committers",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": null,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:106942:290077",
+      "source_id": "dpo:t106942",
+      "source_post_number": 3,
+      "seq": 3,
+      "version": 1,
+      "author": "bwoodsend",
+      "role": "participant",
+      "created_at": "2026-04-12T22:08:47.282000Z",
+      "reply_to": null,
+      "quotes": [],
+      "url": "https://discuss.python.org/t/pep-830-add-timestamps-to-exceptions-and-tracebacks/106942/3",
+      "text": "Can this not already be done with something like:\n\n```\ndef excepthook(exctype, value, traceback):\n    value.add_note(f\"Raised at {datetime.now()}\")\n    sys.__excepthook__(exctype, value, traceback)\n\nsys.excepthook = excepthook\n\n```\n\n(P.S. It would help if the example in the PEP was self contained so I could try it.)",
+      "sentences": [
+        "Can this not already be done with something like:",
+        "```\ndef excepthook(exctype, value, traceback):\n    value.add_note(f\"Raised at {datetime.now()}\")\n    sys.__excepthook__(exctype, value, traceback)\n\nsys.excepthook = excepthook\n\n```",
+        "(P.S.",
+        "It would help if the example in the PEP was self contained so I could try it.)"
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 49
+        },
+        {
+          "index": 2,
+          "start": 51,
+          "end": 231
+        },
+        {
+          "index": 3,
+          "start": 233,
+          "end": 238
+        },
+        {
+          "index": 4,
+          "start": 239,
+          "end": 317
+        }
+      ],
+      "sha256": "c44289f27e0997c647db7a2b39f5aa5473860a64ded469b40a0d3e3cc2c403fa",
+      "meta": {
+        "topic_id": 106942,
+        "post_number": 3,
+        "username": "bwoodsend",
+        "name": "Brénainn Woodsend",
+        "user_title": "",
+        "flair_name": "",
+        "primary_group_name": "",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": null,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:106942:290078",
+      "source_id": "dpo:t106942",
+      "source_post_number": 4,
+      "seq": 4,
+      "version": 1,
+      "author": "ncoghlan",
+      "role": "maintainer",
+      "created_at": "2026-04-12T22:10:38.114000Z",
+      "reply_to": "dpo:106942:290075",
+      "quotes": [
+        "dpo:106942:290075"
+      ],
+      "url": "https://discuss.python.org/t/pep-830-add-timestamps-to-exceptions-and-tracebacks/106942/4",
+      "text": "That would be a more intrusive change, though, as the interpreter loop would need to store the info somewhere else until the exception was instantiated when a stateless exception is raised by type.\n\nUser code can also force the two times to match by instantiating when raising (which is necessarily the case for stateful exceptions).",
+      "sentences": [
+        "That would be a more intrusive change, though, as the interpreter loop would need to store the info somewhere else until the exception was instantiated when a stateless exception is raised by type.",
+        "User code can also force the two times to match by instantiating when raising (which is necessarily the case for stateful exceptions)."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 197
+        },
+        {
+          "index": 2,
+          "start": 199,
+          "end": 333
+        }
+      ],
+      "sha256": "249419e8a8bc2b2ab33904befed5c589eb572e672b9fb647a5a78d3e60d4d9f6",
+      "meta": {
+        "topic_id": 106942,
+        "post_number": 4,
+        "username": "ncoghlan",
+        "name": "Alyssa Coghlan",
+        "user_title": "CPython core developer",
+        "flair_name": "committers",
+        "primary_group_name": "committers",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": 2,
+        "quote_refs": [
+          [
+            106942,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "id": "dpo:106942:290080",
+      "source_id": "dpo:t106942",
+      "source_post_number": 5,
+      "seq": 5,
+      "version": 1,
+      "author": "iritkatriel",
+      "role": "maintainer",
+      "created_at": "2026-04-12T22:46:51.770000Z",
+      "reply_to": "dpo:106942:290078",
+      "quotes": [
+        "dpo:106942:290078"
+      ],
+      "url": "https://discuss.python.org/t/pep-830-add-timestamps-to-exceptions-and-tracebacks/106942/5",
+      "text": "I think it can attach the timestamp in `do_raise` (see here) just after the raised type is instantiated.\n\nI was thinking about cases where the exception is created before the raise. Maybe it’s returned from some function, cached, and raised somewhere else at a later time. It’s also possible to raise the same exception instance more than once. And of course we would need to defined whether the timestamp is overwritten in a reraise (a naked raise or an explicit `raise e’). Setting the timestamp at object creation time bypasses these question because the object is only created once. But I’m questioning why that is the most semantically meaningful timestamp to use here.",
+      "sentences": [
+        "I think it can attach the timestamp in `do_raise` (see here) just after the raised type is instantiated.",
+        "I was thinking about cases where the exception is created before the raise.",
+        "Maybe it’s returned from some function, cached, and raised somewhere else at a later time.",
+        "It’s also possible to raise the same exception instance more than once.",
+        "And of course we would need to defined whether the timestamp is overwritten in a reraise (a naked raise or an explicit `raise e’).",
+        "Setting the timestamp at object creation time bypasses these question because the object is only created once.",
+        "But I’m questioning why that is the most semantically meaningful timestamp to use here."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 104
+        },
+        {
+          "index": 2,
+          "start": 106,
+          "end": 181
+        },
+        {
+          "index": 3,
+          "start": 182,
+          "end": 272
+        },
+        {
+          "index": 4,
+          "start": 273,
+          "end": 344
+        },
+        {
+          "index": 5,
+          "start": 345,
+          "end": 475
+        },
+        {
+          "index": 6,
+          "start": 476,
+          "end": 586
+        },
+        {
+          "index": 7,
+          "start": 587,
+          "end": 674
+        }
+      ],
+      "sha256": "5d9307a506478bd9967c201a79b016239a3f8218d75ba400936a08c582a2b001",
+      "meta": {
+        "topic_id": 106942,
+        "post_number": 5,
+        "username": "iritkatriel",
+        "name": "Irit Katriel",
+        "user_title": "CPython core developer",
+        "flair_name": "committers",
+        "primary_group_name": "committers",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": 4,
+        "quote_refs": [
+          [
+            106942,
+            4
+          ],
+          [
+            106942,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "id": "dpo:106942:290084",
+      "source_id": "dpo:t106942",
+      "source_post_number": 6,
+      "seq": 6,
+      "version": 1,
+      "author": "gpshead",
+      "role": "author",
+      "created_at": "2026-04-12T23:57:08.706000Z",
+      "reply_to": "dpo:106942:290080",
+      "quotes": [],
+      "url": "https://discuss.python.org/t/pep-830-add-timestamps-to-exceptions-and-tracebacks/106942/6",
+      "text": "How often does code actually have a distinction between time of instantiation and time of raise in practice?\n\nI understand it is possible to do a bare `raise SomeExceptionType` without an immediately constructing `(”message”)` argument I believe causes this. But that one doesn’t matter, `do_raise` immediately calls it to do the instantiation. Nevermind that bare raises without `()` don’t feel like a normal idiom I’ve seen in code since basically forever. Even in the C API, the `PyErr_Set*` APIs do the same thing from what I can tell by calling `_PyErr_CreateException`. It seems like most everything normalizes the exception into an instance pretty quickly.\n\nDoes anyone have practical in-use examples of code creating an exception instance well before the raise, or even the unsatisfiable pattern of (eek!) re-using a pre-created exception instance across many disconnected raises? I believe we do this internally for some last-ditch `MemoryError` situations, but that’s a special case that seems fine to ignore. It is certainly possible for people to write code in Python or C that does it. But why would anyone?\n\nPEP-830 update TODO: We should probably explicitly zero out any singleton exception instance timestamps we have in our own internals.\n\nRegardless, while pondering that I’m going to go brush up on the `ceval.h::do_raise` path to better understand possibilities.",
+      "sentences": [
+        "How often does code actually have a distinction between time of instantiation and time of raise in practice?",
+        "I understand it is possible to do a bare `raise SomeExceptionType` without an immediately constructing `(”message”)` argument I believe causes this.",
+        "But that one doesn’t matter, `do_raise` immediately calls it to do the instantiation.",
+        "Nevermind that bare raises without `()` don’t feel like a normal idiom I’ve seen in code since basically forever.",
+        "Even in the C API, the `PyErr_Set*` APIs do the same thing from what I can tell by calling `_PyErr_CreateException`.",
+        "It seems like most everything normalizes the exception into an instance pretty quickly.",
+        "Does anyone have practical in-use examples of code creating an exception instance well before the raise, or even the unsatisfiable pattern of (eek!) re-using a pre-created exception instance across many disconnected raises?",
+        "I believe we do this internally for some last-ditch `MemoryError` situations, but that’s a special case that seems fine to ignore.",
+        "It is certainly possible for people to write code in Python or C that does it.",
+        "But why would anyone?",
+        "PEP-830 update TODO: We should probably explicitly zero out any singleton exception instance timestamps we have in our own internals.",
+        "Regardless, while pondering that I’m going to go brush up on the `ceval.h::do_raise` path to better understand possibilities."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 108
+        },
+        {
+          "index": 2,
+          "start": 110,
+          "end": 258
+        },
+        {
+          "index": 3,
+          "start": 259,
+          "end": 344
+        },
+        {
+          "index": 4,
+          "start": 345,
+          "end": 458
+        },
+        {
+          "index": 5,
+          "start": 459,
+          "end": 575
+        },
+        {
+          "index": 6,
+          "start": 576,
+          "end": 663
+        },
+        {
+          "index": 7,
+          "start": 665,
+          "end": 888
+        },
+        {
+          "index": 8,
+          "start": 889,
+          "end": 1019
+        },
+        {
+          "index": 9,
+          "start": 1020,
+          "end": 1098
+        },
+        {
+          "index": 10,
+          "start": 1099,
+          "end": 1120
+        },
+        {
+          "index": 11,
+          "start": 1122,
+          "end": 1255
+        },
+        {
+          "index": 12,
+          "start": 1257,
+          "end": 1382
+        }
+      ],
+      "sha256": "7e773704e5e43c4ca60a433059982cad7b561d1a1d7113034237f63dc10f3b5e",
+      "meta": {
+        "topic_id": 106942,
+        "post_number": 6,
+        "username": "gpshead",
+        "name": "Gregory P. Smith",
+        "user_title": "CPython core developer",
+        "flair_name": "committers",
+        "primary_group_name": "committers",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": 5,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:106942:290085",
+      "source_id": "dpo:t106942",
+      "source_post_number": 7,
+      "seq": 7,
+      "version": 1,
+      "author": "gpshead",
+      "role": "author",
+      "created_at": "2026-04-12T23:59:36.970000Z",
+      "reply_to": "dpo:106942:290084",
+      "quotes": [],
+      "url": "https://discuss.python.org/t/pep-830-add-timestamps-to-exceptions-and-tracebacks/106942/7",
+      "text": "This is also one of those areas where trying to be perfect could be not worthwhile. I expect instantiation time will cover the bulk of use cases. If we find otherwise through experience we could change how the time collection is done.",
+      "sentences": [
+        "This is also one of those areas where trying to be perfect could be not worthwhile.",
+        "I expect instantiation time will cover the bulk of use cases.",
+        "If we find otherwise through experience we could change how the time collection is done."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 83
+        },
+        {
+          "index": 2,
+          "start": 84,
+          "end": 145
+        },
+        {
+          "index": 3,
+          "start": 146,
+          "end": 234
+        }
+      ],
+      "sha256": "c1a7c2a36c67321d3d19a7b54465813e9457b656c5c63b118c40bb64f777b0b2",
+      "meta": {
+        "topic_id": 106942,
+        "post_number": 7,
+        "username": "gpshead",
+        "name": "Gregory P. Smith",
+        "user_title": "CPython core developer",
+        "flair_name": "committers",
+        "primary_group_name": "committers",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": 6,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:106942:290086",
+      "source_id": "dpo:t106942",
+      "source_post_number": 8,
+      "seq": 8,
+      "version": 1,
+      "author": "Rosuav",
+      "role": "participant",
+      "created_at": "2026-04-13T00:04:50.109000Z",
+      "reply_to": null,
+      "quotes": [],
+      "url": "https://discuss.python.org/t/pep-830-add-timestamps-to-exceptions-and-tracebacks/106942/8",
+      "text": "What are the consequences on internal-use exceptions like `StopIteration`? Querying the time of day takes a notable amount of time:\n\n```\nrosuav@sikorsky:~$ python3 -m timeit -s 'from time import time' 'time()'\n10000000 loops, best of 5: 24 nsec per loop\nrosuav@sikorsky:~$ python3 -m timeit -s 'from time import time' 'for _ in (): pass'\n50000000 loops, best of 5: 5.87 nsec per loop\nrosuav@sikorsky:~$ python3 -m timeit -s 'def time(): pass' 'time()'\n20000000 loops, best of 5: 11.7 nsec per loop\n\n```\n\nand I’d hope that this can be avoided in these situations.",
+      "sentences": [
+        "What are the consequences on internal-use exceptions like `StopIteration`?",
+        "Querying the time of day takes a notable amount of time:",
+        "```\nrosuav@sikorsky:~$ python3 -m timeit -s 'from time import time' 'time()'\n10000000 loops, best of 5: 24 nsec per loop\nrosuav@sikorsky:~$ python3 -m timeit -s 'from time import time' 'for _ in (): pass'\n50000000 loops, best of 5: 5.87 nsec per loop\nrosuav@sikorsky:~$ python3 -m timeit -s 'def time(): pass' 'time()'\n20000000 loops, best of 5: 11.7 nsec per loop\n\n```",
+        "and I’d hope that this can be avoided in these situations."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 74
+        },
+        {
+          "index": 2,
+          "start": 75,
+          "end": 131
+        },
+        {
+          "index": 3,
+          "start": 133,
+          "end": 502
+        },
+        {
+          "index": 4,
+          "start": 504,
+          "end": 562
+        }
+      ],
+      "sha256": "17ea51638f05d0ff570f6479e61f80bba69b1298def568ce3e14bec06001e125",
+      "meta": {
+        "topic_id": 106942,
+        "post_number": 8,
+        "username": "Rosuav",
+        "name": "Chris Angelico",
+        "user_title": "",
+        "flair_name": "",
+        "primary_group_name": "",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": null,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:106942:290087",
+      "source_id": "dpo:t106942",
+      "source_post_number": 9,
+      "seq": 9,
+      "version": 1,
+      "author": "gpshead",
+      "role": "author",
+      "created_at": "2026-04-13T00:05:03.840000Z",
+      "reply_to": "dpo:106942:290086",
+      "quotes": [],
+      "url": "https://discuss.python.org/t/pep-830-add-timestamps-to-exceptions-and-tracebacks/106942/9",
+      "text": "did you read the PEP? (ie: StopIteration and StopAsyncIteration needs are answered in there already, yes this was worth considering and is a special case!)",
+      "sentences": [
+        "did you read the PEP? (ie: StopIteration and StopAsyncIteration needs are answered in there already, yes this was worth considering and is a special case!)"
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 155
+        }
+      ],
+      "sha256": "f9dede19fc19f9a878a820a0a6a61bc01459aeaead18b167bd61e32f462c5d4a",
+      "meta": {
+        "topic_id": 106942,
+        "post_number": 9,
+        "username": "gpshead",
+        "name": "Gregory P. Smith",
+        "user_title": "CPython core developer",
+        "flair_name": "committers",
+        "primary_group_name": "committers",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": 8,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:106942:290088",
+      "source_id": "dpo:t106942",
+      "source_post_number": 10,
+      "seq": 10,
+      "version": 1,
+      "author": "gpshead",
+      "role": "author",
+      "created_at": "2026-04-13T00:10:21.142000Z",
+      "reply_to": "dpo:106942:290084",
+      "quotes": [],
+      "url": "https://discuss.python.org/t/pep-830-add-timestamps-to-exceptions-and-tracebacks/106942/10",
+      "text": "Regarding ceval’s `do_raise` - that probably isn’t the touchpoint to do it if we wanted time of raise rather than instantiation as it is eval loop focused.\n\nBut I think `Python/errors.c::_PyErr_SetRaisedException` might be. Assuming everything goes through that rather than diddling with `tstate->current_exception` directly (which feels like a hard assumption to make, though it appears true by my ripgrepping).",
+      "sentences": [
+        "Regarding ceval’s `do_raise` - that probably isn’t the touchpoint to do it if we wanted time of raise rather than instantiation as it is eval loop focused.",
+        "But I think `Python/errors.c::_PyErr_SetRaisedException` might be.",
+        "Assuming everything goes through that rather than diddling with `tstate->current_exception` directly (which feels like a hard assumption to make, though it appears true by my ripgrepping)."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 155
+        },
+        {
+          "index": 2,
+          "start": 157,
+          "end": 223
+        },
+        {
+          "index": 3,
+          "start": 224,
+          "end": 412
+        }
+      ],
+      "sha256": "662b39ee58acff9386f7a76760ecc00f04bbbb47cc9b806a1116c0c1c099570f",
+      "meta": {
+        "topic_id": 106942,
+        "post_number": 10,
+        "username": "gpshead",
+        "name": "Gregory P. Smith",
+        "user_title": "CPython core developer",
+        "flair_name": "committers",
+        "primary_group_name": "committers",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": 6,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:106942:290089",
+      "source_id": "dpo:t106942",
+      "source_post_number": 11,
+      "seq": 11,
+      "version": 1,
+      "author": "dr_carlos",
+      "role": "participant",
+      "created_at": "2026-04-13T00:26:05.034000Z",
+      "reply_to": "dpo:106942:290084",
+      "quotes": [
+        "dpo:106942:290084"
+      ],
+      "url": "https://discuss.python.org/t/pep-830-add-timestamps-to-exceptions-and-tracebacks/106942/11",
+      "text": "I have written code which ‘asserts’ a bunch of things by instantiating a exceptions throughout a function, adding them to a list and then raising them as an `ExceptionGroup` at the end. This removes the extra step of raising the exception each time, catching it, only to add it to an exception group. I’m not sure if this is best practice or anything, but it’s a pattern that works for me.\n\nSo if the timestamp is added at raise-time, I think this PEP would no longer cover such exceptions as they are never actually raised. I’m not sure if this is a good or a bad thing, just something to consider.",
+      "sentences": [
+        "I have written code which ‘asserts’ a bunch of things by instantiating a exceptions throughout a function, adding them to a list and then raising them as an `ExceptionGroup` at the end.",
+        "This removes the extra step of raising the exception each time, catching it, only to add it to an exception group.",
+        "I’m not sure if this is best practice or anything, but it’s a pattern that works for me.",
+        "So if the timestamp is added at raise-time, I think this PEP would no longer cover such exceptions as they are never actually raised.",
+        "I’m not sure if this is a good or a bad thing, just something to consider."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 185
+        },
+        {
+          "index": 2,
+          "start": 186,
+          "end": 300
+        },
+        {
+          "index": 3,
+          "start": 301,
+          "end": 389
+        },
+        {
+          "index": 4,
+          "start": 391,
+          "end": 524
+        },
+        {
+          "index": 5,
+          "start": 525,
+          "end": 599
+        }
+      ],
+      "sha256": "a742233d197bff44baf1e3d7e20f5a7823127e4ca288a95e10c4300427f1261c",
+      "meta": {
+        "topic_id": 106942,
+        "post_number": 11,
+        "username": "dr_carlos",
+        "name": "Carlos",
+        "user_title": "",
+        "flair_name": "",
+        "primary_group_name": "",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": 6,
+        "quote_refs": [
+          [
+            106942,
+            6
+          ]
+        ]
+      }
+    },
+    {
+      "id": "dpo:106942:290093",
+      "source_id": "dpo:t106942",
+      "source_post_number": 12,
+      "seq": 12,
+      "version": 1,
+      "author": "Rosuav",
+      "role": "participant",
+      "created_at": "2026-04-13T02:23:33.286000Z",
+      "reply_to": "dpo:106942:290087",
+      "quotes": [
+        "dpo:106942:290087"
+      ],
+      "url": "https://discuss.python.org/t/pep-830-add-timestamps-to-exceptions-and-tracebacks/106942/12",
+      "text": "Doh. I did skim it, and I was thinking initially about some others like AttributeError, but then when I went to make the point about the time cost, I switched to StopIteration because it’s easier to demonstrate. So, yes, that particular one IS handled (yay!). What I should have asked is: will things like `hasattr` calls become slower because of internal time queries?\n\n```\nrosuav@sikorsky:~$ python3 -m timeit -s 'from time import time' 'time()'\n10000000 loops, best of 5: 23.8 nsec per loop\nrosuav@sikorsky:~$ python3 -m timeit 'hasattr(None, \"test\")'\n20000000 loops, best of 5: 14.4 nsec per loop\n\n```\n\nSame applies (I think??) to `dict.setdefault` and `__missing__`. And maybe I should have stuck with my original thought, since that would have shown me that the time cost isn’t nearly as distinct.",
+      "sentences": [
+        "Doh.",
+        "I did skim it, and I was thinking initially about some others like AttributeError, but then when I went to make the point about the time cost, I switched to StopIteration because it’s easier to demonstrate.",
+        "So, yes, that particular one IS handled (yay!).",
+        "What I should have asked is: will things like `hasattr` calls become slower because of internal time queries?",
+        "```\nrosuav@sikorsky:~$ python3 -m timeit -s 'from time import time' 'time()'\n10000000 loops, best of 5: 23.8 nsec per loop\nrosuav@sikorsky:~$ python3 -m timeit 'hasattr(None, \"test\")'\n20000000 loops, best of 5: 14.4 nsec per loop\n\n```",
+        "Same applies (I think??) to `dict.setdefault` and `__missing__`.",
+        "And maybe I should have stuck with my original thought, since that would have shown me that the time cost isn’t nearly as distinct."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 4
+        },
+        {
+          "index": 2,
+          "start": 5,
+          "end": 211
+        },
+        {
+          "index": 3,
+          "start": 212,
+          "end": 259
+        },
+        {
+          "index": 4,
+          "start": 260,
+          "end": 369
+        },
+        {
+          "index": 5,
+          "start": 371,
+          "end": 605
+        },
+        {
+          "index": 6,
+          "start": 607,
+          "end": 671
+        },
+        {
+          "index": 7,
+          "start": 672,
+          "end": 803
+        }
+      ],
+      "sha256": "5e009e3c2dc73fb6cbecd6fb25d83b90d60f55b9241fda8427c7cc695614e688",
+      "meta": {
+        "topic_id": 106942,
+        "post_number": 12,
+        "username": "Rosuav",
+        "name": "Chris Angelico",
+        "user_title": "",
+        "flair_name": "",
+        "primary_group_name": "",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": 9,
+        "quote_refs": [
+          [
+            106942,
+            9
+          ]
+        ]
+      }
+    },
+    {
+      "id": "dpo:106942:290106",
+      "source_id": "dpo:t106942",
+      "source_post_number": 13,
+      "seq": 13,
+      "version": 1,
+      "author": "iritkatriel",
+      "role": "maintainer",
+      "created_at": "2026-04-13T07:09:04.500000Z",
+      "reply_to": "dpo:106942:290084",
+      "quotes": [
+        "dpo:106942:290084"
+      ],
+      "url": "https://discuss.python.org/t/pep-830-add-timestamps-to-exceptions-and-tracebacks/106942/13",
+      "text": "By ‘bare raise’ I meant a `raise` without args (reraise currently handled exception).\n\nI’m not concerned about the case of raising a type, it gets instantiated almost immediately so I don’t see a difference.",
+      "sentences": [
+        "By ‘bare raise’ I meant a `raise` without args (reraise currently handled exception).",
+        "I’m not concerned about the case of raising a type, it gets instantiated almost immediately so I don’t see a difference."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 85
+        },
+        {
+          "index": 2,
+          "start": 87,
+          "end": 207
+        }
+      ],
+      "sha256": "ba6a5d2fdbc4f094d66ff5307e0bd4984810b623a7d10c2dc48af5985ec5d6a0",
+      "meta": {
+        "topic_id": 106942,
+        "post_number": 13,
+        "username": "iritkatriel",
+        "name": "Irit Katriel",
+        "user_title": "CPython core developer",
+        "flair_name": "committers",
+        "primary_group_name": "committers",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": 6,
+        "quote_refs": [
+          [
+            106942,
+            6
+          ]
+        ]
+      }
+    },
+    {
+      "id": "dpo:106942:290135",
+      "source_id": "dpo:t106942",
+      "source_post_number": 14,
+      "seq": 14,
+      "version": 1,
+      "author": "AndersMunch",
+      "role": "participant",
+      "created_at": "2026-04-13T14:40:04.204000Z",
+      "reply_to": null,
+      "quotes": [],
+      "url": "https://discuss.python.org/t/pep-830-add-timestamps-to-exceptions-and-tracebacks/106942/14",
+      "text": "About this:\n\nA Python API to toggle timestamps at runtime is unnecessary complexity. Applications that want timestamps are expected to enable them in their environment; a runtime toggle would make it harder to reason about program state.\n\nCould we please not add features to Python that are managed from outside of Python, and can only be managed from outside of Python, unless the nature of the feature necessitates it? I want to program in Python, not in shell script.",
+      "sentences": [
+        "About this:",
+        "A Python API to toggle timestamps at runtime is unnecessary complexity.",
+        "Applications that want timestamps are expected to enable them in their environment; a runtime toggle would make it harder to reason about program state.",
+        "Could we please not add features to Python that are managed from outside of Python, and can only be managed from outside of Python, unless the nature of the feature necessitates it?",
+        "I want to program in Python, not in shell script."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 11
+        },
+        {
+          "index": 2,
+          "start": 13,
+          "end": 84
+        },
+        {
+          "index": 3,
+          "start": 85,
+          "end": 237
+        },
+        {
+          "index": 4,
+          "start": 239,
+          "end": 420
+        },
+        {
+          "index": 5,
+          "start": 421,
+          "end": 470
+        }
+      ],
+      "sha256": "9315d5cbeb6adfd82cd3fccc7853804a7aed6fe7f42b5f422ce7788625f79b02",
+      "meta": {
+        "topic_id": 106942,
+        "post_number": 14,
+        "username": "AndersMunch",
+        "name": "Anders Munch",
+        "user_title": "",
+        "flair_name": "",
+        "primary_group_name": "",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": null,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:106942:290141",
+      "source_id": "dpo:t106942",
+      "source_post_number": 15,
+      "seq": 15,
+      "version": 1,
+      "author": "gpshead",
+      "role": "author",
+      "created_at": "2026-04-13T16:02:42.551000Z",
+      "reply_to": "dpo:106942:290106",
+      "quotes": [
+        "dpo:106942:290106"
+      ],
+      "url": "https://discuss.python.org/t/pep-830-add-timestamps-to-exceptions-and-tracebacks/106942/15",
+      "text": "The currently handled exception already has a timestamp and the original place it was raised from is the correct place for the time to have been recorded.",
+      "sentences": [
+        "The currently handled exception already has a timestamp and the original place it was raised from is the correct place for the time to have been recorded."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 154
+        }
+      ],
+      "sha256": "3f58dad367d0da85e3d2784b1061f3554bba7c0dc29240629c782358e4eee514",
+      "meta": {
+        "topic_id": 106942,
+        "post_number": 15,
+        "username": "gpshead",
+        "name": "Gregory P. Smith",
+        "user_title": "CPython core developer",
+        "flair_name": "committers",
+        "primary_group_name": "committers",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": 13,
+        "quote_refs": [
+          [
+            106942,
+            13
+          ]
+        ]
+      }
+    },
+    {
+      "id": "dpo:106942:290143",
+      "source_id": "dpo:t106942",
+      "source_post_number": 16,
+      "seq": 16,
+      "version": 1,
+      "author": "gpshead",
+      "role": "author",
+      "created_at": "2026-04-13T16:11:00.920000Z",
+      "reply_to": "dpo:106942:290080",
+      "quotes": [
+        "dpo:106942:290080"
+      ],
+      "url": "https://discuss.python.org/t/pep-830-add-timestamps-to-exceptions-and-tracebacks/106942/16",
+      "text": "Okay so I gather this is what you were talking about in regards to the bare `raise` that reraises the currently being handled exception as one example. I do not think it is solvable to store a timestamp at every point a raise happens (complex and generally not necessary). It either needs to be time of instantiation, or time of first raise. Time of most recent raise could be far removed from the appropriate spot even in perfectly linear chains of exception handlers doing a reraise after running additional logic. It’s an interesting thought to record each of the re-raises along the way, but no longer trivial.",
+      "sentences": [
+        "Okay so I gather this is what you were talking about in regards to the bare `raise` that reraises the currently being handled exception as one example.",
+        "I do not think it is solvable to store a timestamp at every point a raise happens (complex and generally not necessary).",
+        "It either needs to be time of instantiation, or time of first raise.",
+        "Time of most recent raise could be far removed from the appropriate spot even in perfectly linear chains of exception handlers doing a reraise after running additional logic.",
+        "It’s an interesting thought to record each of the re-raises along the way, but no longer trivial."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 151
+        },
+        {
+          "index": 2,
+          "start": 152,
+          "end": 272
+        },
+        {
+          "index": 3,
+          "start": 273,
+          "end": 341
+        },
+        {
+          "index": 4,
+          "start": 342,
+          "end": 516
+        },
+        {
+          "index": 5,
+          "start": 517,
+          "end": 614
+        }
+      ],
+      "sha256": "56168e8ba47ac9cbcfedad01b0af992a2ba411a42deed8c3dab87956abc91f5c",
+      "meta": {
+        "topic_id": 106942,
+        "post_number": 16,
+        "username": "gpshead",
+        "name": "Gregory P. Smith",
+        "user_title": "CPython core developer",
+        "flair_name": "committers",
+        "primary_group_name": "committers",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": 5,
+        "quote_refs": [
+          [
+            106942,
+            5
+          ]
+        ]
+      }
+    },
+    {
+      "id": "dpo:106942:290148",
+      "source_id": "dpo:t106942",
+      "source_post_number": 17,
+      "seq": 17,
+      "version": 1,
+      "author": "vstinner",
+      "role": "maintainer",
+      "created_at": "2026-04-13T16:31:06.820000Z",
+      "reply_to": null,
+      "quotes": [],
+      "url": "https://discuss.python.org/t/pep-830-add-timestamps-to-exceptions-and-tracebacks/106942/17",
+      "text": "I think that this idea (adding a timestamp to exceptions) was already discussed previously, but I failed to find the link. Or maybe it was your PR gh-129337 that you created in January 2025.\n\nI found the recent project dttb (created last January) which uses `sys.excepthook` to add a timestamp to exceptions. It uses `datetime.datetime.now()` and so has a resolution of 1 microsecond. It formats the timestamp at the beginning:\n\n```\n[2026-01-28 14:30:15.123456+08:00]\nTraceback (most recent call last):\n  ...\nError: something wrong\n\n```\n\nI find it interesting to put the timestamp at the start and don’t change `str(exc)`.\n\nSpecification:\n\nA new read/write attribute `__timestamp_ns__` is added to `BaseException`. It stores nanoseconds since the Unix epoch\n\nYou should mention that’s a timestamp in the UTC time zone.\n\nWhen timestamps are disabled, or for control flow exceptions (see below), the value is `0`.\n\nYou should also use the value `0` when reading the clock fails. It’s rare but it can happen when the syscall is blocked by a sandbox (by mistake).\n\nFor the Python API (`exc.__timestamp_ns__` attribute), would it make sense to return `None` instead of `0` when the timestamp is not set?\n\n`PYTHON_TRACEBACK_TIMESTAMPS` environment variable\n Set to `us` or `1` for microsecond-precision decimal timestamps, `ns` for nanoseconds, or `iso` for ISO 8601 UTC format. Empty, unset, or `0` disables timestamps (the default).\n\nCan you mention that ISO 8601 format has a resolution of 1 microsecond?\n\nDisplay Format:\n\nThe `us` format produces `<@1776017164.530916>` and the `ns` format produces `<@1776017178687320256ns>`.\n\nI would prefer to use `<@1776017178.687320256>` format for `ns`, similar to the `us` format but with 3 extra digits after the dot. For example, using this format you can copy/paste the number to `datetime.datetime.fromtimestamp()` and `time.gmtime()`:\n\n```\n>>> import datetime as dt\n>>> print(dt.datetime.fromtimestamp(1776017178.687320256))\n2026-04-12 20:06:18.687320\n\n>>> import time\n>>> time.gmtime(1776017178.687320256)\ntime.struct_time(tm_year=2026, tm_mon=4, tm_mday=12, tm_hour=18, tm_min=6, tm_sec=18, tm_wday=6, tm_yday=102, tm_isdst=0)\n\n```\n\nPerformance Measurements.\n\nFYI Linux and other operating systems provide a `CLOCK_REALTIME_COARSE` clock faster than `CLOCK_REALTIME` but with a worse resolution. For example, on Linux 6.19.10 with glibc 2.42, I measured in Python that `CLOCK_REALTIME` has a resolution of 137 nanoseconds, whereas `CLOCK_REALTIME_COARSE` only has a resolution of 1 ms! I don’t think that 1 ms resolution is enough for exception timestamps. Reading `CLOCK_REALTIME_COARSE` takes `28.8 ns +- 0.7 ns`, whereas reading `CLOCK_REALTIME` takes `40.7 ns +- 1.6 ns`.\n\n`TracebackException` and the public formatting functions (`print_exc`, `print_exception`, `format_exception`, `format_exception_only`) gain a `no_timestamp` keyword argument (default `False`) that suppresses timestamp display even when globally enabled.\n\nI dislike double negation (ex: `no_timestamp=False`). Would it be possible to change the parameter to `timestamp` instead (ex: `timestamp=True`)?\n\nRejected Ideas: Millisecond Precision.\n\nWhy not also offering the choice to format a timestamp with microsecond resolution? (`PYTHON_TRACEBACK_TIMESTAMPS=ms`)",
+      "sentences": [
+        "I think that this idea (adding a timestamp to exceptions) was already discussed previously, but I failed to find the link.",
+        "Or maybe it was your PR gh-129337 that you created in January 2025.",
+        "I found the recent project dttb (created last January) which uses `sys.excepthook` to add a timestamp to exceptions.",
+        "It uses `datetime.datetime.now()` and so has a resolution of 1 microsecond.",
+        "It formats the timestamp at the beginning:",
+        "```\n[2026-01-28 14:30:15.123456+08:00]\nTraceback (most recent call last):\n  ...\nError: something wrong\n\n```",
+        "I find it interesting to put the timestamp at the start and don’t change `str(exc)`.",
+        "Specification:",
+        "A new read/write attribute `__timestamp_ns__` is added to `BaseException`.",
+        "It stores nanoseconds since the Unix epoch",
+        "You should mention that’s a timestamp in the UTC time zone.",
+        "When timestamps are disabled, or for control flow exceptions (see below), the value is `0`.",
+        "You should also use the value `0` when reading the clock fails.",
+        "It’s rare but it can happen when the syscall is blocked by a sandbox (by mistake).",
+        "For the Python API (`exc.__timestamp_ns__` attribute), would it make sense to return `None` instead of `0` when the timestamp is not set?",
+        "`PYTHON_TRACEBACK_TIMESTAMPS` environment variable\n Set to `us` or `1` for microsecond-precision decimal timestamps, `ns` for nanoseconds, or `iso` for ISO 8601 UTC format.",
+        "Empty, unset, or `0` disables timestamps (the default).",
+        "Can you mention that ISO 8601 format has a resolution of 1 microsecond?",
+        "Display Format:",
+        "The `us` format produces `<@1776017164.530916>` and the `ns` format produces `<@1776017178687320256ns>`.",
+        "I would prefer to use `<@1776017178.687320256>` format for `ns`, similar to the `us` format but with 3 extra digits after the dot.",
+        "For example, using this format you can copy/paste the number to `datetime.datetime.fromtimestamp()` and `time.gmtime()`:",
+        "```\n>>> import datetime as dt\n>>> print(dt.datetime.fromtimestamp(1776017178.687320256))\n2026-04-12 20:06:18.687320\n\n>>> import time\n>>> time.gmtime(1776017178.687320256)\ntime.struct_time(tm_year=2026, tm_mon=4, tm_mday=12, tm_hour=18, tm_min=6, tm_sec=18, tm_wday=6, tm_yday=102, tm_isdst=0)\n\n```",
+        "Performance Measurements.",
+        "FYI Linux and other operating systems provide a `CLOCK_REALTIME_COARSE` clock faster than `CLOCK_REALTIME` but with a worse resolution.",
+        "For example, on Linux 6.19.10 with glibc 2.42, I measured in Python that `CLOCK_REALTIME` has a resolution of 137 nanoseconds, whereas `CLOCK_REALTIME_COARSE` only has a resolution of 1 ms!",
+        "I don’t think that 1 ms resolution is enough for exception timestamps.",
+        "Reading `CLOCK_REALTIME_COARSE` takes `28.8 ns +- 0.7 ns`, whereas reading `CLOCK_REALTIME` takes `40.7 ns +- 1.6 ns`.",
+        "`TracebackException` and the public formatting functions (`print_exc`, `print_exception`, `format_exception`, `format_exception_only`) gain a `no_timestamp` keyword argument (default `False`) that suppresses timestamp display even when globally enabled.",
+        "I dislike double negation (ex: `no_timestamp=False`).",
+        "Would it be possible to change the parameter to `timestamp` instead (ex: `timestamp=True`)?",
+        "Rejected Ideas: Millisecond Precision.",
+        "Why not also offering the choice to format a timestamp with microsecond resolution?",
+        "(`PYTHON_TRACEBACK_TIMESTAMPS=ms`)"
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 122
+        },
+        {
+          "index": 2,
+          "start": 123,
+          "end": 190
+        },
+        {
+          "index": 3,
+          "start": 192,
+          "end": 308
+        },
+        {
+          "index": 4,
+          "start": 309,
+          "end": 384
+        },
+        {
+          "index": 5,
+          "start": 385,
+          "end": 427
+        },
+        {
+          "index": 6,
+          "start": 429,
+          "end": 536
+        },
+        {
+          "index": 7,
+          "start": 538,
+          "end": 622
+        },
+        {
+          "index": 8,
+          "start": 624,
+          "end": 638
+        },
+        {
+          "index": 9,
+          "start": 640,
+          "end": 714
+        },
+        {
+          "index": 10,
+          "start": 715,
+          "end": 757
+        },
+        {
+          "index": 11,
+          "start": 759,
+          "end": 818
+        },
+        {
+          "index": 12,
+          "start": 820,
+          "end": 911
+        },
+        {
+          "index": 13,
+          "start": 913,
+          "end": 976
+        },
+        {
+          "index": 14,
+          "start": 977,
+          "end": 1059
+        },
+        {
+          "index": 15,
+          "start": 1061,
+          "end": 1198
+        },
+        {
+          "index": 16,
+          "start": 1200,
+          "end": 1372
+        },
+        {
+          "index": 17,
+          "start": 1373,
+          "end": 1428
+        },
+        {
+          "index": 18,
+          "start": 1430,
+          "end": 1501
+        },
+        {
+          "index": 19,
+          "start": 1503,
+          "end": 1518
+        },
+        {
+          "index": 20,
+          "start": 1520,
+          "end": 1624
+        },
+        {
+          "index": 21,
+          "start": 1626,
+          "end": 1756
+        },
+        {
+          "index": 22,
+          "start": 1757,
+          "end": 1877
+        },
+        {
+          "index": 23,
+          "start": 1879,
+          "end": 2176
+        },
+        {
+          "index": 24,
+          "start": 2178,
+          "end": 2203
+        },
+        {
+          "index": 25,
+          "start": 2205,
+          "end": 2340
+        },
+        {
+          "index": 26,
+          "start": 2341,
+          "end": 2530
+        },
+        {
+          "index": 27,
+          "start": 2531,
+          "end": 2601
+        },
+        {
+          "index": 28,
+          "start": 2602,
+          "end": 2720
+        },
+        {
+          "index": 29,
+          "start": 2722,
+          "end": 2975
+        },
+        {
+          "index": 30,
+          "start": 2977,
+          "end": 3030
+        },
+        {
+          "index": 31,
+          "start": 3031,
+          "end": 3122
+        },
+        {
+          "index": 32,
+          "start": 3124,
+          "end": 3162
+        },
+        {
+          "index": 33,
+          "start": 3164,
+          "end": 3247
+        },
+        {
+          "index": 34,
+          "start": 3248,
+          "end": 3282
+        }
+      ],
+      "sha256": "0a6eec3b775ef7c96caf179cad429e593cde752f0476d5e7822125f17d469d62",
+      "meta": {
+        "topic_id": 106942,
+        "post_number": 17,
+        "username": "vstinner",
+        "name": "Victor Stinner",
+        "user_title": "CPython core developer",
+        "flair_name": "committers",
+        "primary_group_name": "committers",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": null,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:106942:290205",
+      "source_id": "dpo:t106942",
+      "source_post_number": 18,
+      "seq": 18,
+      "version": 1,
+      "author": "gpshead",
+      "role": "author",
+      "created_at": "2026-04-14T00:17:35.857000Z",
+      "reply_to": "dpo:106942:290148",
+      "quotes": [],
+      "url": "https://discuss.python.org/t/pep-830-add-timestamps-to-exceptions-and-tracebacks/106942/18",
+      "text": "The draft PR has been around a while as i’ve been noodling on doing it since early 2025. I presented the idea to the room in our Cambridge Core Team Sprint last September. The feedback there led me to tweaking the behavior a bit (to not collect the times at all when the feature is disabled rather than just controlling their display), better documenting the what and why, and turning it into a PEP.",
+      "sentences": [
+        "The draft PR has been around a while as i’ve been noodling on doing it since early 2025.",
+        "I presented the idea to the room in our Cambridge Core Team Sprint last September.",
+        "The feedback there led me to tweaking the behavior a bit (to not collect the times at all when the feature is disabled rather than just controlling their display), better documenting the what and why, and turning it into a PEP."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 88
+        },
+        {
+          "index": 2,
+          "start": 89,
+          "end": 171
+        },
+        {
+          "index": 3,
+          "start": 172,
+          "end": 399
+        }
+      ],
+      "sha256": "fd37cab0b3a1c950278df878b7fd83130cd04d07345c59b28911fe2a37acb841",
+      "meta": {
+        "topic_id": 106942,
+        "post_number": 18,
+        "username": "gpshead",
+        "name": "Gregory P. Smith",
+        "user_title": "CPython core developer",
+        "flair_name": "committers",
+        "primary_group_name": "committers",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": 17,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:106942:290209",
+      "source_id": "dpo:t106942",
+      "source_post_number": 19,
+      "seq": 19,
+      "version": 1,
+      "author": "gpshead",
+      "role": "author",
+      "created_at": "2026-04-14T01:09:03.696000Z",
+      "reply_to": "dpo:106942:290148",
+      "quotes": [
+        "dpo:106942:290148"
+      ],
+      "url": "https://discuss.python.org/t/pep-830-add-timestamps-to-exceptions-and-tracebacks/106942/19",
+      "text": "Using the `sys.excepthook` singleton does not work for this purpose. It does not get called at the time of raise or construction, which would defeat the purpose for this use case of having every exception raised in an ExceptionGroup carry a timestamp at the point it occurred. It is also global state that other things can (and do) clobber for their own purposes.\n\nFWIW, that `dttb` library was advertised in a drive by spammy comment on my github tracking issue for this feature a month ago. (unclear if that was by the author or by their AI bot) Regardless it is not an equivalent.\n\nA feeling that it already offers plenty of choices? Supporting this would also be easy and suggests your idea to format the `ns` value as a decimal has merit as `ms` `us` and `ns` would all be formatted the same that way. Easy to add, but I don’t think it’d be necessary. If anything I could see dropping `us` support and only offering `ns` and `iso` modes (though probably using your decimal format for `ns`).\n\nFor the same reason, I do not want to support custom timestamp formatting strings other than `iso`. It just adds complexity for no meaningful value.\n\nI thought that was implied by being seconds since the unix epoch like everything in POSIX time land. I’ll add the note to make it clear in my next PEP update.",
+      "sentences": [
+        "Using the `sys.excepthook` singleton does not work for this purpose.",
+        "It does not get called at the time of raise or construction, which would defeat the purpose for this use case of having every exception raised in an ExceptionGroup carry a timestamp at the point it occurred.",
+        "It is also global state that other things can (and do) clobber for their own purposes.",
+        "FWIW, that `dttb` library was advertised in a drive by spammy comment on my github tracking issue for this feature a month ago. (unclear if that was by the author or by their AI bot) Regardless it is not an equivalent.",
+        "A feeling that it already offers plenty of choices?",
+        "Supporting this would also be easy and suggests your idea to format the `ns` value as a decimal has merit as `ms` `us` and `ns` would all be formatted the same that way.",
+        "Easy to add, but I don’t think it’d be necessary.",
+        "If anything I could see dropping `us` support and only offering `ns` and `iso` modes (though probably using your decimal format for `ns`).",
+        "For the same reason, I do not want to support custom timestamp formatting strings other than `iso`.",
+        "It just adds complexity for no meaningful value.",
+        "I thought that was implied by being seconds since the unix epoch like everything in POSIX time land.",
+        "I’ll add the note to make it clear in my next PEP update."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 68
+        },
+        {
+          "index": 2,
+          "start": 69,
+          "end": 276
+        },
+        {
+          "index": 3,
+          "start": 277,
+          "end": 363
+        },
+        {
+          "index": 4,
+          "start": 365,
+          "end": 583
+        },
+        {
+          "index": 5,
+          "start": 585,
+          "end": 636
+        },
+        {
+          "index": 6,
+          "start": 637,
+          "end": 806
+        },
+        {
+          "index": 7,
+          "start": 807,
+          "end": 856
+        },
+        {
+          "index": 8,
+          "start": 857,
+          "end": 995
+        },
+        {
+          "index": 9,
+          "start": 997,
+          "end": 1096
+        },
+        {
+          "index": 10,
+          "start": 1097,
+          "end": 1145
+        },
+        {
+          "index": 11,
+          "start": 1147,
+          "end": 1247
+        },
+        {
+          "index": 12,
+          "start": 1248,
+          "end": 1305
+        }
+      ],
+      "sha256": "93dbf33f29f9b611db78c53642dbbc846950a54d8b7bef70e8816d476c3a61fd",
+      "meta": {
+        "topic_id": 106942,
+        "post_number": 19,
+        "username": "gpshead",
+        "name": "Gregory P. Smith",
+        "user_title": "CPython core developer",
+        "flair_name": "committers",
+        "primary_group_name": "committers",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": 17,
+        "quote_refs": [
+          [
+            106942,
+            17
+          ],
+          [
+            106942,
+            17
+          ],
+          [
+            106942,
+            17
+          ]
+        ]
+      }
+    },
+    {
+      "id": "dpo:106942:290216",
+      "source_id": "dpo:t106942",
+      "source_post_number": 20,
+      "seq": 20,
+      "version": 1,
+      "author": "gpshead",
+      "role": "author",
+      "created_at": "2026-04-14T01:29:31.385000Z",
+      "reply_to": "dpo:106942:290209",
+      "quotes": [
+        "dpo:106942:290148"
+      ],
+      "url": "https://discuss.python.org/t/pep-830-add-timestamps-to-exceptions-and-tracebacks/106942/20",
+      "text": "re: Timer resolution - we always collect a nanosecond resolution value (which most OSes provide) regardless of the display format using `PyTime_TimeRaw`. Thus the attr being named `__timestamp_ns__`\n See cpython/Objects/exceptions.c at 2672099c67cbeeb03c0dcba55e7975c999887d74 · python/cpython · GitHub\n\nSo do I. Now I need to remember why I did that… I think it came from the only reason to ever use the new kwarg at all being to disable the display. But that’s still better as `timestamp=False`. BUT a `timestamp=True` default or someone oddly explicitly passing that could be incorrectly interpreted as always displaying one even if collection is not enabled (not possible or it’d be 0) and no need for this to be a tri-state. Which could lead to wordier but accurate API name such as `allow_timestamps=False` with a default of `True`. A bit of a bikeshed.",
+      "sentences": [
+        "re: Timer resolution - we always collect a nanosecond resolution value (which most OSes provide) regardless of the display format using `PyTime_TimeRaw`.",
+        "Thus the attr being named `__timestamp_ns__`\n See cpython/Objects/exceptions.c at 2672099c67cbeeb03c0dcba55e7975c999887d74 · python/cpython · GitHub",
+        "So do I. Now I need to remember why I did that… I think it came from the only reason to ever use the new kwarg at all being to disable the display.",
+        "But that’s still better as `timestamp=False`.",
+        "BUT a `timestamp=True` default or someone oddly explicitly passing that could be incorrectly interpreted as always displaying one even if collection is not enabled (not possible or it’d be 0) and no need for this to be a tri-state.",
+        "Which could lead to wordier but accurate API name such as `allow_timestamps=False` with a default of `True`.",
+        "A bit of a bikeshed."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 153
+        },
+        {
+          "index": 2,
+          "start": 154,
+          "end": 302
+        },
+        {
+          "index": 3,
+          "start": 304,
+          "end": 451
+        },
+        {
+          "index": 4,
+          "start": 452,
+          "end": 497
+        },
+        {
+          "index": 5,
+          "start": 498,
+          "end": 729
+        },
+        {
+          "index": 6,
+          "start": 730,
+          "end": 838
+        },
+        {
+          "index": 7,
+          "start": 839,
+          "end": 859
+        }
+      ],
+      "sha256": "9d04a92c36005f83172ff8ffd2935b3760bbdd151b1fce532e92c87731f53aa2",
+      "meta": {
+        "topic_id": 106942,
+        "post_number": 20,
+        "username": "gpshead",
+        "name": "Gregory P. Smith",
+        "user_title": "CPython core developer",
+        "flair_name": "committers",
+        "primary_group_name": "committers",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": 19,
+        "quote_refs": [
+          [
+            106942,
+            17
+          ]
+        ]
+      }
+    },
+    {
+      "id": "dpo:106942:290233",
+      "source_id": "dpo:t106942",
+      "source_post_number": 21,
+      "seq": 21,
+      "version": 1,
+      "author": "ncoghlan",
+      "role": "maintainer",
+      "created_at": "2026-04-14T07:15:39.760000Z",
+      "reply_to": "dpo:106942:290085",
+      "quotes": [
+        "dpo:106942:290085"
+      ],
+      "url": "https://discuss.python.org/t/pep-830-add-timestamps-to-exceptions-and-tracebacks/106942/21",
+      "text": "Recording “time of first raise” timestamps as a “Deferred, but not rejected” idea sounds good to me. It might be possible, but it’s not obviously easy, and it’s far from clear that it’s necessary, so including it in the initial iteration carries a high risk of introducing significant complexity for negligible benefit.",
+      "sentences": [
+        "Recording “time of first raise” timestamps as a “Deferred, but not rejected” idea sounds good to me.",
+        "It might be possible, but it’s not obviously easy, and it’s far from clear that it’s necessary, so including it in the initial iteration carries a high risk of introducing significant complexity for negligible benefit."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 100
+        },
+        {
+          "index": 2,
+          "start": 101,
+          "end": 319
+        }
+      ],
+      "sha256": "51d86327bf032292faa2761d5f5ec429d518b9a34e3935b1e424d0a0a7e6d22a",
+      "meta": {
+        "topic_id": 106942,
+        "post_number": 21,
+        "username": "ncoghlan",
+        "name": "Alyssa Coghlan",
+        "user_title": "CPython core developer",
+        "flair_name": "committers",
+        "primary_group_name": "committers",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": 7,
+        "quote_refs": [
+          [
+            106942,
+            7
+          ]
+        ]
+      }
+    },
+    {
+      "id": "dpo:106942:290429",
+      "source_id": "dpo:t106942",
+      "source_post_number": 22,
+      "seq": 22,
+      "version": 1,
+      "author": "iritkatriel",
+      "role": "maintainer",
+      "created_at": "2026-04-15T21:33:26.301000Z",
+      "reply_to": null,
+      "quotes": [],
+      "url": "https://discuss.python.org/t/pep-830-add-timestamps-to-exceptions-and-tracebacks/106942/22",
+      "text": "We can do this with monitoring:\n\n```\nimport sys\n\nfrom datetime import datetime\n\n# Define a tool ID\n\nTOOL_ID = sys.monitoring.DEBUGGER_ID\n\nsys.monitoring.use_tool_id(TOOL_ID, \"ExceptionEnricher\")\n\ndef on_exception(code, instruction_offset, exc):\n\n    timestamp = datetime.now().isoformat()\n\n    exc.add_note(f\"Intercepted at: {timestamp}\")\n\n# Register the callback for raised exceptions\n\nsys.monitoring.register_callback(TOOL_ID, sys.monitoring.events.RAISE, on_exception)\n\nsys.monitoring.set_events(TOOL_ID, sys.monitoring.events.RAISE)\n\ntry:\n\n    1/0\n\nexcept:\n\n    raise ValueError\n\n```\n\nOutput:\n\n```\nTraceback (most recent call last):\n\n  File \"/Users/iritkatriel/src/tt.py\", line 19, in <module>\n\n    1**/**0\n\n    \\~**^**\\~\n\n**ZeroDivisionError**: division by zero\n\nIntercepted at: 2026-04-15T22:31:49.170785\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n\n  File \"/Users/iritkatriel/src/tt.py\", line 21, in <module>\n\n    raise ValueError\n\nValueError\n\nIntercepted at: 2026-04-15T22:31:49.170810\n\n```",
+      "sentences": [
+        "We can do this with monitoring:",
+        "```\nimport sys\n\nfrom datetime import datetime\n\n# Define a tool ID\n\nTOOL_ID = sys.monitoring.DEBUGGER_ID\n\nsys.monitoring.use_tool_id(TOOL_ID, \"ExceptionEnricher\")\n\ndef on_exception(code, instruction_offset, exc):\n\n    timestamp = datetime.now().isoformat()\n\n    exc.add_note(f\"Intercepted at: {timestamp}\")\n\n# Register the callback for raised exceptions\n\nsys.monitoring.register_callback(TOOL_ID, sys.monitoring.events.RAISE, on_exception)\n\nsys.monitoring.set_events(TOOL_ID, sys.monitoring.events.RAISE)\n\ntry:\n\n    1/0\n\nexcept:\n\n    raise ValueError\n\n```",
+        "Output:",
+        "```\nTraceback (most recent call last):\n\n  File \"/Users/iritkatriel/src/tt.py\", line 19, in <module>\n\n    1**/**0\n\n    \\~**^**\\~\n\n**ZeroDivisionError**: division by zero\n\nIntercepted at: 2026-04-15T22:31:49.170785\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n\n  File \"/Users/iritkatriel/src/tt.py\", line 21, in <module>\n\n    raise ValueError\n\nValueError\n\nIntercepted at: 2026-04-15T22:31:49.170810\n\n```"
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 31
+        },
+        {
+          "index": 2,
+          "start": 33,
+          "end": 587
+        },
+        {
+          "index": 3,
+          "start": 589,
+          "end": 596
+        },
+        {
+          "index": 4,
+          "start": 598,
+          "end": 1059
+        }
+      ],
+      "sha256": "b793a0e4d8ff966b60ce7869c66f9ccbae4fe0362145510287da589b090e2a06",
+      "meta": {
+        "topic_id": 106942,
+        "post_number": 22,
+        "username": "iritkatriel",
+        "name": "Irit Katriel",
+        "user_title": "CPython core developer",
+        "flair_name": "committers",
+        "primary_group_name": "committers",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": null,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:106942:290513",
+      "source_id": "dpo:t106942",
+      "source_post_number": 23,
+      "seq": 23,
+      "version": 1,
+      "author": "vstinner",
+      "role": "maintainer",
+      "created_at": "2026-04-16T14:53:24.463000Z",
+      "reply_to": "dpo:106942:290148",
+      "quotes": [
+        "dpo:106942:290148"
+      ],
+      "url": "https://discuss.python.org/t/pep-830-add-timestamps-to-exceptions-and-tracebacks/106942/23",
+      "text": "Would it be possible/make sense to format the timestamp like that instead of changing `str(exc)`? It may avoid the need for `traceback.strip_exc_timestamps()` in some cases.",
+      "sentences": [
+        "Would it be possible/make sense to format the timestamp like that instead of changing `str(exc)`?",
+        "It may avoid the need for `traceback.strip_exc_timestamps()` in some cases."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 97
+        },
+        {
+          "index": 2,
+          "start": 98,
+          "end": 173
+        }
+      ],
+      "sha256": "934325f7df9a8869f5e40b0274dfeffd787e33f5b56abb8448b2a1b8a0cabf56",
+      "meta": {
+        "topic_id": 106942,
+        "post_number": 23,
+        "username": "vstinner",
+        "name": "Victor Stinner",
+        "user_title": "CPython core developer",
+        "flair_name": "committers",
+        "primary_group_name": "committers",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": 17,
+        "quote_refs": [
+          [
+            106942,
+            17
+          ]
+        ]
+      }
+    },
+    {
+      "id": "dpo:106942:290520",
+      "source_id": "dpo:t106942",
+      "source_post_number": 24,
+      "seq": 24,
+      "version": 1,
+      "author": "malemburg",
+      "role": "maintainer",
+      "created_at": "2026-04-16T15:29:25.092000Z",
+      "reply_to": null,
+      "quotes": [],
+      "url": "https://discuss.python.org/t/pep-830-add-timestamps-to-exceptions-and-tracebacks/106942/24",
+      "text": "I think it would be better to add the timestamp output to the traceback’s first line, rather than altering the exception’s string, which is often used and parsed by real life applications and logging tools in lots of ways which would break:\n\n```\nTraceback (most recent call last, raised at 2026-04-12T18:07:30.346914Z):\n  File \"<stdin>\", line 3, in california_raisin\n    raise RuntimeError(\"not enough sunshine\")\nRuntimeError: not enough sunshine\n\n```\n\nThe output also looks more readable that way.",
+      "sentences": [
+        "I think it would be better to add the timestamp output to the traceback’s first line, rather than altering the exception’s string, which is often used and parsed by real life applications and logging tools in lots of ways which would break:",
+        "```\nTraceback (most recent call last, raised at 2026-04-12T18:07:30.346914Z):\n  File \"<stdin>\", line 3, in california_raisin\n    raise RuntimeError(\"not enough sunshine\")\nRuntimeError: not enough sunshine\n\n```",
+        "The output also looks more readable that way."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 240
+        },
+        {
+          "index": 2,
+          "start": 242,
+          "end": 451
+        },
+        {
+          "index": 3,
+          "start": 453,
+          "end": 498
+        }
+      ],
+      "sha256": "f4da770421009e4921f826bec6e5a5a849e6d9a0b1bf88a4718d7b0ceb8b6e19",
+      "meta": {
+        "topic_id": 106942,
+        "post_number": 24,
+        "username": "malemburg",
+        "name": "Marc-André Lemburg",
+        "user_title": "CPython core developer",
+        "flair_name": "committers",
+        "primary_group_name": "committers",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": null,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:106942:290526",
+      "source_id": "dpo:t106942",
+      "source_post_number": 25,
+      "seq": 25,
+      "version": 1,
+      "author": "gpshead",
+      "role": "author",
+      "created_at": "2026-04-16T17:36:50.608000Z",
+      "reply_to": "dpo:106942:290429",
+      "quotes": [],
+      "url": "https://discuss.python.org/t/pep-830-add-timestamps-to-exceptions-and-tracebacks/106942/25",
+      "text": "Yes `sys.monitoring` could be used to do this today. But that is a heavyweight call and very heavyweight note. It’d impact application performance (including the pathological StopIteration and StopAsyncIteration cases).\n\nI’ll make sure to cover this in the next update.",
+      "sentences": [
+        "Yes `sys.monitoring` could be used to do this today.",
+        "But that is a heavyweight call and very heavyweight note.",
+        "It’d impact application performance (including the pathological StopIteration and StopAsyncIteration cases).",
+        "I’ll make sure to cover this in the next update."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 52
+        },
+        {
+          "index": 2,
+          "start": 53,
+          "end": 110
+        },
+        {
+          "index": 3,
+          "start": 111,
+          "end": 219
+        },
+        {
+          "index": 4,
+          "start": 221,
+          "end": 269
+        }
+      ],
+      "sha256": "dff867a65fe5e6b02e8daf8b86478b8b50595f2e9f9f35f4ad8e769cf1ea84f8",
+      "meta": {
+        "topic_id": 106942,
+        "post_number": 25,
+        "username": "gpshead",
+        "name": "Gregory P. Smith",
+        "user_title": "CPython core developer",
+        "flair_name": "committers",
+        "primary_group_name": "committers",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": 22,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:106942:290528",
+      "source_id": "dpo:t106942",
+      "source_post_number": 26,
+      "seq": 26,
+      "version": 1,
+      "author": "iritkatriel",
+      "role": "maintainer",
+      "created_at": "2026-04-16T18:05:13.389000Z",
+      "reply_to": "dpo:106942:290526",
+      "quotes": [
+        "dpo:106942:290526"
+      ],
+      "url": "https://discuss.python.org/t/pep-830-add-timestamps-to-exceptions-and-tracebacks/106942/26",
+      "text": "I think the ‘heavyweight’ claim requires benchmarking.\n\nNote that there is a C API for monitoring.",
+      "sentences": [
+        "I think the ‘heavyweight’ claim requires benchmarking.",
+        "Note that there is a C API for monitoring."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 54
+        },
+        {
+          "index": 2,
+          "start": 56,
+          "end": 98
+        }
+      ],
+      "sha256": "984611548f6b0e2a90af26b9ab37985d6c631e88cdcafa07399e9953d880a902",
+      "meta": {
+        "topic_id": 106942,
+        "post_number": 26,
+        "username": "iritkatriel",
+        "name": "Irit Katriel",
+        "user_title": "CPython core developer",
+        "flair_name": "committers",
+        "primary_group_name": "committers",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": 25,
+        "quote_refs": [
+          [
+            106942,
+            25
+          ]
+        ]
+      }
+    },
+    {
+      "id": "dpo:106942:290769",
+      "source_id": "dpo:t106942",
+      "source_post_number": 27,
+      "seq": 27,
+      "version": 1,
+      "author": "gpshead",
+      "role": "author",
+      "created_at": "2026-04-19T08:25:58.570000Z",
+      "reply_to": "dpo:106942:290528",
+      "quotes": [],
+      "url": "https://discuss.python.org/t/pep-830-add-timestamps-to-exceptions-and-tracebacks/106942/27",
+      "text": "Round 2: I’ve posted PR peps#4928 with edits incorporating feedback so far. The implementation has also been updated. short summary:\n\nI dropped the `us` format in favor of just `ns` (now using decimal seconds) and `iso` options. (trivial to add `ms` and `us` as well but I don’t see a point in the complexity)\n\n`no_timestamp=` was renamed to `timestamps=` in the `traceback` module APIs and I did wind up going with the tri-state as I came up with a reason why someone might want it.\n\nVarious clarifications that came up here that needed recording as more detail or recording either as rejected ideas or open issues (and sometimes both… rejected, but open to exploring, deferring? etc)\n\n`sys.monitoring` - I dug into that a bit more and describe how it could be used and what it would require… which led to me deciding that was a rejected ideas piece more so than open issue: The RAISE event fires too often, the call overhead on all of those events is high, and it’d involve additional memory allocations and potentially collectable objects created upon every raise.\n\nLets please keep non-docs editorial discussion here rather than as PR comments. Far more details in the PEP update itself. Please read it. I’ll reply here once it has merged and published. For now, see the PR.",
+      "sentences": [
+        "Round 2: I’ve posted PR peps#4928 with edits incorporating feedback so far.",
+        "The implementation has also been updated. short summary:",
+        "I dropped the `us` format in favor of just `ns` (now using decimal seconds) and `iso` options. (trivial to add `ms` and `us` as well but I don’t see a point in the complexity)",
+        "`no_timestamp=` was renamed to `timestamps=` in the `traceback` module APIs and I did wind up going with the tri-state as I came up with a reason why someone might want it.",
+        "Various clarifications that came up here that needed recording as more detail or recording either as rejected ideas or open issues (and sometimes both… rejected, but open to exploring, deferring? etc)",
+        "`sys.monitoring` - I dug into that a bit more and describe how it could be used and what it would require… which led to me deciding that was a rejected ideas piece more so than open issue: The RAISE event fires too often, the call overhead on all of those events is high, and it’d involve additional memory allocations and potentially collectable objects created upon every raise.",
+        "Lets please keep non-docs editorial discussion here rather than as PR comments.",
+        "Far more details in the PEP update itself.",
+        "Please read it.",
+        "I’ll reply here once it has merged and published.",
+        "For now, see the PR."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 75
+        },
+        {
+          "index": 2,
+          "start": 76,
+          "end": 132
+        },
+        {
+          "index": 3,
+          "start": 134,
+          "end": 309
+        },
+        {
+          "index": 4,
+          "start": 311,
+          "end": 483
+        },
+        {
+          "index": 5,
+          "start": 485,
+          "end": 685
+        },
+        {
+          "index": 6,
+          "start": 687,
+          "end": 1067
+        },
+        {
+          "index": 7,
+          "start": 1069,
+          "end": 1148
+        },
+        {
+          "index": 8,
+          "start": 1149,
+          "end": 1191
+        },
+        {
+          "index": 9,
+          "start": 1192,
+          "end": 1207
+        },
+        {
+          "index": 10,
+          "start": 1208,
+          "end": 1257
+        },
+        {
+          "index": 11,
+          "start": 1258,
+          "end": 1278
+        }
+      ],
+      "sha256": "c533f374ff2bcc7ab989a7d0eb7ef9f942d567648c57e54be273221193e6d2b6",
+      "meta": {
+        "topic_id": 106942,
+        "post_number": 27,
+        "username": "gpshead",
+        "name": "Gregory P. Smith",
+        "user_title": "CPython core developer",
+        "flair_name": "committers",
+        "primary_group_name": "committers",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": 26,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:106942:290835",
+      "source_id": "dpo:t106942",
+      "source_post_number": 28,
+      "seq": 28,
+      "version": 1,
+      "author": "gpshead",
+      "role": "author",
+      "created_at": "2026-04-20T21:59:30.570000Z",
+      "reply_to": "dpo:106942:290769",
+      "quotes": [
+        "dpo:106942:290769"
+      ],
+      "url": "https://discuss.python.org/t/pep-830-add-timestamps-to-exceptions-and-tracebacks/106942/28",
+      "text": "PR merged. It looks published. The PR is the easiest way to see the diff.",
+      "sentences": [
+        "PR merged.",
+        "It looks published.",
+        "The PR is the easiest way to see the diff."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 10
+        },
+        {
+          "index": 2,
+          "start": 11,
+          "end": 30
+        },
+        {
+          "index": 3,
+          "start": 31,
+          "end": 73
+        }
+      ],
+      "sha256": "9fd12378431e9b9be62e124c3b60a43dc5e37241ce57d9627549cd22d0ea455d",
+      "meta": {
+        "topic_id": 106942,
+        "post_number": 28,
+        "username": "gpshead",
+        "name": "Gregory P. Smith",
+        "user_title": "CPython core developer",
+        "flair_name": "committers",
+        "primary_group_name": "committers",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": 27,
+        "quote_refs": [
+          [
+            106942,
+            27
+          ]
+        ]
+      }
+    },
+    {
+      "id": "dpo:106942:291549",
+      "source_id": "dpo:t106942",
+      "source_post_number": 29,
+      "seq": 29,
+      "version": 1,
+      "author": "savannahostrowski",
+      "role": "decider",
+      "created_at": "2026-05-04T21:11:40.758000Z",
+      "reply_to": null,
+      "quotes": [],
+      "url": "https://discuss.python.org/t/pep-830-add-timestamps-to-exceptions-and-tracebacks/106942/29",
+      "text": "The SC has discussed and while we are generally positive about PEP 830 - Add timestamps to exceptions and tracebacks, we have decided to defer making a decision on this PEP until Python 3.16. We have feedback on collection and on the opt-in/display story that we’d like to see worked through before we make a decision.\n\nOn the collection:\n\n- The current performance numbers do not cover Windows or shared-library configurations (which may see significantly more overhead). We’d like to see numbers for those environments incorporated into the PEP so we can better evaluate the overhead claim across platforms.\n\n- Pickle output depends on the timestamp collection state, which we find awkward. We’d prefer an opt-out, either by not collecting, or by not pickling the timestamp attribute even when collection is enabled.\n\nOn opt-in and display:\n\n- The PEP appeals to CPython convention to justify silent-ignore on invalid env var values, but that convention is really for boolean toggles (e.g. `PYTHONFAULTHANDLER`, `PYTHONDEVMODE`) and not for enum-shaped flags (e.g. `PYTHON_GIL`, `PYTHON_FROZEN_MODULES`, `PYTHONTRACEMALLOC`, `PYTHON_CPU_COUNT`, `PYTHONHASHSEED`). Enum-shaped flags by and large fail-fatal on invalid values, and `PYTHON_TRACEBACK_TIMESTAMPS` should follow the convention of that peer group. This behavior should also be aligned across the env var and `-X` paths to avoid a confusing user experience and bifurcation of documentation.\n\n- `PYTHON_TRACEBACK_TIMESTAMPS` and `-X traceback_timestamps=` should accept one value per meaning. Each precision option should have a single canonical string (e.g. `ns`, `us`, `ms`, `iso`), with an explicit `off` for disabled. Equivalents like `empty`, `0`, and `1` should be rejected as invalid rather than silently aliased to one of the canonical values.\n\n- The current proposed timestamp suffix appears on the message line in formatted traceback output and is per-occurrence, which means tooling that captures stderr or formatted tracebacks and matches on the message line sees a different string for every exception instance. The discussion thread raised header-line placement as an alternative that avoids this. We don’t think message-line placement is necessarily wrong, but the PEP should further justify the choice with a clear rationale and close out the open issue regarding display location. Further, placing the timestamp at the end of the line obscures it in ways that can be difficult to see.\n\n- Opt-out for doctest printing will likely break code and is backward incompatible. This is because doctests can be very sensitive to display output. We’d prefer an opt-in flag, e.g. `doctest.INCLUDE_EXCEPTION_TIMESTAMPS` which are not enabled by default.\n\n- Similarly `test.support.force_no_traceback_timestamps` should probably be enabled by default, possibly with a differently named flag to enable traceback timestamps in the stdlib test suite.\n\nThanks again for your work on this PEP, we look forward to discussing again with revisions.",
+      "sentences": [
+        "The SC has discussed and while we are generally positive about PEP 830 - Add timestamps to exceptions and tracebacks, we have decided to defer making a decision on this PEP until Python 3.16.",
+        "We have feedback on collection and on the opt-in/display story that we’d like to see worked through before we make a decision.",
+        "On the collection:",
+        "- The current performance numbers do not cover Windows or shared-library configurations (which may see significantly more overhead). We’d like to see numbers for those environments incorporated into the PEP so we can better evaluate the overhead claim across platforms.",
+        "- Pickle output depends on the timestamp collection state, which we find awkward. We’d prefer an opt-out, either by not collecting, or by not pickling the timestamp attribute even when collection is enabled.",
+        "On opt-in and display:",
+        "- The PEP appeals to CPython convention to justify silent-ignore on invalid env var values, but that convention is really for boolean toggles (e.g. `PYTHONFAULTHANDLER`, `PYTHONDEVMODE`) and not for enum-shaped flags (e.g. `PYTHON_GIL`, `PYTHON_FROZEN_MODULES`, `PYTHONTRACEMALLOC`, `PYTHON_CPU_COUNT`, `PYTHONHASHSEED`). Enum-shaped flags by and large fail-fatal on invalid values, and `PYTHON_TRACEBACK_TIMESTAMPS` should follow the convention of that peer group. This behavior should also be aligned across the env var and `-X` paths to avoid a confusing user experience and bifurcation of documentation.",
+        "- `PYTHON_TRACEBACK_TIMESTAMPS` and `-X traceback_timestamps=` should accept one value per meaning. Each precision option should have a single canonical string (e.g. `ns`, `us`, `ms`, `iso`), with an explicit `off` for disabled. Equivalents like `empty`, `0`, and `1` should be rejected as invalid rather than silently aliased to one of the canonical values.",
+        "- The current proposed timestamp suffix appears on the message line in formatted traceback output and is per-occurrence, which means tooling that captures stderr or formatted tracebacks and matches on the message line sees a different string for every exception instance. The discussion thread raised header-line placement as an alternative that avoids this. We don’t think message-line placement is necessarily wrong, but the PEP should further justify the choice with a clear rationale and close out the open issue regarding display location. Further, placing the timestamp at the end of the line obscures it in ways that can be difficult to see.",
+        "- Opt-out for doctest printing will likely break code and is backward incompatible. This is because doctests can be very sensitive to display output. We’d prefer an opt-in flag, e.g. `doctest.INCLUDE_EXCEPTION_TIMESTAMPS` which are not enabled by default.",
+        "- Similarly `test.support.force_no_traceback_timestamps` should probably be enabled by default, possibly with a differently named flag to enable traceback timestamps in the stdlib test suite.",
+        "Thanks again for your work on this PEP, we look forward to discussing again with revisions."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 191
+        },
+        {
+          "index": 2,
+          "start": 192,
+          "end": 318
+        },
+        {
+          "index": 3,
+          "start": 320,
+          "end": 338
+        },
+        {
+          "index": 4,
+          "start": 340,
+          "end": 609
+        },
+        {
+          "index": 5,
+          "start": 611,
+          "end": 818
+        },
+        {
+          "index": 6,
+          "start": 820,
+          "end": 842
+        },
+        {
+          "index": 7,
+          "start": 844,
+          "end": 1451
+        },
+        {
+          "index": 8,
+          "start": 1453,
+          "end": 1811
+        },
+        {
+          "index": 9,
+          "start": 1813,
+          "end": 2461
+        },
+        {
+          "index": 10,
+          "start": 2463,
+          "end": 2718
+        },
+        {
+          "index": 11,
+          "start": 2720,
+          "end": 2911
+        },
+        {
+          "index": 12,
+          "start": 2913,
+          "end": 3004
+        }
+      ],
+      "sha256": "82226891b0e476b88ed1ebbdc3e71f42941a397d9a2e44fd461eacd03d1ae67b",
+      "meta": {
+        "topic_id": 106942,
+        "post_number": 29,
+        "username": "savannahostrowski",
+        "name": "Savannah Ostrowski",
+        "user_title": "Steering Council Member",
+        "flair_name": "steering-council",
+        "primary_group_name": "committers",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": null,
+        "quote_refs": []
+      }
+    }
+  ],
+  "meta": {
+    "pep": 830,
+    "pep_authors": [
+      "Gregory P. Smith"
+    ],
+    "topic_ids": [
+      106942
+    ],
+    "created_by": [
+      "gpshead"
+    ],
+    "forum": "https://discuss.python.org",
+    "posts_count": 29,
+    "leak_blanked": 0
+  }
+}

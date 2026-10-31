@@ -1,0 +1,2011 @@
+{
+  "id": "pep:806",
+  "kind": "discourse",
+  "url": "https://discuss.python.org/t/pep-806-mixed-sync-async-context-managers-with-precise-async-marking/103971",
+  "title": "PEP 806: Mixed sync/async context managers with precise async marking",
+  "posts": [
+    {
+      "id": "dpo:92939:250128",
+      "source_id": "dpo:t92939",
+      "source_post_number": 1,
+      "seq": 1,
+      "version": 1,
+      "author": "Zac-HD",
+      "role": "author",
+      "created_at": "2025-05-22T21:13:54.485000Z",
+      "reply_to": null,
+      "quotes": [],
+      "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/1",
+      "text": "TL;DR: Let’s allow `async with` to accept both sync and async context managers in a single statement, as long as there’s at least one async context manager present. This would eliminate the nested indentation that currently plagues mixed context manager code. GitHub issue here.\n\n## The Problem\n\nIf you write async Python with context managers, you’ve hit this pain point: every time you need to mix sync and async context managers, you get punished with another level of indentation:\n\n```\n# status quo: the staircase of doom\nasync with acquire_lock() as lock:\n    with open('config.json') as f:\n        async with connect_to_db() as db:\n            with temp_directory() as tmpdir:\n                # Your actual code is now 16 spaces deep;\n                # you and your colleagues are sad.\n\n```\n\nYou can get around this with `contextlib.AsyncExitStack()`, but only at the cost of some serious footguns for the unwary (e.g. mis-nesting contexts, the sharp edges in `.pop_all()`, etc).\n\n## The Proposal\n\nAllow `async with` to accept both sync and async context managers:\n\n```\nasync with (\n    acquire_lock() as lock,\n    open('config.json') as f,\n    connect_to_db() as db,\n    temp_directory() as tmpdir,\n):\n    # Your code starts at a reasonable indentation\n    # Your colleagues might actually review your PR\n\n```\n\nThe rule is simple: if there’s at least one async context manager in the group, you can use `async with` for the whole thing. This is semantically identical to a safe use of `AsyncExitStack`, but much prettier code and harder to get wrong.\n\n## Unsatisfying workarounds\n\n#### Add checkpoints\n\nWrapping sync context managers in async helpers adds await points where your async framework can switch tasks. Context manager boundaries are terrible places for task switches - they often handle timeouts, locks, or error recovery - and so this can introduce bugs, as well as the performance overhead.\n\n```\ndef as_acm(ctx):\n    @asynccontextmanager\n    def inner():\n        with ctx as val:\n            await sleep(0)\n            yield val\n    return inner()\n\nasync with (\n    acquire_lock() as lock,\n    as_acm(open('config.json')) as f,\n    connect_to_db() as db,\n    as_acm(temp_directory()) as tmpdir,\n):\n    # hope you didn't need an atomic section there...\n\n```\n\n#### An `AsyncExitStack` helper function\n\nThe semantics of a `async with multicontext(...)` helper are better than the `as_acm()` trick, but you lose the locality of `as` clauses, and with that the code becomes uglier and harder to understand:\n\n```\n@asynccontextmanager\nasync def multicontext(*cms):\n    assert any(hasattr(cm, \"__aenter__\") for cm in cms)\n    async with AsyncExitStack() as stack:\n        enter, aenter = stack.enter_context, stack.enter_async_context\n        yield tuple(\n            (enter(cm) if hasattr(cm, \"__enter__\") else await aenter(cm))\n            for cm in cms\n        )\n\nasync with (\n    acquire_lock(),\n    open('config.json'),\n    connect_to_db(),\n    temp_directory(),\n) as (lock, db, f, tmpdir):\n    # Wait, which order were those in again?\n\n```\n\n## Implementation Considerations\n\nThe change should be straightforward:\n\n- Runtime check that at least one async context manager is present\n\n- Proper handling of `__enter__`/`__exit__` vs `__aenter__`/`__aexit__`\n\nThe semantics are clear: sync context managers use their normal protocol, async ones use the async protocol, execution order remains left-to-right. `AsyncExitStack` already does this; I’m just proposing to support it directly at the statement level where code can be as clean and simple as possible.\n\n## Prior Art\n\nI’ve been using both of the “unsatisfying workarounds” above in production Trio code; they do indeed work and are indeed unsatisfying. We would be delighted to switch over to using the `async with` statement as soon as possible.\n\n## Backwards Compatibility\n\nThis is purely additive. All existing code continues to work. The only “breaking” change is that code that was previously a `RuntimeError` would now work, with the only reasonable non-error semantics.\n\n## What do you think?\n\nAm I missing some crucial consideration here? Is there a technical blocker I’m not seeing? For those using structured concurrency with `asyncio.TaskGroup` or Trio or AnyIO, this would be particularly nice - you could finally group your timeout/cancellation contexts naturally with your resource contexts without the indentation penalty.",
+      "sentences": [
+        "TL;DR: Let’s allow `async with` to accept both sync and async context managers in a single statement, as long as there’s at least one async context manager present.",
+        "This would eliminate the nested indentation that currently plagues mixed context manager code.",
+        "GitHub issue here.",
+        "## The Problem",
+        "If you write async Python with context managers, you’ve hit this pain point: every time you need to mix sync and async context managers, you get punished with another level of indentation:",
+        "```\n# status quo: the staircase of doom\nasync with acquire_lock() as lock:\n    with open('config.json') as f:\n        async with connect_to_db() as db:\n            with temp_directory() as tmpdir:\n                # Your actual code is now 16 spaces deep;\n                # you and your colleagues are sad.\n\n```",
+        "You can get around this with `contextlib.AsyncExitStack()`, but only at the cost of some serious footguns for the unwary (e.g. mis-nesting contexts, the sharp edges in `.pop_all()`, etc).",
+        "## The Proposal",
+        "Allow `async with` to accept both sync and async context managers:",
+        "```\nasync with (\n    acquire_lock() as lock,\n    open('config.json') as f,\n    connect_to_db() as db,\n    temp_directory() as tmpdir,\n):\n    # Your code starts at a reasonable indentation\n    # Your colleagues might actually review your PR\n\n```",
+        "The rule is simple: if there’s at least one async context manager in the group, you can use `async with` for the whole thing.",
+        "This is semantically identical to a safe use of `AsyncExitStack`, but much prettier code and harder to get wrong.",
+        "## Unsatisfying workarounds",
+        "#### Add checkpoints",
+        "Wrapping sync context managers in async helpers adds await points where your async framework can switch tasks.",
+        "Context manager boundaries are terrible places for task switches - they often handle timeouts, locks, or error recovery - and so this can introduce bugs, as well as the performance overhead.",
+        "```\ndef as_acm(ctx):\n    @asynccontextmanager\n    def inner():\n        with ctx as val:\n            await sleep(0)\n            yield val\n    return inner()\n\nasync with (\n    acquire_lock() as lock,\n    as_acm(open('config.json')) as f,\n    connect_to_db() as db,\n    as_acm(temp_directory()) as tmpdir,\n):\n    # hope you didn't need an atomic section there...\n\n```",
+        "#### An `AsyncExitStack` helper function",
+        "The semantics of a `async with multicontext(...)` helper are better than the `as_acm()` trick, but you lose the locality of `as` clauses, and with that the code becomes uglier and harder to understand:",
+        "```\n@asynccontextmanager\nasync def multicontext(*cms):\n    assert any(hasattr(cm, \"__aenter__\") for cm in cms)\n    async with AsyncExitStack() as stack:\n        enter, aenter = stack.enter_context, stack.enter_async_context\n        yield tuple(\n            (enter(cm) if hasattr(cm, \"__enter__\") else await aenter(cm))\n            for cm in cms\n        )\n\nasync with (\n    acquire_lock(),\n    open('config.json'),\n    connect_to_db(),\n    temp_directory(),\n) as (lock, db, f, tmpdir):\n    # Wait, which order were those in again?\n\n```",
+        "## Implementation Considerations",
+        "The change should be straightforward:",
+        "- Runtime check that at least one async context manager is present",
+        "- Proper handling of `__enter__`/`__exit__` vs `__aenter__`/`__aexit__`",
+        "The semantics are clear: sync context managers use their normal protocol, async ones use the async protocol, execution order remains left-to-right.",
+        "`AsyncExitStack` already does this; I’m just proposing to support it directly at the statement level where code can be as clean and simple as possible.",
+        "## Prior Art",
+        "I’ve been using both of the “unsatisfying workarounds” above in production Trio code; they do indeed work and are indeed unsatisfying.",
+        "We would be delighted to switch over to using the `async with` statement as soon as possible.",
+        "## Backwards Compatibility",
+        "This is purely additive.",
+        "All existing code continues to work.",
+        "The only “breaking” change is that code that was previously a `RuntimeError` would now work, with the only reasonable non-error semantics.",
+        "## What do you think?",
+        "Am I missing some crucial consideration here?",
+        "Is there a technical blocker I’m not seeing?",
+        "For those using structured concurrency with `asyncio.TaskGroup` or Trio or AnyIO, this would be particularly nice - you could finally group your timeout/cancellation contexts naturally with your resource contexts without the indentation penalty."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 164
+        },
+        {
+          "index": 2,
+          "start": 165,
+          "end": 259
+        },
+        {
+          "index": 3,
+          "start": 260,
+          "end": 278
+        },
+        {
+          "index": 4,
+          "start": 280,
+          "end": 294
+        },
+        {
+          "index": 5,
+          "start": 296,
+          "end": 484
+        },
+        {
+          "index": 6,
+          "start": 486,
+          "end": 796
+        },
+        {
+          "index": 7,
+          "start": 798,
+          "end": 985
+        },
+        {
+          "index": 8,
+          "start": 987,
+          "end": 1002
+        },
+        {
+          "index": 9,
+          "start": 1004,
+          "end": 1070
+        },
+        {
+          "index": 10,
+          "start": 1072,
+          "end": 1316
+        },
+        {
+          "index": 11,
+          "start": 1318,
+          "end": 1443
+        },
+        {
+          "index": 12,
+          "start": 1444,
+          "end": 1557
+        },
+        {
+          "index": 13,
+          "start": 1559,
+          "end": 1586
+        },
+        {
+          "index": 14,
+          "start": 1588,
+          "end": 1608
+        },
+        {
+          "index": 15,
+          "start": 1610,
+          "end": 1720
+        },
+        {
+          "index": 16,
+          "start": 1721,
+          "end": 1911
+        },
+        {
+          "index": 17,
+          "start": 1913,
+          "end": 2277
+        },
+        {
+          "index": 18,
+          "start": 2279,
+          "end": 2319
+        },
+        {
+          "index": 19,
+          "start": 2321,
+          "end": 2522
+        },
+        {
+          "index": 20,
+          "start": 2524,
+          "end": 3058
+        },
+        {
+          "index": 21,
+          "start": 3060,
+          "end": 3092
+        },
+        {
+          "index": 22,
+          "start": 3094,
+          "end": 3131
+        },
+        {
+          "index": 23,
+          "start": 3133,
+          "end": 3199
+        },
+        {
+          "index": 24,
+          "start": 3201,
+          "end": 3272
+        },
+        {
+          "index": 25,
+          "start": 3274,
+          "end": 3421
+        },
+        {
+          "index": 26,
+          "start": 3422,
+          "end": 3573
+        },
+        {
+          "index": 27,
+          "start": 3575,
+          "end": 3587
+        },
+        {
+          "index": 28,
+          "start": 3589,
+          "end": 3723
+        },
+        {
+          "index": 29,
+          "start": 3724,
+          "end": 3817
+        },
+        {
+          "index": 30,
+          "start": 3819,
+          "end": 3845
+        },
+        {
+          "index": 31,
+          "start": 3847,
+          "end": 3871
+        },
+        {
+          "index": 32,
+          "start": 3872,
+          "end": 3908
+        },
+        {
+          "index": 33,
+          "start": 3909,
+          "end": 4047
+        },
+        {
+          "index": 34,
+          "start": 4049,
+          "end": 4070
+        },
+        {
+          "index": 35,
+          "start": 4072,
+          "end": 4117
+        },
+        {
+          "index": 36,
+          "start": 4118,
+          "end": 4162
+        },
+        {
+          "index": 37,
+          "start": 4163,
+          "end": 4408
+        }
+      ],
+      "sha256": "97e279a6fb60929697ce11b4d1bc59705be2689a4d1e186fc34594325d806c76",
+      "meta": {
+        "topic_id": 92939,
+        "post_number": 1,
+        "username": "Zac-HD",
+        "name": "Zac Hatfield-Dodds",
+        "user_title": "",
+        "flair_name": "",
+        "primary_group_name": "",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": null,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:92939:250130",
+      "source_id": "dpo:t92939",
+      "source_post_number": 2,
+      "seq": 2,
+      "version": 1,
+      "author": "Tinche",
+      "role": "participant",
+      "created_at": "2025-05-22T21:33:40.705000Z",
+      "reply_to": null,
+      "quotes": [
+        "dpo:92939:250128"
+      ],
+      "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/2",
+      "text": "Super quick question,\n\nWe need the `await` in there since `@asynccontextmanager` requires an async generator? Could we write a different helper that just calls `__enter__` in `__aenter__` (etc) thus avoiding the suspension point?",
+      "sentences": [
+        "Super quick question,",
+        "We need the `await` in there since `@asynccontextmanager` requires an async generator?",
+        "Could we write a different helper that just calls `__enter__` in `__aenter__` (etc) thus avoiding the suspension point?"
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 21
+        },
+        {
+          "index": 2,
+          "start": 23,
+          "end": 109
+        },
+        {
+          "index": 3,
+          "start": 110,
+          "end": 229
+        }
+      ],
+      "sha256": "25b104d24a72e1db5bba1021e8563aa851a7515366d40dc2727ca5d4e2a96d85",
+      "meta": {
+        "topic_id": 92939,
+        "post_number": 2,
+        "username": "Tinche",
+        "name": "Tin Tvrtković",
+        "user_title": "",
+        "flair_name": "",
+        "primary_group_name": "",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": null,
+        "quote_refs": [
+          [
+            92939,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "id": "dpo:92939:250132",
+      "source_id": "dpo:t92939",
+      "source_post_number": 3,
+      "seq": 3,
+      "version": 2,
+      "author": "graingert",
+      "role": "participant",
+      "created_at": "2025-05-22T21:53:32.816000Z",
+      "reply_to": "dpo:92939:250130",
+      "quotes": [],
+      "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/3",
+      "text": "Async generators don’t require that await, you could make an as_acm that doesn’t yield to the event loop, this seems like a perfectly fine work around:\n\n```\n    @asynccontextmanager\n    async def as_acm(ctx):\n        with ctx as val:\n            yield val\n\n```",
+      "sentences": [
+        "Async generators don’t require that await, you could make an as_acm that doesn’t yield to the event loop, this seems like a perfectly fine work around:",
+        "```\n    @asynccontextmanager\n    async def as_acm(ctx):\n        with ctx as val:\n            yield val\n\n```"
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 151
+        },
+        {
+          "index": 2,
+          "start": 153,
+          "end": 260
+        }
+      ],
+      "sha256": "e303ee8606c4e57865eeea2202bfd07ab0f892a45c915d4e31e013cb60dfaddd",
+      "meta": {
+        "topic_id": 92939,
+        "post_number": 3,
+        "username": "graingert",
+        "name": "Thomas Grainger",
+        "user_title": "",
+        "flair_name": "",
+        "primary_group_name": "",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": 2,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:92939:250133",
+      "source_id": "dpo:t92939",
+      "source_post_number": 4,
+      "seq": 4,
+      "version": 1,
+      "author": "graingert",
+      "role": "participant",
+      "created_at": "2025-05-22T21:54:59.649000Z",
+      "reply_to": null,
+      "quotes": [],
+      "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/4",
+      "text": "How would you make this work without probing the context manager to see if it’s async or sync? This seems slow\n\nThis also doesn’t seem backwards compatible as in eg dask there’s classes that support both async and sync context management but only work in the appropriate context. (The sync context manager dispatches to an event loop in a background thread, the async version uses the running loop)",
+      "sentences": [
+        "How would you make this work without probing the context manager to see if it’s async or sync?",
+        "This seems slow",
+        "This also doesn’t seem backwards compatible as in eg dask there’s classes that support both async and sync context management but only work in the appropriate context.",
+        "(The sync context manager dispatches to an event loop in a background thread, the async version uses the running loop)"
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 94
+        },
+        {
+          "index": 2,
+          "start": 95,
+          "end": 110
+        },
+        {
+          "index": 3,
+          "start": 112,
+          "end": 279
+        },
+        {
+          "index": 4,
+          "start": 280,
+          "end": 398
+        }
+      ],
+      "sha256": "d46796759d6c06253e0724bfcffad2b5b935d1b0e867ec28f1fb8aa65f40c89f",
+      "meta": {
+        "topic_id": 92939,
+        "post_number": 4,
+        "username": "graingert",
+        "name": "Thomas Grainger",
+        "user_title": "",
+        "flair_name": "",
+        "primary_group_name": "",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": null,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:92939:250173",
+      "source_id": "dpo:t92939",
+      "source_post_number": 5,
+      "seq": 5,
+      "version": 1,
+      "author": "Jelle",
+      "role": "maintainer",
+      "created_at": "2025-05-23T02:37:12.752000Z",
+      "reply_to": null,
+      "quotes": [],
+      "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/5",
+      "text": "I like the idea. Two points on details:\n\nRuntime check that at least one async context manager is present\n\nDo we need this? It would be more straightforward to implement if you could use `async with` even if all the context managers are sync; this seems harmless. A concrete advantage is that you don’t need to worry about switching between with and async with if e.g. you temporarily comment out one context manager in a group.\n\nThis also doesn’t seem backwards compatible\n\nThis depends on the exact semantics. I think it should be to check if `__aenter__`/`__aexit__` exist; if so, use them; if not, check for `__enter__`/`__exit__`; if so, use them; if not, raise. For compatibility it’s important that we check the async version first, contrary to the helper function shown in @Zac-HD’s example.\n\n(There might be some more subtlety around what happens if only one of the enter and exit methods exist; we can probably align with however that is handled today.)\n\nHow would you make this work without probing the context manager to see if it’s async or sync? This seems slow\n\nI don’t think the procedure I outlined above should be very slow.",
+      "sentences": [
+        "I like the idea.",
+        "Two points on details:",
+        "Runtime check that at least one async context manager is present",
+        "Do we need this?",
+        "It would be more straightforward to implement if you could use `async with` even if all the context managers are sync; this seems harmless.",
+        "A concrete advantage is that you don’t need to worry about switching between with and async with if e.g. you temporarily comment out one context manager in a group.",
+        "This also doesn’t seem backwards compatible",
+        "This depends on the exact semantics.",
+        "I think it should be to check if `__aenter__`/`__aexit__` exist; if so, use them; if not, check for `__enter__`/`__exit__`; if so, use them; if not, raise.",
+        "For compatibility it’s important that we check the async version first, contrary to the helper function shown in @Zac-HD’s example.",
+        "(There might be some more subtlety around what happens if only one of the enter and exit methods exist; we can probably align with however that is handled today.)",
+        "How would you make this work without probing the context manager to see if it’s async or sync?",
+        "This seems slow",
+        "I don’t think the procedure I outlined above should be very slow."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 16
+        },
+        {
+          "index": 2,
+          "start": 17,
+          "end": 39
+        },
+        {
+          "index": 3,
+          "start": 41,
+          "end": 105
+        },
+        {
+          "index": 4,
+          "start": 107,
+          "end": 123
+        },
+        {
+          "index": 5,
+          "start": 124,
+          "end": 263
+        },
+        {
+          "index": 6,
+          "start": 264,
+          "end": 428
+        },
+        {
+          "index": 7,
+          "start": 430,
+          "end": 473
+        },
+        {
+          "index": 8,
+          "start": 475,
+          "end": 511
+        },
+        {
+          "index": 9,
+          "start": 512,
+          "end": 667
+        },
+        {
+          "index": 10,
+          "start": 668,
+          "end": 799
+        },
+        {
+          "index": 11,
+          "start": 801,
+          "end": 963
+        },
+        {
+          "index": 12,
+          "start": 965,
+          "end": 1059
+        },
+        {
+          "index": 13,
+          "start": 1060,
+          "end": 1075
+        },
+        {
+          "index": 14,
+          "start": 1077,
+          "end": 1142
+        }
+      ],
+      "sha256": "bed82beccc0c4aa004d92bae5899d481a9e8f9fc0bf9d118f8f7edfd9c23134f",
+      "meta": {
+        "topic_id": 92939,
+        "post_number": 5,
+        "username": "Jelle",
+        "name": "Jelle Zijlstra",
+        "user_title": "CPython core developer",
+        "flair_name": "committers",
+        "primary_group_name": "committers",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": null,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:92939:250335",
+      "source_id": "dpo:t92939",
+      "source_post_number": 6,
+      "seq": 6,
+      "version": 1,
+      "author": "jsbueno",
+      "role": "participant",
+      "created_at": "2025-05-23T17:37:16.627000Z",
+      "reply_to": "dpo:92939:250133",
+      "quotes": [],
+      "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/6",
+      "text": "As for compatibility, it seems obvious for me that the feature should call `__aenter__` if it exists, and only otherwise fallback to the sync context manager protocol. This is a non-issue.",
+      "sentences": [
+        "As for compatibility, it seems obvious for me that the feature should call `__aenter__` if it exists, and only otherwise fallback to the sync context manager protocol.",
+        "This is a non-issue."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 167
+        },
+        {
+          "index": 2,
+          "start": 168,
+          "end": 188
+        }
+      ],
+      "sha256": "f3d5990bfe40c4851656d3298c7faf14a43be465a8ed8fae5b4fb6871ec4bfcd",
+      "meta": {
+        "topic_id": 92939,
+        "post_number": 6,
+        "username": "jsbueno",
+        "name": "Joao S. O. Bueno",
+        "user_title": "",
+        "flair_name": "",
+        "primary_group_name": "",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": 4,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:92939:250342",
+      "source_id": "dpo:t92939",
+      "source_post_number": 7,
+      "seq": 7,
+      "version": 1,
+      "author": "picnixz",
+      "role": "maintainer",
+      "created_at": "2025-05-23T18:01:20.514000Z",
+      "reply_to": null,
+      "quotes": [
+        "dpo:92939:250173"
+      ],
+      "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/7",
+      "text": "I recently wrote a PR which suggests using `async with` when someone uses it for a sync manager. Detecting whether it’s supported or not is quite straightforward so we can reuse that code: gh-128398: improve error message when incorrectly `with` and `async with` by picnixz · Pull Request #132218 · python/cpython · GitHub.",
+      "sentences": [
+        "I recently wrote a PR which suggests using `async with` when someone uses it for a sync manager.",
+        "Detecting whether it’s supported or not is quite straightforward so we can reuse that code: gh-128398: improve error message when incorrectly `with` and `async with` by picnixz · Pull Request #132218 · python/cpython · GitHub."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 96
+        },
+        {
+          "index": 2,
+          "start": 97,
+          "end": 323
+        }
+      ],
+      "sha256": "cc399f37aaa1fb3df98972865d5167680863afe681cf99ba17d7757be02f6524",
+      "meta": {
+        "topic_id": 92939,
+        "post_number": 7,
+        "username": "picnixz",
+        "name": "Bénédikt Tran",
+        "user_title": "CPython core developer",
+        "flair_name": "committers",
+        "primary_group_name": "committers",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": null,
+        "quote_refs": [
+          [
+            92939,
+            5
+          ]
+        ]
+      }
+    },
+    {
+      "id": "dpo:92939:250344",
+      "source_id": "dpo:t92939",
+      "source_post_number": 8,
+      "seq": 8,
+      "version": 1,
+      "author": "Jelle",
+      "role": "maintainer",
+      "created_at": "2025-05-23T18:04:28.526000Z",
+      "reply_to": "dpo:92939:250342",
+      "quotes": [],
+      "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/8",
+      "text": "The difficulty is that the proposed rule would have to look across multiple context managers. If you have the code `async with a, b, c: pass`, then under Zac’s proposal, the interpreter should raise an error only if all three of a, b, and c implement enter but not aenter. That means the interpreter would have to track that state across instructions. Not impossible of course, but not completely trivial either.",
+      "sentences": [
+        "The difficulty is that the proposed rule would have to look across multiple context managers.",
+        "If you have the code `async with a, b, c: pass`, then under Zac’s proposal, the interpreter should raise an error only if all three of a, b, and c implement enter but not aenter.",
+        "That means the interpreter would have to track that state across instructions.",
+        "Not impossible of course, but not completely trivial either."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 93
+        },
+        {
+          "index": 2,
+          "start": 94,
+          "end": 272
+        },
+        {
+          "index": 3,
+          "start": 273,
+          "end": 351
+        },
+        {
+          "index": 4,
+          "start": 352,
+          "end": 412
+        }
+      ],
+      "sha256": "d983454697d7338549879db7599b991f2a7598b2233cb42b38c6a16fccd40c2e",
+      "meta": {
+        "topic_id": 92939,
+        "post_number": 8,
+        "username": "Jelle",
+        "name": "Jelle Zijlstra",
+        "user_title": "CPython core developer",
+        "flair_name": "committers",
+        "primary_group_name": "committers",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": 7,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:92939:250472",
+      "source_id": "dpo:t92939",
+      "source_post_number": 9,
+      "seq": 9,
+      "version": 1,
+      "author": "Nodd",
+      "role": "participant",
+      "created_at": "2025-05-24T11:12:19.488000Z",
+      "reply_to": "dpo:92939:250344",
+      "quotes": [],
+      "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/9",
+      "text": "I had the same thought. I don’t understand why it should raise an error in this case ? If it accepts both kinds of context managers, let it always accept all of them whatever they are. Is there a drawback I don’t see ?",
+      "sentences": [
+        "I had the same thought.",
+        "I don’t understand why it should raise an error in this case ?",
+        "If it accepts both kinds of context managers, let it always accept all of them whatever they are.",
+        "Is there a drawback I don’t see ?"
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 23
+        },
+        {
+          "index": 2,
+          "start": 24,
+          "end": 86
+        },
+        {
+          "index": 3,
+          "start": 87,
+          "end": 184
+        },
+        {
+          "index": 4,
+          "start": 185,
+          "end": 218
+        }
+      ],
+      "sha256": "c575fc1470983dddfaf1359ae929e5d29432e1900a4a4df725a44f0227512161",
+      "meta": {
+        "topic_id": 92939,
+        "post_number": 9,
+        "username": "Nodd",
+        "name": "Joseph Martinot-Lagarde",
+        "user_title": "",
+        "flair_name": "",
+        "primary_group_name": "",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": 8,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:92939:250637",
+      "source_id": "dpo:t92939",
+      "source_post_number": 10,
+      "seq": 10,
+      "version": 1,
+      "author": "rrolls",
+      "role": "participant",
+      "created_at": "2025-05-25T11:06:05.814000Z",
+      "reply_to": null,
+      "quotes": [],
+      "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/10",
+      "text": "Could we perhaps move the `async` keyword inside the parens?\n\n```\nwith (\n    async acquire_lock() as lock,\n    open('config.json') as f,\n    async connect_to_db() as db,\n    temp_directory() as tmpdir,\n):\n\n```\n\nNow you can mix sync and async context managers in a single `with` block, and, unlike with the OP’s solution as-is, it’s abundantly clear to anyone reading the code which context managers are async and which aren’t, and the interpreter doesn’t have to waste any time checking, either - it can raise `RuntimeError` if any of the context managers are of the wrong kind.\n\nFor completeness, I suppose we should probably also allow `with async foo as bar` as an equivalent to `async with foo as bar` (for the case where you’re only entering one context manager and not a bunch of them).",
+      "sentences": [
+        "Could we perhaps move the `async` keyword inside the parens?",
+        "```\nwith (\n    async acquire_lock() as lock,\n    open('config.json') as f,\n    async connect_to_db() as db,\n    temp_directory() as tmpdir,\n):\n\n```",
+        "Now you can mix sync and async context managers in a single `with` block, and, unlike with the OP’s solution as-is, it’s abundantly clear to anyone reading the code which context managers are async and which aren’t, and the interpreter doesn’t have to waste any time checking, either - it can raise `RuntimeError` if any of the context managers are of the wrong kind.",
+        "For completeness, I suppose we should probably also allow `with async foo as bar` as an equivalent to `async with foo as bar` (for the case where you’re only entering one context manager and not a bunch of them)."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 60
+        },
+        {
+          "index": 2,
+          "start": 62,
+          "end": 209
+        },
+        {
+          "index": 3,
+          "start": 211,
+          "end": 578
+        },
+        {
+          "index": 4,
+          "start": 580,
+          "end": 792
+        }
+      ],
+      "sha256": "a4b3db4f6d315b48eb44b301fd8afb7c7752b13e6e78d58d66661ee9d4d001aa",
+      "meta": {
+        "topic_id": 92939,
+        "post_number": 10,
+        "username": "rrolls",
+        "name": "Rob Rolls",
+        "user_title": "",
+        "flair_name": "",
+        "primary_group_name": "",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": null,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:92939:250922",
+      "source_id": "dpo:t92939",
+      "source_post_number": 11,
+      "seq": 11,
+      "version": 1,
+      "author": "Zac-HD",
+      "role": "author",
+      "created_at": "2025-05-26T17:56:32.573000Z",
+      "reply_to": "dpo:92939:250132",
+      "quotes": [
+        "dpo:92939:250132",
+        "dpo:92939:250173"
+      ],
+      "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/11",
+      "text": "The problem here is that if we don’t yield to the event loop, or if we allow all-sync context managers, this breaks the syntactic visibility of checkpoints.\n\nTrio goes to considerable lengths to ensure that every time you see the `await`, `async for`, or `async with` keyword, it’s executing a checkpoint where the event loop has a chance to cancel the task or schedule other work[1]. This is vital to avoid deadlocks in a cooperative-concurrency system; I wrote a whole linter and Anthropic’s codebase puts considerable effort into maintaining this property.\n\n1.  or raises an exception; the `__aexit__` of a nursery also has slightly more complicated rules ↩︎",
+      "sentences": [
+        "The problem here is that if we don’t yield to the event loop, or if we allow all-sync context managers, this breaks the syntactic visibility of checkpoints.",
+        "Trio goes to considerable lengths to ensure that every time you see the `await`, `async for`, or `async with` keyword, it’s executing a checkpoint where the event loop has a chance to cancel the task or schedule other work[1].",
+        "This is vital to avoid deadlocks in a cooperative-concurrency system; I wrote a whole linter and Anthropic’s codebase puts considerable effort into maintaining this property.",
+        "1.  or raises an exception; the `__aexit__` of a nursery also has slightly more complicated rules ↩︎"
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 156
+        },
+        {
+          "index": 2,
+          "start": 158,
+          "end": 384
+        },
+        {
+          "index": 3,
+          "start": 385,
+          "end": 559
+        },
+        {
+          "index": 4,
+          "start": 561,
+          "end": 661
+        }
+      ],
+      "sha256": "dbf9a385dbcecf4870c6bc425c5bd1484ddab2851fce917b957177977673b288",
+      "meta": {
+        "topic_id": 92939,
+        "post_number": 11,
+        "username": "Zac-HD",
+        "name": "Zac Hatfield-Dodds",
+        "user_title": "",
+        "flair_name": "",
+        "primary_group_name": "",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": 3,
+        "quote_refs": [
+          [
+            92939,
+            3
+          ],
+          [
+            92939,
+            5
+          ]
+        ]
+      }
+    },
+    {
+      "id": "dpo:92939:250924",
+      "source_id": "dpo:t92939",
+      "source_post_number": 12,
+      "seq": 12,
+      "version": 1,
+      "author": "Zac-HD",
+      "role": "author",
+      "created_at": "2025-05-26T18:01:13.881000Z",
+      "reply_to": "dpo:92939:250637",
+      "quotes": [],
+      "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/12",
+      "text": "This seems like an elegant and explicit solution to me, although as new syntax it’s also a larger change.",
+      "sentences": [
+        "This seems like an elegant and explicit solution to me, although as new syntax it’s also a larger change."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 105
+        }
+      ],
+      "sha256": "b1ef3a249b1f31838d78c2ff5d902f6ea433ff48c930e95ec6c20e721eb3eacd",
+      "meta": {
+        "topic_id": 92939,
+        "post_number": 12,
+        "username": "Zac-HD",
+        "name": "Zac Hatfield-Dodds",
+        "user_title": "",
+        "flair_name": "",
+        "primary_group_name": "",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": 10,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:92939:251240",
+      "source_id": "dpo:t92939",
+      "source_post_number": 13,
+      "seq": 13,
+      "version": 1,
+      "author": "alexmojaki",
+      "role": "participant",
+      "created_at": "2025-05-27T21:40:03.882000Z",
+      "reply_to": "dpo:92939:250922",
+      "quotes": [],
+      "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/13",
+      "text": "Could Python itself execute a checkpoint whenever `async with` is about to fallback to `__enter__`?",
+      "sentences": [
+        "Could Python itself execute a checkpoint whenever `async with` is about to fallback to `__enter__`?"
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 99
+        }
+      ],
+      "sha256": "78a8a85ca72ae5804db12ae63786f0f08f2eaa3c9fd3a0bc49a10bdff6092372",
+      "meta": {
+        "topic_id": 92939,
+        "post_number": 13,
+        "username": "alexmojaki",
+        "name": "Alex Hall",
+        "user_title": "",
+        "flair_name": "",
+        "primary_group_name": "",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": 11,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:92939:251337",
+      "source_id": "dpo:t92939",
+      "source_post_number": 14,
+      "seq": 14,
+      "version": 2,
+      "author": "Zac-HD",
+      "role": "author",
+      "created_at": "2025-05-28T07:55:51.006000Z",
+      "reply_to": "dpo:92939:251240",
+      "quotes": [],
+      "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/14",
+      "text": "Nope, it’s unfortunately quite complicated.\n\nThere’s the practical reason that the interpreter doesn’t have a reliable way to know how to execute a checkpoint - that’s a callback into your currently-active async framework of choice, and there are several that could even be active simultaneously in a single thread.\n\nThere’s also the principled reason, which is that checkpoints mark the places where the scheduler can cancel or switch tasks, and so inserting additional checkpoints can dramatically change program semantics, by e.g. allowing a task to be cancelled before performing some cleanup logic. Some context managers (e.g. `async with lock:`) block on entry; others like `async with TaskGroup() as tg:` block on exit, and there are some fairly gnarly interactions with propagating exceptions in `__aexit__` blocks too.",
+      "sentences": [
+        "Nope, it’s unfortunately quite complicated.",
+        "There’s the practical reason that the interpreter doesn’t have a reliable way to know how to execute a checkpoint - that’s a callback into your currently-active async framework of choice, and there are several that could even be active simultaneously in a single thread.",
+        "There’s also the principled reason, which is that checkpoints mark the places where the scheduler can cancel or switch tasks, and so inserting additional checkpoints can dramatically change program semantics, by e.g. allowing a task to be cancelled before performing some cleanup logic.",
+        "Some context managers (e.g. `async with lock:`) block on entry; others like `async with TaskGroup() as tg:` block on exit, and there are some fairly gnarly interactions with propagating exceptions in `__aexit__` blocks too."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 43
+        },
+        {
+          "index": 2,
+          "start": 45,
+          "end": 315
+        },
+        {
+          "index": 3,
+          "start": 317,
+          "end": 603
+        },
+        {
+          "index": 4,
+          "start": 604,
+          "end": 827
+        }
+      ],
+      "sha256": "292bae171b054a4465ce2a306b9d60db861a800bd4b9531cd69bbf31d881917a",
+      "meta": {
+        "topic_id": 92939,
+        "post_number": 14,
+        "username": "Zac-HD",
+        "name": "Zac Hatfield-Dodds",
+        "user_title": "",
+        "flair_name": "",
+        "primary_group_name": "",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": 13,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:92939:251349",
+      "source_id": "dpo:t92939",
+      "source_post_number": 15,
+      "seq": 15,
+      "version": 1,
+      "author": "Henkhogan",
+      "role": "participant",
+      "created_at": "2025-05-28T08:34:41.724000Z",
+      "reply_to": null,
+      "quotes": [],
+      "url": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/15",
+      "text": "I see similarities to Enhance builtin iterables like list, range with async methods like __aiter__, __anext__,",
+      "sentences": [
+        "I see similarities to Enhance builtin iterables like list, range with async methods like __aiter__, __anext__,"
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 110
+        }
+      ],
+      "sha256": "d083f901beb6f0cf34b4ed7f3d138891f1c078bbbf85580e875d79140fb76bd1",
+      "meta": {
+        "topic_id": 92939,
+        "post_number": 15,
+        "username": "Henkhogan",
+        "name": "Henkhogan",
+        "user_title": "",
+        "flair_name": "",
+        "primary_group_name": "",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": null,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:103971:272254",
+      "source_id": "dpo:t103971",
+      "source_post_number": 1,
+      "seq": 16,
+      "version": 1,
+      "author": "Zac-HD",
+      "role": "author",
+      "created_at": "2025-09-25T17:54:46.405000Z",
+      "reply_to": null,
+      "quotes": [],
+      "url": "https://discuss.python.org/t/pep-806-mixed-sync-async-context-managers-with-precise-async-marking/103971/1",
+      "text": "Hi all - after some earlier discussion, I’m pleased to present PEP 806 for discussion. It’s in most ways a very small proposal, which would make a surprisingly large difference for my code!\n\nFeedback, questions, requests for clarification, etc. all most welcome.\n\n## Abstract\n\nPython allows the `with` and `async with` statements to handle multiple context managers in a single statement, so long as they are all respectively synchronous or asynchronous. When mixing synchronous and asynchronous context managers, developers must use deeply nested statements or use risky workarounds such as overuse of `AsyncExitStack`.\n\nWe therefore propose to allow `with` statements to accept both synchronous and asynchronous context managers in a single statement by prefixing individual async context managers with the `async` keyword.\n\nThis change eliminates unnecessary nesting, improves code readability, and improves ergonomics without making async code any less explicit.\n\nFor example:\n\n```\nasync def process_data():\n    async with acquire_lock() as lock:\n        with temp_directory() as tmpdir:\n            async with connect_to_db(cache=tmpdir) as db:\n                with open('config.json', encoding='utf-8') as f:\n                    # We're now 16 spaces deep before any actual logic\n                    config = json.load(f)\n                    await db.execute(config['query'])\n                    # ... more processing\n\n```\n\nbecomes\n\n```\nasync def process_data():\n    with (\n        async acquire_lock() as lock,\n        temp_directory() as tmpdir,\n        async connect_to_db(cache=tmpdir) as db,\n        open('config.json', encoding='utf-8') as f,\n    ):\n        config = json.load(f)\n        await db.execute(config['query'])\n        # ... more processing\n\n```",
+      "sentences": [
+        "Hi all - after some earlier discussion, I’m pleased to present PEP 806 for discussion.",
+        "It’s in most ways a very small proposal, which would make a surprisingly large difference for my code!",
+        "Feedback, questions, requests for clarification, etc. all most welcome.",
+        "## Abstract",
+        "Python allows the `with` and `async with` statements to handle multiple context managers in a single statement, so long as they are all respectively synchronous or asynchronous.",
+        "When mixing synchronous and asynchronous context managers, developers must use deeply nested statements or use risky workarounds such as overuse of `AsyncExitStack`.",
+        "We therefore propose to allow `with` statements to accept both synchronous and asynchronous context managers in a single statement by prefixing individual async context managers with the `async` keyword.",
+        "This change eliminates unnecessary nesting, improves code readability, and improves ergonomics without making async code any less explicit.",
+        "For example:",
+        "```\nasync def process_data():\n    async with acquire_lock() as lock:\n        with temp_directory() as tmpdir:\n            async with connect_to_db(cache=tmpdir) as db:\n                with open('config.json', encoding='utf-8') as f:\n                    # We're now 16 spaces deep before any actual logic\n                    config = json.load(f)\n                    await db.execute(config['query'])\n                    # ... more processing\n\n```",
+        "becomes",
+        "```\nasync def process_data():\n    with (\n        async acquire_lock() as lock,\n        temp_directory() as tmpdir,\n        async connect_to_db(cache=tmpdir) as db,\n        open('config.json', encoding='utf-8') as f,\n    ):\n        config = json.load(f)\n        await db.execute(config['query'])\n        # ... more processing\n\n```"
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 86
+        },
+        {
+          "index": 2,
+          "start": 87,
+          "end": 189
+        },
+        {
+          "index": 3,
+          "start": 191,
+          "end": 262
+        },
+        {
+          "index": 4,
+          "start": 264,
+          "end": 275
+        },
+        {
+          "index": 5,
+          "start": 277,
+          "end": 454
+        },
+        {
+          "index": 6,
+          "start": 455,
+          "end": 620
+        },
+        {
+          "index": 7,
+          "start": 622,
+          "end": 825
+        },
+        {
+          "index": 8,
+          "start": 827,
+          "end": 966
+        },
+        {
+          "index": 9,
+          "start": 968,
+          "end": 980
+        },
+        {
+          "index": 10,
+          "start": 982,
+          "end": 1428
+        },
+        {
+          "index": 11,
+          "start": 1430,
+          "end": 1437
+        },
+        {
+          "index": 12,
+          "start": 1439,
+          "end": 1768
+        }
+      ],
+      "sha256": "ba08e41ad4164f4bc9be006494f91f8d305bd9cc2f52c63cf8d51ccc975e6740",
+      "meta": {
+        "topic_id": 103971,
+        "post_number": 1,
+        "username": "Zac-HD",
+        "name": "Zac Hatfield-Dodds",
+        "user_title": "",
+        "flair_name": "",
+        "primary_group_name": "",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": null,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:103971:272290",
+      "source_id": "dpo:t103971",
+      "source_post_number": 2,
+      "seq": 17,
+      "version": 1,
+      "author": "JoBe",
+      "role": "participant",
+      "created_at": "2025-09-26T04:10:41.917000Z",
+      "reply_to": null,
+      "quotes": [],
+      "url": "https://discuss.python.org/t/pep-806-mixed-sync-async-context-managers-with-precise-async-marking/103971/2",
+      "text": "I’m a big +1 on this, as I think this would help to improve the readability l. Are the parenthesis necessary however, or could work t be written as a one-liner?",
+      "sentences": [
+        "I’m a big +1 on this, as I think this would help to improve the readability l.",
+        "Are the parenthesis necessary however, or could work t be written as a one-liner?"
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 78
+        },
+        {
+          "index": 2,
+          "start": 79,
+          "end": 160
+        }
+      ],
+      "sha256": "e7faf2a80eec45a8a9ac248a557043869135ee47de18df2909d1c6dfcf7f1aad",
+      "meta": {
+        "topic_id": 103971,
+        "post_number": 2,
+        "username": "JoBe",
+        "name": "jobe",
+        "user_title": "",
+        "flair_name": "",
+        "primary_group_name": "",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": null,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:103971:272298",
+      "source_id": "dpo:t103971",
+      "source_post_number": 3,
+      "seq": 18,
+      "version": 1,
+      "author": "Zac-HD",
+      "role": "author",
+      "created_at": "2025-09-26T06:13:14.683000Z",
+      "reply_to": "dpo:103971:272290",
+      "quotes": [],
+      "url": "https://discuss.python.org/t/pep-806-mixed-sync-async-context-managers-with-precise-async-marking/103971/3",
+      "text": "The PEP proposes allowing the one-line form, including a simple `with async ctx():` without parentheses.\n\nThat said, I think it will remain better style to write `async with ctx():` for this case, and would only recommend using the new feature for multi-line parenthesized cases.",
+      "sentences": [
+        "The PEP proposes allowing the one-line form, including a simple `with async ctx():` without parentheses.",
+        "That said, I think it will remain better style to write `async with ctx():` for this case, and would only recommend using the new feature for multi-line parenthesized cases."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 104
+        },
+        {
+          "index": 2,
+          "start": 106,
+          "end": 279
+        }
+      ],
+      "sha256": "826f14d1ad219acec1d2d8ec9e6aaa1b3f45b4b9dda5142675031ffcb9c0d3f1",
+      "meta": {
+        "topic_id": 103971,
+        "post_number": 3,
+        "username": "Zac-HD",
+        "name": "Zac Hatfield-Dodds",
+        "user_title": "",
+        "flair_name": "",
+        "primary_group_name": "",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": 2,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:103971:272371",
+      "source_id": "dpo:t103971",
+      "source_post_number": 4,
+      "seq": 19,
+      "version": 1,
+      "author": "dr_carlos",
+      "role": "participant",
+      "created_at": "2025-09-26T22:44:48.505000Z",
+      "reply_to": "dpo:103971:272298",
+      "quotes": [],
+      "url": "https://discuss.python.org/t/pep-806-mixed-sync-async-context-managers-with-precise-async-marking/103971/4",
+      "text": "The PEP only gives examples of\n\n```\nwith (\n    async aquire_lock() as l,\n    open(\"file\") as f)\n):\n    ...\n\n```\n\nOr\n\n```\nwith async aquire_lock() as l:\n    ...\n\n```\n\nSo, to clarify, would\n\n```\nwith async aquire_lock() as l, open(\"file\") as f:\n    ...\n\n```\n\nBe allowed?",
+      "sentences": [
+        "The PEP only gives examples of",
+        "```\nwith (\n    async aquire_lock() as l,\n    open(\"file\") as f)\n):\n    ...\n\n```",
+        "Or",
+        "```\nwith async aquire_lock() as l:\n    ...\n\n```",
+        "So, to clarify, would",
+        "```\nwith async aquire_lock() as l, open(\"file\") as f:\n    ...\n\n```",
+        "Be allowed?"
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 30
+        },
+        {
+          "index": 2,
+          "start": 32,
+          "end": 111
+        },
+        {
+          "index": 3,
+          "start": 113,
+          "end": 115
+        },
+        {
+          "index": 4,
+          "start": 117,
+          "end": 164
+        },
+        {
+          "index": 5,
+          "start": 166,
+          "end": 187
+        },
+        {
+          "index": 6,
+          "start": 189,
+          "end": 255
+        },
+        {
+          "index": 7,
+          "start": 257,
+          "end": 268
+        }
+      ],
+      "sha256": "5e72e87a6b1f1836d0195a2fdfb5e62eaa319f3519796274a6f76950c6f0247f",
+      "meta": {
+        "topic_id": 103971,
+        "post_number": 4,
+        "username": "dr_carlos",
+        "name": "Carlos",
+        "user_title": "",
+        "flair_name": "",
+        "primary_group_name": "",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": 3,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:103971:272516",
+      "source_id": "dpo:t103971",
+      "source_post_number": 5,
+      "seq": 20,
+      "version": 1,
+      "author": "joegottman1",
+      "role": "participant",
+      "created_at": "2025-09-29T01:15:44.731000Z",
+      "reply_to": "dpo:103971:272371",
+      "quotes": [],
+      "url": "https://discuss.python.org/t/pep-806-mixed-sync-async-context-managers-with-precise-async-marking/103971/5",
+      "text": "I have a related question: What happens with `with async` followed by parentheses. Is the code\n `with async ( `\n `foo_context() as foo, `\n `bar_context() as bar ):`\n legal, and so are both foo and bar asynchronous or only foo.\n\nJoe Gottman",
+      "sentences": [
+        "I have a related question: What happens with `with async` followed by parentheses.",
+        "Is the code\n `with async ( `\n `foo_context() as foo, `\n `bar_context() as bar ):`\n legal, and so are both foo and bar asynchronous or only foo.",
+        "Joe Gottman"
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 82
+        },
+        {
+          "index": 2,
+          "start": 83,
+          "end": 226
+        },
+        {
+          "index": 3,
+          "start": 228,
+          "end": 239
+        }
+      ],
+      "sha256": "f062c8a93182667b0926f9ed65cb3461989880303458e10a12ef3e224c50df75",
+      "meta": {
+        "topic_id": 103971,
+        "post_number": 5,
+        "username": "joegottman1",
+        "name": "Joegottman1",
+        "user_title": "",
+        "flair_name": "",
+        "primary_group_name": "",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": 4,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:103971:272527",
+      "source_id": "dpo:t103971",
+      "source_post_number": 6,
+      "seq": 21,
+      "version": 1,
+      "author": "Zac-HD",
+      "role": "author",
+      "created_at": "2025-09-29T05:55:14.473000Z",
+      "reply_to": "dpo:103971:272516",
+      "quotes": [],
+      "url": "https://discuss.python.org/t/pep-806-mixed-sync-async-context-managers-with-precise-async-marking/103971/6",
+      "text": "Thanks for asking! The `async` keyword is specified in relation to the `ast.withitem`, and so this would be a `SyntaxError`.\n\nIf you play around with adding parens in the current `with` statement, you’ll find that the only valid placements are (1) around the entire expression, `with ( …. ):`, or around individual context-manager-returning expressions like `with ctx1() as a, (foo().ctx_attr) as b:`. The PEP doesn’t propose changing this, only allowing you to prepend `async` to each `ast.withitem`.",
+      "sentences": [
+        "Thanks for asking!",
+        "The `async` keyword is specified in relation to the `ast.withitem`, and so this would be a `SyntaxError`.",
+        "If you play around with adding parens in the current `with` statement, you’ll find that the only valid placements are (1) around the entire expression, `with ( …. ):`, or around individual context-manager-returning expressions like `with ctx1() as a, (foo().ctx_attr) as b:`.",
+        "The PEP doesn’t propose changing this, only allowing you to prepend `async` to each `ast.withitem`."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 18
+        },
+        {
+          "index": 2,
+          "start": 19,
+          "end": 124
+        },
+        {
+          "index": 3,
+          "start": 126,
+          "end": 401
+        },
+        {
+          "index": 4,
+          "start": 402,
+          "end": 501
+        }
+      ],
+      "sha256": "50b959a2693a2d2f8df21cbb3419952caf01fd1370b7654fcb4daaca0ba848ca",
+      "meta": {
+        "topic_id": 103971,
+        "post_number": 6,
+        "username": "Zac-HD",
+        "name": "Zac Hatfield-Dodds",
+        "user_title": "",
+        "flair_name": "",
+        "primary_group_name": "",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": 5,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:103971:272543",
+      "source_id": "dpo:t103971",
+      "source_post_number": 7,
+      "seq": 22,
+      "version": 2,
+      "author": "Tinche",
+      "role": "participant",
+      "created_at": "2025-09-29T08:38:20.492000Z",
+      "reply_to": null,
+      "quotes": [],
+      "url": "https://discuss.python.org/t/pep-806-mixed-sync-async-context-managers-with-precise-async-marking/103971/7",
+      "text": "I’m +1 on the PEP!\n\nIt’s maybe a little unfortunate the motivating examples use file operations as examples of sync operations. I’ve already seen comments on Reddit to the tune of “hurr durr they should be using async wrappers for files instead“ (while a complex topic, also isn’t incorrect in the general sense). I imagine the main motivating cases are actually the Trio cancel scope managers and their ilk?\n\nSome examples I’ve encountered where I’ve needed to mix sync and async context managers is using our internal library for tracing (`with TRACER.span():` ) and the timeout managers in my Quattro library (which are modeled after the Trio ones). But I understand you can’t stick those into a PEP.\n\nEdit: maybe examples using `pytest.raises(…)` and `contextlib.suppress(…)` would be clearer.",
+      "sentences": [
+        "I’m +1 on the PEP!",
+        "It’s maybe a little unfortunate the motivating examples use file operations as examples of sync operations.",
+        "I’ve already seen comments on Reddit to the tune of “hurr durr they should be using async wrappers for files instead“ (while a complex topic, also isn’t incorrect in the general sense).",
+        "I imagine the main motivating cases are actually the Trio cancel scope managers and their ilk?",
+        "Some examples I’ve encountered where I’ve needed to mix sync and async context managers is using our internal library for tracing (`with TRACER.span():` ) and the timeout managers in my Quattro library (which are modeled after the Trio ones).",
+        "But I understand you can’t stick those into a PEP.",
+        "Edit: maybe examples using `pytest.raises(…)` and `contextlib.suppress(…)` would be clearer."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 18
+        },
+        {
+          "index": 2,
+          "start": 20,
+          "end": 127
+        },
+        {
+          "index": 3,
+          "start": 128,
+          "end": 313
+        },
+        {
+          "index": 4,
+          "start": 314,
+          "end": 408
+        },
+        {
+          "index": 5,
+          "start": 410,
+          "end": 652
+        },
+        {
+          "index": 6,
+          "start": 653,
+          "end": 703
+        },
+        {
+          "index": 7,
+          "start": 705,
+          "end": 797
+        }
+      ],
+      "sha256": "8aa36024f72c513ad8cda458bf16ff7d782d71b839cfb0ade05007315d9d7745",
+      "meta": {
+        "topic_id": 103971,
+        "post_number": 7,
+        "username": "Tinche",
+        "name": "Tin Tvrtković",
+        "user_title": "",
+        "flair_name": "",
+        "primary_group_name": "",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": null,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:103971:273678",
+      "source_id": "dpo:t103971",
+      "source_post_number": 8,
+      "seq": 23,
+      "version": 1,
+      "author": "yicopa3177",
+      "role": "participant",
+      "created_at": "2025-10-08T01:15:58.694000Z",
+      "reply_to": null,
+      "quotes": [],
+      "url": "https://discuss.python.org/t/pep-806-mixed-sync-async-context-managers-with-precise-async-marking/103971/8",
+      "text": "I’m a bit skeptical of this proposal because it weakens Python’s principle that async code should be visually explicit. One of the best design decisions with async/await was making asynchronous code unmistakably distinct: when you see `async with`, you immediately know “this can suspend execution.” The proposal blurs this by allowing `with async ctx()` which looks like a sync statement with an async detail buried inside. At a glance, you lose the clear signal that this block involves async operations. The current forced nesting actually serves a purpose: it makes you think about the async/sync boundary and makes it visually obvious which scopes are async.\n\nThe motivating example showing “16 spaces deep” is already a code smell that should be refactored regardless of async: you shouldn’t have four nested context managers in the first place. If deep nesting is genuinely necessary, the explicitness of separate `async with` blocks is worth the verbosity because it maintains clarity about where suspension points exist. In my view the ergonomic improvement isn’t worth compromising the visual distinction that makes async code safe and maintainable.",
+      "sentences": [
+        "I’m a bit skeptical of this proposal because it weakens Python’s principle that async code should be visually explicit.",
+        "One of the best design decisions with async/await was making asynchronous code unmistakably distinct: when you see `async with`, you immediately know “this can suspend execution.”",
+        "The proposal blurs this by allowing `with async ctx()` which looks like a sync statement with an async detail buried inside.",
+        "At a glance, you lose the clear signal that this block involves async operations.",
+        "The current forced nesting actually serves a purpose: it makes you think about the async/sync boundary and makes it visually obvious which scopes are async.",
+        "The motivating example showing “16 spaces deep” is already a code smell that should be refactored regardless of async: you shouldn’t have four nested context managers in the first place.",
+        "If deep nesting is genuinely necessary, the explicitness of separate `async with` blocks is worth the verbosity because it maintains clarity about where suspension points exist.",
+        "In my view the ergonomic improvement isn’t worth compromising the visual distinction that makes async code safe and maintainable."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 119
+        },
+        {
+          "index": 2,
+          "start": 120,
+          "end": 299
+        },
+        {
+          "index": 3,
+          "start": 300,
+          "end": 424
+        },
+        {
+          "index": 4,
+          "start": 425,
+          "end": 506
+        },
+        {
+          "index": 5,
+          "start": 507,
+          "end": 663
+        },
+        {
+          "index": 6,
+          "start": 665,
+          "end": 851
+        },
+        {
+          "index": 7,
+          "start": 852,
+          "end": 1029
+        },
+        {
+          "index": 8,
+          "start": 1030,
+          "end": 1159
+        }
+      ],
+      "sha256": "ecd60ad1258fd898a8410d9093d80d8edad97553a8a4f2317d325ef2fbb724fc",
+      "meta": {
+        "topic_id": 103971,
+        "post_number": 8,
+        "username": "yicopa3177",
+        "name": "Akif",
+        "user_title": "",
+        "flair_name": "",
+        "primary_group_name": "",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": null,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:103971:274723",
+      "source_id": "dpo:t103971",
+      "source_post_number": 9,
+      "seq": 24,
+      "version": 2,
+      "author": "mikeshardmind",
+      "role": "participant",
+      "created_at": "2025-10-16T15:18:19.652000Z",
+      "reply_to": null,
+      "quotes": [],
+      "url": "https://discuss.python.org/t/pep-806-mixed-sync-async-context-managers-with-precise-async-marking/103971/9",
+      "text": "I had to give this some significant thought and look at my own use, personal and professional.\n\nI don’t personally see allowing mixing these as a positive after doing so.\n\nI couldn’t find any examples in my own use that even came close to paralleling this, and I do think that this compromises on the primary benefit of async as a keyword in the first place (the high visibility and clear ordering of context switches, note that these context switches also happen on exiting the async context managers)\n\nI’m going to critique the example, heavily, but the same critiques likely apply to any other code that would seem to benefit from this, as I believe there’s a reason I can’t find any code in my own use that would even remotely benefit from this.\n\nThe example given seems pretty weak, I’d like to see a realworld example where you actually need to aquire these, in this particular order, all at once, using a mix of sync and async context managers to do it. If the ordering is unimportant, just that all are aquired before continuing, then released afterward, or even if only the aquisition of the lock happening at the outermost level matters, you can already group this into two groups (those that are async, and those that are not).\n\nWhat’s the lock even for? temp directories should always be sufficiently unique, file access can be in exclusive mode, and dbs typically provide their own locking as needed. If multiple things would be frequently updating the same config file, and this is intentional, you should be using a write queue rather than locked access, or even storing configuration in the database.\n\nEdit: I think that this is essentially already acting as a visual indication of code that should be refactored, not of code that the language needs to accomodate better.",
+      "sentences": [
+        "I had to give this some significant thought and look at my own use, personal and professional.",
+        "I don’t personally see allowing mixing these as a positive after doing so.",
+        "I couldn’t find any examples in my own use that even came close to paralleling this, and I do think that this compromises on the primary benefit of async as a keyword in the first place (the high visibility and clear ordering of context switches, note that these context switches also happen on exiting the async context managers)",
+        "I’m going to critique the example, heavily, but the same critiques likely apply to any other code that would seem to benefit from this, as I believe there’s a reason I can’t find any code in my own use that would even remotely benefit from this.",
+        "The example given seems pretty weak, I’d like to see a realworld example where you actually need to aquire these, in this particular order, all at once, using a mix of sync and async context managers to do it.",
+        "If the ordering is unimportant, just that all are aquired before continuing, then released afterward, or even if only the aquisition of the lock happening at the outermost level matters, you can already group this into two groups (those that are async, and those that are not).",
+        "What’s the lock even for? temp directories should always be sufficiently unique, file access can be in exclusive mode, and dbs typically provide their own locking as needed.",
+        "If multiple things would be frequently updating the same config file, and this is intentional, you should be using a write queue rather than locked access, or even storing configuration in the database.",
+        "Edit: I think that this is essentially already acting as a visual indication of code that should be refactored, not of code that the language needs to accomodate better."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 94
+        },
+        {
+          "index": 2,
+          "start": 96,
+          "end": 170
+        },
+        {
+          "index": 3,
+          "start": 172,
+          "end": 502
+        },
+        {
+          "index": 4,
+          "start": 504,
+          "end": 749
+        },
+        {
+          "index": 5,
+          "start": 751,
+          "end": 960
+        },
+        {
+          "index": 6,
+          "start": 961,
+          "end": 1238
+        },
+        {
+          "index": 7,
+          "start": 1240,
+          "end": 1413
+        },
+        {
+          "index": 8,
+          "start": 1414,
+          "end": 1616
+        },
+        {
+          "index": 9,
+          "start": 1618,
+          "end": 1787
+        }
+      ],
+      "sha256": "3e680ca3758c390b90e08d203d440d5fbbd3c27a3915aaf0a61b03055575846e",
+      "meta": {
+        "topic_id": 103971,
+        "post_number": 9,
+        "username": "mikeshardmind",
+        "name": "Michael H",
+        "user_title": "",
+        "flair_name": "",
+        "primary_group_name": "",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": null,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:103971:274788",
+      "source_id": "dpo:t103971",
+      "source_post_number": 10,
+      "seq": 25,
+      "version": 1,
+      "author": "Tinche",
+      "role": "participant",
+      "created_at": "2025-10-17T08:50:02.965000Z",
+      "reply_to": "dpo:103971:274723",
+      "quotes": [
+        "dpo:103971:274723"
+      ],
+      "url": "https://discuss.python.org/t/pep-806-mixed-sync-async-context-managers-with-precise-async-marking/103971/10",
+      "text": "A simple question: are you using `asyncio.timeout()`? If you value the benefit of explicit suspension points (like I do, and you imply you do) you should be using something else instead (either a home-grown solution, or `quattro.fail_after()`/`quattro.move_on_after()` and friends) since `asyncio.timeout()` is an async context manager but without any possible suspension points inside. (Fun fact, I raised this point while working on it with Andrew but we were ultimately overruled.)\n\nAnd I personally have had need to combine `quattro.fail_after()` with taskgroups etc, so that would be my concrete example.",
+      "sentences": [
+        "A simple question: are you using `asyncio.timeout()`?",
+        "If you value the benefit of explicit suspension points (like I do, and you imply you do) you should be using something else instead (either a home-grown solution, or `quattro.fail_after()`/`quattro.move_on_after()` and friends) since `asyncio.timeout()` is an async context manager but without any possible suspension points inside.",
+        "(Fun fact, I raised this point while working on it with Andrew but we were ultimately overruled.)",
+        "And I personally have had need to combine `quattro.fail_after()` with taskgroups etc, so that would be my concrete example."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 53
+        },
+        {
+          "index": 2,
+          "start": 54,
+          "end": 386
+        },
+        {
+          "index": 3,
+          "start": 387,
+          "end": 484
+        },
+        {
+          "index": 4,
+          "start": 486,
+          "end": 609
+        }
+      ],
+      "sha256": "fa6043f9a3279c0e20a1bf2628575a2692203bdd6ab0917554ad2440afcbf027",
+      "meta": {
+        "topic_id": 103971,
+        "post_number": 10,
+        "username": "Tinche",
+        "name": "Tin Tvrtković",
+        "user_title": "",
+        "flair_name": "",
+        "primary_group_name": "",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": 9,
+        "quote_refs": [
+          [
+            103971,
+            9
+          ]
+        ]
+      }
+    },
+    {
+      "id": "dpo:103971:274812",
+      "source_id": "dpo:t103971",
+      "source_post_number": 11,
+      "seq": 26,
+      "version": 2,
+      "author": "mikeshardmind",
+      "role": "participant",
+      "created_at": "2025-10-17T14:25:40.478000Z",
+      "reply_to": "dpo:103971:274788",
+      "quotes": [],
+      "url": "https://discuss.python.org/t/pep-806-mixed-sync-async-context-managers-with-precise-async-marking/103971/11",
+      "text": "No. If I need a timeout on a coroutine that doesn’t provide it, I don’t use asyncio.timeout, but asyncio.wait_for or asyncio.wait (depending on the cancellation semantics needed in case of timeout) with a timeout parameter. While structured in code differently than the [edit: closest] context manager equivalent, the semantics are in general better.",
+      "sentences": [
+        "No.",
+        "If I need a timeout on a coroutine that doesn’t provide it, I don’t use asyncio.timeout, but asyncio.wait_for or asyncio.wait (depending on the cancellation semantics needed in case of timeout) with a timeout parameter.",
+        "While structured in code differently than the [edit: closest] context manager equivalent, the semantics are in general better."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 3
+        },
+        {
+          "index": 2,
+          "start": 4,
+          "end": 223
+        },
+        {
+          "index": 3,
+          "start": 224,
+          "end": 350
+        }
+      ],
+      "sha256": "0ac226a60ff301f81796144b8329c8deca26b5be0b66d85656ae8ec720253689",
+      "meta": {
+        "topic_id": 103971,
+        "post_number": 11,
+        "username": "mikeshardmind",
+        "name": "Michael H",
+        "user_title": "",
+        "flair_name": "",
+        "primary_group_name": "",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": 10,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:103971:291002",
+      "source_id": "dpo:t103971",
+      "source_post_number": 12,
+      "seq": 27,
+      "version": 1,
+      "author": "pablogsal",
+      "role": "decider",
+      "created_at": "2026-04-23T18:27:52.586000Z",
+      "reply_to": null,
+      "quotes": [],
+      "url": "https://discuss.python.org/t/pep-806-mixed-sync-async-context-managers-with-precise-async-marking/103971/12",
+      "text": "On behalf of the Python Steering Council: We’ve chosen to reject PEP 806, “Mixed sync/async context managers with precise async marking”. We thank Zac for the careful survey and write-up, and we acknowledge that the nesting pattern the PEP describes is a real annoyance for code that mixes sync and async context managers. However, the cost of adding new syntax to Python is very high: a permanent addition to the grammar is paid for by every parser, AST consumer, linter, formatter, type checker, and teaching resource in the ecosystem, and it is carried forward by every Python programmer from here on. The problem this PEP addresses, while genuine, does not in our view meet that bar. The PEP’s own survey suggests adoption would be limited to a specific subset of async code that also uses synchronous context managers, and that narrow payoff is not enough on its own to justify new syntax.\n\nIn addition to that background concern, we have several more specific reservations:\n\n-   The proposal introduces two valid spellings with different rules. Under this PEP, async with ctx(): and with async ctx(): would both be valid spellings of an async context manager entry, with different compositional rules: the former disallows mixing, the latter permits it. The PEP explicitly defers style enforcement to linters and formatters, but we are reluctant to ship syntax whose usability depends on external tooling to decide which of two legal forms is idiomatic.\n\n-   We have some concerns about how with async interacts with the existing async marking convention. Today every line performing asynchronous work begins with async or await as its first non-whitespace token, which is a property readers and static analysis tools often rely on. Placing async as an item-level prefix inside a parenthesised with block changes that, and the PEP’s own recommendation to keep async with for single-line statements suggests the authors share some of this concern. On balance we would prefer to preserve the existing convention rather than loosen it for a syntactic convenience.\n\n-   Existing workarounds are adequate for the cases the PEP addresses. contextlib.AsyncExitStack and the as_acm() helper pattern already cover the mixed sync/async case. The PEP’s objection to as_acm() rests on the await sleep(0) cancellation checkpoint breaking the property that syntactic await/async for/async with always yields to the scheduler, but the PEP itself acknowledges that few codebases enforce this property today. We would be receptive to a proposal for a stdlib version of as_acm(), with or without the checkpoint, as a smaller and more targeted change.\n\nNone of this is to dismiss the underlying pain point. We would encourage interested parties to continue exploring library-level solutions, and we think the survey data gathered for this PEP would be valuable input into such a discussion. Thanks to Zac for the work, and to everyone who contributed to the discussion.",
+      "sentences": [
+        "On behalf of the Python Steering Council: We’ve chosen to reject PEP 806, “Mixed sync/async context managers with precise async marking”.",
+        "We thank Zac for the careful survey and write-up, and we acknowledge that the nesting pattern the PEP describes is a real annoyance for code that mixes sync and async context managers.",
+        "However, the cost of adding new syntax to Python is very high: a permanent addition to the grammar is paid for by every parser, AST consumer, linter, formatter, type checker, and teaching resource in the ecosystem, and it is carried forward by every Python programmer from here on.",
+        "The problem this PEP addresses, while genuine, does not in our view meet that bar.",
+        "The PEP’s own survey suggests adoption would be limited to a specific subset of async code that also uses synchronous context managers, and that narrow payoff is not enough on its own to justify new syntax.",
+        "In addition to that background concern, we have several more specific reservations:",
+        "-   The proposal introduces two valid spellings with different rules. Under this PEP, async with ctx(): and with async ctx(): would both be valid spellings of an async context manager entry, with different compositional rules: the former disallows mixing, the latter permits it. The PEP explicitly defers style enforcement to linters and formatters, but we are reluctant to ship syntax whose usability depends on external tooling to decide which of two legal forms is idiomatic.",
+        "-   We have some concerns about how with async interacts with the existing async marking convention. Today every line performing asynchronous work begins with async or await as its first non-whitespace token, which is a property readers and static analysis tools often rely on. Placing async as an item-level prefix inside a parenthesised with block changes that, and the PEP’s own recommendation to keep async with for single-line statements suggests the authors share some of this concern. On balance we would prefer to preserve the existing convention rather than loosen it for a syntactic convenience.",
+        "-   Existing workarounds are adequate for the cases the PEP addresses. contextlib.AsyncExitStack and the as_acm() helper pattern already cover the mixed sync/async case. The PEP’s objection to as_acm() rests on the await sleep(0) cancellation checkpoint breaking the property that syntactic await/async for/async with always yields to the scheduler, but the PEP itself acknowledges that few codebases enforce this property today. We would be receptive to a proposal for a stdlib version of as_acm(), with or without the checkpoint, as a smaller and more targeted change.",
+        "None of this is to dismiss the underlying pain point.",
+        "We would encourage interested parties to continue exploring library-level solutions, and we think the survey data gathered for this PEP would be valuable input into such a discussion.",
+        "Thanks to Zac for the work, and to everyone who contributed to the discussion."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 137
+        },
+        {
+          "index": 2,
+          "start": 138,
+          "end": 322
+        },
+        {
+          "index": 3,
+          "start": 323,
+          "end": 604
+        },
+        {
+          "index": 4,
+          "start": 605,
+          "end": 687
+        },
+        {
+          "index": 5,
+          "start": 688,
+          "end": 894
+        },
+        {
+          "index": 6,
+          "start": 896,
+          "end": 979
+        },
+        {
+          "index": 7,
+          "start": 981,
+          "end": 1459
+        },
+        {
+          "index": 8,
+          "start": 1461,
+          "end": 2066
+        },
+        {
+          "index": 9,
+          "start": 2068,
+          "end": 2638
+        },
+        {
+          "index": 10,
+          "start": 2640,
+          "end": 2693
+        },
+        {
+          "index": 11,
+          "start": 2694,
+          "end": 2877
+        },
+        {
+          "index": 12,
+          "start": 2878,
+          "end": 2956
+        }
+      ],
+      "sha256": "d50aa37e90cbcd90155efa57cab41dbceceb95bb9a29b3b4ecd1e5d623a0e62f",
+      "meta": {
+        "topic_id": 103971,
+        "post_number": 12,
+        "username": "pablogsal",
+        "name": "Pablo Galindo Salgado",
+        "user_title": "Steering Council Member",
+        "flair_name": "steering-council",
+        "primary_group_name": "committers",
+        "moderator": true,
+        "admin": true,
+        "staff": true,
+        "reply_to_post_number": null,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:103971:291045",
+      "source_id": "dpo:t103971",
+      "source_post_number": 13,
+      "seq": 28,
+      "version": 1,
+      "author": "Zac-HD",
+      "role": "author",
+      "created_at": "2026-04-24T04:16:33.983000Z",
+      "reply_to": "dpo:103971:291002",
+      "quotes": [],
+      "url": "https://discuss.python.org/t/pep-806-mixed-sync-async-context-managers-with-precise-async-marking/103971/13",
+      "text": "Thank you, Pablo and Steering Council, for your careful stewardship of Python! I also appreciate the writeup of your reservations.\n\nI don’t think an `as_acm()` proposal is yet mature enough to propose for the stdlib or even third-party frameworks, but I’ll now spend some time experimenting with library-level solutions, and aim to write up any generally-useful observations or suggestions.",
+      "sentences": [
+        "Thank you, Pablo and Steering Council, for your careful stewardship of Python!",
+        "I also appreciate the writeup of your reservations.",
+        "I don’t think an `as_acm()` proposal is yet mature enough to propose for the stdlib or even third-party frameworks, but I’ll now spend some time experimenting with library-level solutions, and aim to write up any generally-useful observations or suggestions."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 78
+        },
+        {
+          "index": 2,
+          "start": 79,
+          "end": 130
+        },
+        {
+          "index": 3,
+          "start": 132,
+          "end": 390
+        }
+      ],
+      "sha256": "d92e2f9795b90ba57dfbdfa3d87e13fa5bc0512ac35ba7c62df323cea4e9ee53",
+      "meta": {
+        "topic_id": 103971,
+        "post_number": 13,
+        "username": "Zac-HD",
+        "name": "Zac Hatfield-Dodds",
+        "user_title": "",
+        "flair_name": "",
+        "primary_group_name": "",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": 12,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:103971:291055",
+      "source_id": "dpo:t103971",
+      "source_post_number": 14,
+      "seq": 29,
+      "version": 1,
+      "author": "BrenBarn",
+      "role": "participant",
+      "created_at": "2026-04-24T08:07:34.299000Z",
+      "reply_to": "dpo:103971:291002",
+      "quotes": [
+        "dpo:103971:291002"
+      ],
+      "url": "https://discuss.python.org/t/pep-806-mixed-sync-async-context-managers-with-precise-async-marking/103971/14",
+      "text": "Just a nitpick since there are plenty of other reasons given, but this isn’t true. `await` can be used in expressions like `blah = await foo`.",
+      "sentences": [
+        "Just a nitpick since there are plenty of other reasons given, but this isn’t true.",
+        "`await` can be used in expressions like `blah = await foo`."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 82
+        },
+        {
+          "index": 2,
+          "start": 83,
+          "end": 142
+        }
+      ],
+      "sha256": "9691106c4db8ab03695aa66740be4bbd61145fc2d0bc64b65dd0b7ba23e8b30b",
+      "meta": {
+        "topic_id": 103971,
+        "post_number": 14,
+        "username": "BrenBarn",
+        "name": "Brendan Barnwell",
+        "user_title": "",
+        "flair_name": "",
+        "primary_group_name": "",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": 12,
+        "quote_refs": [
+          [
+            103971,
+            12
+          ]
+        ]
+      }
+    }
+  ],
+  "meta": {
+    "pep": 806,
+    "pep_authors": [
+      "Zac Hatfield-Dodds"
+    ],
+    "topic_ids": [
+      103971,
+      92939
+    ],
+    "created_by": [
+      "Zac-HD"
+    ],
+    "forum": "https://discuss.python.org",
+    "posts_count": 29,
+    "leak_blanked": 0
+  }
+}

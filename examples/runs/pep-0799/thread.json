@@ -1,0 +1,1411 @@
+{
+  "id": "pep:799",
+  "kind": "discourse",
+  "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898",
+  "title": "PEP 799 – A dedicated profilers package for organizing Python profiling tool",
+  "posts": [
+    {
+      "id": "dpo:100898:264174",
+      "source_id": "dpo:t100898",
+      "source_post_number": 1,
+      "seq": 1,
+      "version": 2,
+      "author": "pablogsal",
+      "role": "author",
+      "created_at": "2025-08-01T14:28:45.924000Z",
+      "reply_to": null,
+      "quotes": [],
+      "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/1",
+      "text": "Hi everyone,\n\nThis is a straightforward structural proposal: PEP 799 introduces a new `profilers` standard library module to house Python’s built-in profilers under a single, coherent namespace.\n\nIt:\n\n-   Adds `profilers.tracing` (alias for `cProfile`)\n\n-   Adds `profilers.sampling` ( with the code for `tachyon`, the new sampling profiler in 3.15 using the introspection technology we added in 3.14)\n\n-   Deprecates the legacy `profile` module\n\nThis should make profiler discovery easier, reduce confusion, and set us up for clean future extensions (memory profilers, I/O profilers, etc.).\n\nFeedback welcome!\n\n— Pablo & László",
+      "sentences": [
+        "Hi everyone,",
+        "This is a straightforward structural proposal: PEP 799 introduces a new `profilers` standard library module to house Python’s built-in profilers under a single, coherent namespace.",
+        "It:",
+        "-   Adds `profilers.tracing` (alias for `cProfile`)",
+        "-   Adds `profilers.sampling` ( with the code for `tachyon`, the new sampling profiler in 3.15 using the introspection technology we added in 3.14)",
+        "-   Deprecates the legacy `profile` module",
+        "This should make profiler discovery easier, reduce confusion, and set us up for clean future extensions (memory profilers, I/O profilers, etc.).",
+        "Feedback welcome!",
+        "— Pablo & László"
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 12
+        },
+        {
+          "index": 2,
+          "start": 14,
+          "end": 194
+        },
+        {
+          "index": 3,
+          "start": 196,
+          "end": 199
+        },
+        {
+          "index": 4,
+          "start": 201,
+          "end": 252
+        },
+        {
+          "index": 5,
+          "start": 254,
+          "end": 401
+        },
+        {
+          "index": 6,
+          "start": 403,
+          "end": 445
+        },
+        {
+          "index": 7,
+          "start": 447,
+          "end": 591
+        },
+        {
+          "index": 8,
+          "start": 593,
+          "end": 610
+        },
+        {
+          "index": 9,
+          "start": 612,
+          "end": 628
+        }
+      ],
+      "sha256": "a120dfd0f96b0c57c53619130376f7150df860ab973a288a181ca68ad1ca9a54",
+      "meta": {
+        "topic_id": 100898,
+        "post_number": 1,
+        "username": "pablogsal",
+        "name": "Pablo Galindo Salgado",
+        "user_title": "Steering Council Member",
+        "flair_name": "steering-council",
+        "primary_group_name": "committers",
+        "moderator": true,
+        "admin": true,
+        "staff": true,
+        "reply_to_post_number": null,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:100898:264182",
+      "source_id": "dpo:t100898",
+      "source_post_number": 2,
+      "seq": 2,
+      "version": 1,
+      "author": "steve.dower",
+      "role": "maintainer",
+      "created_at": "2025-08-01T15:13:27.575000Z",
+      "reply_to": null,
+      "quotes": [],
+      "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/2",
+      "text": "Minor questions:\n\n- why is it important for this functionality to be stdlib compared to a PyPI package? (bearing in mind that subinterpreters were suitable for PyPI, despite being entirely a core runtime feature)\n\n- we’ll have `compression` and `concurrent` namespaces - `profilers` language-wise stands out. Why not `profiling` for consistency? (Arguably reusing `profile` would be more consistent, but too ambiguous IMHO)",
+      "sentences": [
+        "Minor questions:",
+        "- why is it important for this functionality to be stdlib compared to a PyPI package? (bearing in mind that subinterpreters were suitable for PyPI, despite being entirely a core runtime feature)",
+        "- we’ll have `compression` and `concurrent` namespaces - `profilers` language-wise stands out. Why not `profiling` for consistency? (Arguably reusing `profile` would be more consistent, but too ambiguous IMHO)"
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 16
+        },
+        {
+          "index": 2,
+          "start": 18,
+          "end": 212
+        },
+        {
+          "index": 3,
+          "start": 214,
+          "end": 423
+        }
+      ],
+      "sha256": "22e0bc6dacd3ab6189d8e617dfc3435696d983512b0a2e5b499b59d9ea9a3fa8",
+      "meta": {
+        "topic_id": 100898,
+        "post_number": 2,
+        "username": "steve.dower",
+        "name": "Steve Dower",
+        "user_title": "CPython core developer",
+        "flair_name": "committers",
+        "primary_group_name": "committers",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": null,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:100898:264197",
+      "source_id": "dpo:t100898",
+      "source_post_number": 3,
+      "seq": 3,
+      "version": 3,
+      "author": "pablogsal",
+      "role": "author",
+      "created_at": "2025-08-01T16:20:25.628000Z",
+      "reply_to": "dpo:100898:264182",
+      "quotes": [
+        "dpo:100898:264182"
+      ],
+      "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/3",
+      "text": "-   Sampling profilers like this require a extremelly tight coupling with CPython internals. They depend on accessing low-level execution state with minimal overhead, supporting multi-threaded programs, free-threading, async code, and even remote attachment. All of this requires syncing the profilers AND the features, even between patch versions. Because of this deep integration, changes in CPython internals can easily break or degrade sampling profilers (this happens constantly and is very painful for everyone). Keeping it in the stdlib ensures synchronization with those changes.\n\n-   Having the profiler in the stdlib ensures users have a high performance profiler with these features working on the release of CPython and they don’t need to wait months or years until the other tools reverse engineer all the ways CPython broke them or make their life harder.\n\n-   We can use the profiler to profile Python code during development of CPython. Normally not having into the sodlib means no profiler works until the release so we cannot benefit from it during development cycles.\n\n-   The stdlib now lacks a performant profiler that works for the different things that we offer (free threading, asyncio, …etc). Including a well-supported, zero-overhead profiler in the stdlib provides a known baseline and reference implementation that other tools can use as a baseline or emulate. It also avoids fragmentation, which is especially important in performance tooling. The PEP goes into some more detail.\n\n-   It also provides a stable, officially supported reference implementation that external tools can study or build on without needing to resort to undocumented or fragile techniques. This will help everyone know a baseline on how to adapt their things to new versions and don’t force them to have to find out contorted ways to keep the use case working and ensures that we don’t break these tools on every release.\n\n-   Including this in the stdlib helps steer users away from outdated tools like `profile`, and toward modern, efficient practices.\n\nI don’t mind that If everyone else agrees. How strongly do you feel about this? One downside of this is that `profiling` exists on PyPI but `profilers` doesn’t.\n\n(Arguably reusing `profile` would be more consistent, but too ambiguous IMHO)\n\nThat would be super confusing for everyone and make the deprecation much harder IMHO",
+      "sentences": [
+        "-   Sampling profilers like this require a extremelly tight coupling with CPython internals. They depend on accessing low-level execution state with minimal overhead, supporting multi-threaded programs, free-threading, async code, and even remote attachment. All of this requires syncing the profilers AND the features, even between patch versions. Because of this deep integration, changes in CPython internals can easily break or degrade sampling profilers (this happens constantly and is very painful for everyone). Keeping it in the stdlib ensures synchronization with those changes.",
+        "-   Having the profiler in the stdlib ensures users have a high performance profiler with these features working on the release of CPython and they don’t need to wait months or years until the other tools reverse engineer all the ways CPython broke them or make their life harder.",
+        "-   We can use the profiler to profile Python code during development of CPython. Normally not having into the sodlib means no profiler works until the release so we cannot benefit from it during development cycles.",
+        "-   The stdlib now lacks a performant profiler that works for the different things that we offer (free threading, asyncio, …etc). Including a well-supported, zero-overhead profiler in the stdlib provides a known baseline and reference implementation that other tools can use as a baseline or emulate. It also avoids fragmentation, which is especially important in performance tooling. The PEP goes into some more detail.",
+        "-   It also provides a stable, officially supported reference implementation that external tools can study or build on without needing to resort to undocumented or fragile techniques. This will help everyone know a baseline on how to adapt their things to new versions and don’t force them to have to find out contorted ways to keep the use case working and ensures that we don’t break these tools on every release.",
+        "-   Including this in the stdlib helps steer users away from outdated tools like `profile`, and toward modern, efficient practices.",
+        "I don’t mind that If everyone else agrees.",
+        "How strongly do you feel about this?",
+        "One downside of this is that `profiling` exists on PyPI but `profilers` doesn’t.",
+        "(Arguably reusing `profile` would be more consistent, but too ambiguous IMHO)",
+        "That would be super confusing for everyone and make the deprecation much harder IMHO"
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 587
+        },
+        {
+          "index": 2,
+          "start": 589,
+          "end": 869
+        },
+        {
+          "index": 3,
+          "start": 871,
+          "end": 1086
+        },
+        {
+          "index": 4,
+          "start": 1088,
+          "end": 1508
+        },
+        {
+          "index": 5,
+          "start": 1510,
+          "end": 1925
+        },
+        {
+          "index": 6,
+          "start": 1927,
+          "end": 2058
+        },
+        {
+          "index": 7,
+          "start": 2060,
+          "end": 2102
+        },
+        {
+          "index": 8,
+          "start": 2103,
+          "end": 2139
+        },
+        {
+          "index": 9,
+          "start": 2140,
+          "end": 2220
+        },
+        {
+          "index": 10,
+          "start": 2222,
+          "end": 2299
+        },
+        {
+          "index": 11,
+          "start": 2301,
+          "end": 2385
+        }
+      ],
+      "sha256": "000f370f329a3fd213e0f2a2c2c11f2a6b8d4c4501740c9663287f2298684e49",
+      "meta": {
+        "topic_id": 100898,
+        "post_number": 3,
+        "username": "pablogsal",
+        "name": "Pablo Galindo Salgado",
+        "user_title": "Steering Council Member",
+        "flair_name": "steering-council",
+        "primary_group_name": "committers",
+        "moderator": true,
+        "admin": true,
+        "staff": true,
+        "reply_to_post_number": 2,
+        "quote_refs": [
+          [
+            100898,
+            2
+          ],
+          [
+            100898,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "id": "dpo:100898:264212",
+      "source_id": "dpo:t100898",
+      "source_post_number": 4,
+      "seq": 4,
+      "version": 1,
+      "author": "guido",
+      "role": "maintainer",
+      "created_at": "2025-08-01T17:30:01.614000Z",
+      "reply_to": "dpo:100898:264197",
+      "quotes": [],
+      "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/4",
+      "text": "Naming is hard. :slight_smile: / :frowning:\n\nI agree that `profiling` is a better module name than `profilers`. The `profiling` package on PyPI hadn’t been updated since 2017, and its GitHub repo is archived, so I don’t see that as a strong argument against that name.",
+      "sentences": [
+        "Naming is hard. :slight_smile: / :frowning:",
+        "I agree that `profiling` is a better module name than `profilers`.",
+        "The `profiling` package on PyPI hadn’t been updated since 2017, and its GitHub repo is archived, so I don’t see that as a strong argument against that name."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 43
+        },
+        {
+          "index": 2,
+          "start": 45,
+          "end": 111
+        },
+        {
+          "index": 3,
+          "start": 112,
+          "end": 268
+        }
+      ],
+      "sha256": "4aee3fc1933a917db18a401b3b45988204f7bebe9e577f8513aac59806c105f0",
+      "meta": {
+        "topic_id": 100898,
+        "post_number": 4,
+        "username": "guido",
+        "name": "Guido van Rossum",
+        "user_title": "CPython core developer",
+        "flair_name": "",
+        "primary_group_name": "committers",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": 3,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:100898:264214",
+      "source_id": "dpo:t100898",
+      "source_post_number": 6,
+      "seq": 5,
+      "version": 1,
+      "author": "pablogsal",
+      "role": "author",
+      "created_at": "2025-08-01T17:34:06.186000Z",
+      "reply_to": "dpo:100898:264212",
+      "quotes": [],
+      "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/6",
+      "text": "I am convinced. Time to do some voting then:\n\nWhat name you prefer for the namespace holding the profiler modules?\n\n- profiling\n\n- profilers\n\n 0 voters",
+      "sentences": [
+        "I am convinced.",
+        "Time to do some voting then:",
+        "What name you prefer for the namespace holding the profiler modules?",
+        "- profiling",
+        "- profilers",
+        "0 voters"
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 15
+        },
+        {
+          "index": 2,
+          "start": 16,
+          "end": 44
+        },
+        {
+          "index": 3,
+          "start": 46,
+          "end": 114
+        },
+        {
+          "index": 4,
+          "start": 116,
+          "end": 127
+        },
+        {
+          "index": 5,
+          "start": 129,
+          "end": 140
+        },
+        {
+          "index": 6,
+          "start": 143,
+          "end": 151
+        }
+      ],
+      "sha256": "7c7844580f02617301b514f64f0fcc0f9547154c4983e66257d28c1c14eabeaf",
+      "meta": {
+        "topic_id": 100898,
+        "post_number": 6,
+        "username": "pablogsal",
+        "name": "Pablo Galindo Salgado",
+        "user_title": "Steering Council Member",
+        "flair_name": "steering-council",
+        "primary_group_name": "committers",
+        "moderator": true,
+        "admin": true,
+        "staff": true,
+        "reply_to_post_number": 4,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:100898:264266",
+      "source_id": "dpo:t100898",
+      "source_post_number": 7,
+      "seq": 6,
+      "version": 1,
+      "author": "Jelle",
+      "role": "maintainer",
+      "created_at": "2025-08-02T00:28:39.371000Z",
+      "reply_to": null,
+      "quotes": [],
+      "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/7",
+      "text": "I have a nitpick: do we really need the sampling profiler available under two names, `profilers.sampling` and `profilers.tachyon`? Aliases can make sense when we need compatibility, but if we’re introducing something new, I’d prefer having it under only one name so users don’t get confused.",
+      "sentences": [
+        "I have a nitpick: do we really need the sampling profiler available under two names, `profilers.sampling` and `profilers.tachyon`?",
+        "Aliases can make sense when we need compatibility, but if we’re introducing something new, I’d prefer having it under only one name so users don’t get confused."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 130
+        },
+        {
+          "index": 2,
+          "start": 131,
+          "end": 291
+        }
+      ],
+      "sha256": "19344f6b764436ecd48fd265d1c5c174bd32570002ba8927802779faab704858",
+      "meta": {
+        "topic_id": 100898,
+        "post_number": 7,
+        "username": "Jelle",
+        "name": "Jelle Zijlstra",
+        "user_title": "CPython core developer",
+        "flair_name": "committers",
+        "primary_group_name": "committers",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": null,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:100898:264267",
+      "source_id": "dpo:t100898",
+      "source_post_number": 8,
+      "seq": 7,
+      "version": 3,
+      "author": "pablogsal",
+      "role": "author",
+      "created_at": "2025-08-02T01:04:14.422000Z",
+      "reply_to": "dpo:100898:264266",
+      "quotes": [],
+      "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/8",
+      "text": "Need? no. The idea is that we would mostly advertise the `profilers.sampling` one but I wanted to have an alias for the name the same way you would have `cProfile` (which we are not removing) and `profilers.tracing`. I can be persuaded to remove the alias and just add it to the docs somehow in a way that the docs working group doesn’t find very confusing if you feel very strongly about it.",
+      "sentences": [
+        "Need? no.",
+        "The idea is that we would mostly advertise the `profilers.sampling` one but I wanted to have an alias for the name the same way you would have `cProfile` (which we are not removing) and `profilers.tracing`.",
+        "I can be persuaded to remove the alias and just add it to the docs somehow in a way that the docs working group doesn’t find very confusing if you feel very strongly about it."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 9
+        },
+        {
+          "index": 2,
+          "start": 10,
+          "end": 216
+        },
+        {
+          "index": 3,
+          "start": 217,
+          "end": 392
+        }
+      ],
+      "sha256": "7d4e225a77369d14f3a02b560871b644220cfad0dc3843d61eae66c9ee280670",
+      "meta": {
+        "topic_id": 100898,
+        "post_number": 8,
+        "username": "pablogsal",
+        "name": "Pablo Galindo Salgado",
+        "user_title": "Steering Council Member",
+        "flair_name": "steering-council",
+        "primary_group_name": "committers",
+        "moderator": true,
+        "admin": true,
+        "staff": true,
+        "reply_to_post_number": 7,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:100898:264275",
+      "source_id": "dpo:t100898",
+      "source_post_number": 9,
+      "seq": 8,
+      "version": 1,
+      "author": "AA-Turner",
+      "role": "maintainer",
+      "created_at": "2025-08-02T02:24:15.813000Z",
+      "reply_to": "dpo:100898:264267",
+      "quotes": [
+        "dpo:100898:264267"
+      ],
+      "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/9",
+      "text": "Is the intent to move `cProfile.py` to `profiling/tracing.py`? The PEP notes that there will be an ‘alias’ from one to the other and also that `profilers.tracing` will become the promoted name from 3.15. Moving things so that `cProfile.py` becomes the alias/reexport as the deprecated location would seem to make sense to me, and means that the sources for all profiling modules would be in the same place. This would also reduce the need for any new aliases (eg `tachyon`) — though happy to have a mention of this codename in the docs\n\nA",
+      "sentences": [
+        "Is the intent to move `cProfile.py` to `profiling/tracing.py`?",
+        "The PEP notes that there will be an ‘alias’ from one to the other and also that `profilers.tracing` will become the promoted name from 3.15.",
+        "Moving things so that `cProfile.py` becomes the alias/reexport as the deprecated location would seem to make sense to me, and means that the sources for all profiling modules would be in the same place.",
+        "This would also reduce the need for any new aliases (eg `tachyon`) — though happy to have a mention of this codename in the docs",
+        "A"
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 62
+        },
+        {
+          "index": 2,
+          "start": 63,
+          "end": 203
+        },
+        {
+          "index": 3,
+          "start": 204,
+          "end": 406
+        },
+        {
+          "index": 4,
+          "start": 407,
+          "end": 535
+        },
+        {
+          "index": 5,
+          "start": 537,
+          "end": 538
+        }
+      ],
+      "sha256": "6c90a94afca15f0679a9d11d10a2f5fd0c5f6158cb3edf2d452ea85508c8bd91",
+      "meta": {
+        "topic_id": 100898,
+        "post_number": 9,
+        "username": "AA-Turner",
+        "name": "Adam Turner",
+        "user_title": "CPython core developer",
+        "flair_name": "committers",
+        "primary_group_name": "committers",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": 8,
+        "quote_refs": [
+          [
+            100898,
+            8
+          ]
+        ]
+      }
+    },
+    {
+      "id": "dpo:100898:264276",
+      "source_id": "dpo:t100898",
+      "source_post_number": 10,
+      "seq": 9,
+      "version": 1,
+      "author": "pablogsal",
+      "role": "author",
+      "created_at": "2025-08-02T02:33:51.770000Z",
+      "reply_to": "dpo:100898:264275",
+      "quotes": [
+        "dpo:100898:264275"
+      ],
+      "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/10",
+      "text": "This doesn’t matter for the PEP as is not user visible but the plan is just to alias it. The original module remains the same. This is mostly to reduce moving things but the users wouldn’t care where the actual code lives. The new and main advertised module will be `profilers.tracing`",
+      "sentences": [
+        "This doesn’t matter for the PEP as is not user visible but the plan is just to alias it.",
+        "The original module remains the same.",
+        "This is mostly to reduce moving things but the users wouldn’t care where the actual code lives.",
+        "The new and main advertised module will be `profilers.tracing`"
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 88
+        },
+        {
+          "index": 2,
+          "start": 89,
+          "end": 126
+        },
+        {
+          "index": 3,
+          "start": 127,
+          "end": 222
+        },
+        {
+          "index": 4,
+          "start": 223,
+          "end": 285
+        }
+      ],
+      "sha256": "681dc4ff0ca16187c8ae1f64dc3eb9b9151f48abcb56c433720bae10e2eb9602",
+      "meta": {
+        "topic_id": 100898,
+        "post_number": 10,
+        "username": "pablogsal",
+        "name": "Pablo Galindo Salgado",
+        "user_title": "Steering Council Member",
+        "flair_name": "steering-council",
+        "primary_group_name": "committers",
+        "moderator": true,
+        "admin": true,
+        "staff": true,
+        "reply_to_post_number": 9,
+        "quote_refs": [
+          [
+            100898,
+            9
+          ]
+        ]
+      }
+    },
+    {
+      "id": "dpo:100898:264285",
+      "source_id": "dpo:t100898",
+      "source_post_number": 11,
+      "seq": 10,
+      "version": 1,
+      "author": "guido",
+      "role": "maintainer",
+      "created_at": "2025-08-02T04:45:53.604000Z",
+      "reply_to": "dpo:100898:264276",
+      "quotes": [],
+      "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/11",
+      "text": "Remember that exceptions (and classes) reveal their “true” module through their name. In turn this may teach users to import that module.",
+      "sentences": [
+        "Remember that exceptions (and classes) reveal their “true” module through their name.",
+        "In turn this may teach users to import that module."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 85
+        },
+        {
+          "index": 2,
+          "start": 86,
+          "end": 137
+        }
+      ],
+      "sha256": "572f1d37e779a891340f78426cec59e5049154d7f3fc922302dba977472ce57c",
+      "meta": {
+        "topic_id": 100898,
+        "post_number": 11,
+        "username": "guido",
+        "name": "Guido van Rossum",
+        "user_title": "CPython core developer",
+        "flair_name": "",
+        "primary_group_name": "committers",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": 10,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:100898:264310",
+      "source_id": "dpo:t100898",
+      "source_post_number": 12,
+      "seq": 11,
+      "version": 1,
+      "author": "P403n1x87",
+      "role": "participant",
+      "created_at": "2025-08-02T09:25:07.298000Z",
+      "reply_to": null,
+      "quotes": [],
+      "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/12",
+      "text": ":waving_hand: Hi there. I’m the author of Austin. First of all thanks @pablogsal for this proposal! For what my opinion might be worth, I think having at the very least the core functionalities that power a statistical profiler in the stdlib is beneficial for observability in general. This would make the life of e.g. continuous profiler maintainers much easier. As for end users, having a tool already available with a standard CPython installation might also be a benefit as they can profile their code straight-away without any extra dependencies, with perhaps the extra guarantees (e.g. on accuracy) of a tool that has been developed by the code developers themselves. And as the maintainer of a third-party tool, this might also relieve me from the “burden” of having to maintain my own tooling to fill in the current gap.\n\nWith most of the technology that has been developed for tools like Austin making its way into the stdlib there might be a unified effort to make just a single tool better, rather than have multiple parallel efforts split across different projects. I believe other communities have already taken this approach (I think Golang has many baked-in profiling solutions these days).",
+      "sentences": [
+        ":waving_hand: Hi there.",
+        "I’m the author of Austin.",
+        "First of all thanks @pablogsal for this proposal!",
+        "For what my opinion might be worth, I think having at the very least the core functionalities that power a statistical profiler in the stdlib is beneficial for observability in general.",
+        "This would make the life of e.g. continuous profiler maintainers much easier.",
+        "As for end users, having a tool already available with a standard CPython installation might also be a benefit as they can profile their code straight-away without any extra dependencies, with perhaps the extra guarantees (e.g. on accuracy) of a tool that has been developed by the code developers themselves.",
+        "And as the maintainer of a third-party tool, this might also relieve me from the “burden” of having to maintain my own tooling to fill in the current gap.",
+        "With most of the technology that has been developed for tools like Austin making its way into the stdlib there might be a unified effort to make just a single tool better, rather than have multiple parallel efforts split across different projects.",
+        "I believe other communities have already taken this approach (I think Golang has many baked-in profiling solutions these days)."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 23
+        },
+        {
+          "index": 2,
+          "start": 24,
+          "end": 49
+        },
+        {
+          "index": 3,
+          "start": 50,
+          "end": 99
+        },
+        {
+          "index": 4,
+          "start": 100,
+          "end": 285
+        },
+        {
+          "index": 5,
+          "start": 286,
+          "end": 363
+        },
+        {
+          "index": 6,
+          "start": 364,
+          "end": 673
+        },
+        {
+          "index": 7,
+          "start": 674,
+          "end": 828
+        },
+        {
+          "index": 8,
+          "start": 830,
+          "end": 1077
+        },
+        {
+          "index": 9,
+          "start": 1078,
+          "end": 1205
+        }
+      ],
+      "sha256": "fbf87b05738fbcbb266de3566136de778d192f1340f3206e84c9c63a457e5a65",
+      "meta": {
+        "topic_id": 100898,
+        "post_number": 12,
+        "username": "P403n1x87",
+        "name": "Gabriele N. Tornetta",
+        "user_title": "",
+        "flair_name": "",
+        "primary_group_name": "",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": null,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:100898:264326",
+      "source_id": "dpo:t100898",
+      "source_post_number": 13,
+      "seq": 12,
+      "version": 1,
+      "author": "pablogsal",
+      "role": "author",
+      "created_at": "2025-08-02T11:41:01.350000Z",
+      "reply_to": "dpo:100898:264285",
+      "quotes": [],
+      "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/13",
+      "text": "Good point. I am torn about this because on one side one could think that the best approach for backwards compatibility is to leave the current code where it is and create aliases just to protect for the very unlikely case of some user relying on `__qualname__` to not change.\n\nOn the other hand we could follow what @AA-Turner proposes and just move everything under the new namespace and reexport the old name as an alias to keep things consistent and ensure we advertise the new namespace.\n\nwhat would be your preference?",
+      "sentences": [
+        "Good point.",
+        "I am torn about this because on one side one could think that the best approach for backwards compatibility is to leave the current code where it is and create aliases just to protect for the very unlikely case of some user relying on `__qualname__` to not change.",
+        "On the other hand we could follow what @AA-Turner proposes and just move everything under the new namespace and reexport the old name as an alias to keep things consistent and ensure we advertise the new namespace.",
+        "what would be your preference?"
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 11
+        },
+        {
+          "index": 2,
+          "start": 12,
+          "end": 276
+        },
+        {
+          "index": 3,
+          "start": 278,
+          "end": 492
+        },
+        {
+          "index": 4,
+          "start": 494,
+          "end": 524
+        }
+      ],
+      "sha256": "4ac61aac012b7e964d725bb947010d9b589742f05ff5f245792ae2e8c2935b27",
+      "meta": {
+        "topic_id": 100898,
+        "post_number": 13,
+        "username": "pablogsal",
+        "name": "Pablo Galindo Salgado",
+        "user_title": "Steering Council Member",
+        "flair_name": "steering-council",
+        "primary_group_name": "committers",
+        "moderator": true,
+        "admin": true,
+        "staff": true,
+        "reply_to_post_number": 11,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:100898:264402",
+      "source_id": "dpo:t100898",
+      "source_post_number": 14,
+      "seq": 13,
+      "version": 1,
+      "author": "tjreedy",
+      "role": "maintainer",
+      "created_at": "2025-08-02T17:17:22.936000Z",
+      "reply_to": "dpo:100898:264326",
+      "quotes": [],
+      "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/14",
+      "text": "If I were to become a (new) profilers maintainer (won’t happen), I am sure I would prefer everything in one directory, and not have to know the aliases. As a triager that occasionally peeks a C code, I would now prefer to find it under the preferred name and ‘forget’ ‘cProfile’. This will become more true in future years.",
+      "sentences": [
+        "If I were to become a (new) profilers maintainer (won’t happen), I am sure I would prefer everything in one directory, and not have to know the aliases.",
+        "As a triager that occasionally peeks a C code, I would now prefer to find it under the preferred name and ‘forget’ ‘cProfile’.",
+        "This will become more true in future years."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 152
+        },
+        {
+          "index": 2,
+          "start": 153,
+          "end": 279
+        },
+        {
+          "index": 3,
+          "start": 280,
+          "end": 323
+        }
+      ],
+      "sha256": "d017928e12a7cef15bbccae48c57e1f24fc0e7da967fe7faa0a392e1a3da7ffa",
+      "meta": {
+        "topic_id": 100898,
+        "post_number": 14,
+        "username": "tjreedy",
+        "name": "Terry Jan Reedy",
+        "user_title": "CPython core developer",
+        "flair_name": "committers",
+        "primary_group_name": "committers",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": 13,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:100898:264436",
+      "source_id": "dpo:t100898",
+      "source_post_number": 15,
+      "seq": 14,
+      "version": 1,
+      "author": "pablogsal",
+      "role": "author",
+      "created_at": "2025-08-02T22:21:55.167000Z",
+      "reply_to": null,
+      "quotes": [],
+      "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/15",
+      "text": "Alright, I have created PEP 799: Address discussion feedback and add link to discussion thread by pablogsal · Pull Request #4520 · python/peps · GitHub with all this feedback",
+      "sentences": [
+        "Alright, I have created PEP 799: Address discussion feedback and add link to discussion thread by pablogsal · Pull Request #4520 · python/peps · GitHub with all this feedback"
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 174
+        }
+      ],
+      "sha256": "0629b588ceaccd9342bea1cad11f0bdde25b8365955d9d8b35870fafb1861227",
+      "meta": {
+        "topic_id": 100898,
+        "post_number": 15,
+        "username": "pablogsal",
+        "name": "Pablo Galindo Salgado",
+        "user_title": "Steering Council Member",
+        "flair_name": "steering-council",
+        "primary_group_name": "committers",
+        "moderator": true,
+        "admin": true,
+        "staff": true,
+        "reply_to_post_number": null,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:100898:264470",
+      "source_id": "dpo:t100898",
+      "source_post_number": 16,
+      "seq": 15,
+      "version": 1,
+      "author": "Zheaoli",
+      "role": "participant",
+      "created_at": "2025-08-03T05:45:34.388000Z",
+      "reply_to": null,
+      "quotes": [],
+      "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/16",
+      "text": "It looks great to me for building a dedicated profiling package.\n\nOn the other hand we could follow what @AA-Turner proposes and just move everything under the new namespace and reexport the old name as an alias to keep things consistent and ensure we advertise the new namespace.\n\nI prefer this action. I think we need to keep the old package for one or two major version at least to allow people to migrate their code.\n\nI think this is documented in PEP 387",
+      "sentences": [
+        "It looks great to me for building a dedicated profiling package.",
+        "On the other hand we could follow what @AA-Turner proposes and just move everything under the new namespace and reexport the old name as an alias to keep things consistent and ensure we advertise the new namespace.",
+        "I prefer this action.",
+        "I think we need to keep the old package for one or two major version at least to allow people to migrate their code.",
+        "I think this is documented in PEP 387"
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 64
+        },
+        {
+          "index": 2,
+          "start": 66,
+          "end": 280
+        },
+        {
+          "index": 3,
+          "start": 282,
+          "end": 303
+        },
+        {
+          "index": 4,
+          "start": 304,
+          "end": 420
+        },
+        {
+          "index": 5,
+          "start": 422,
+          "end": 459
+        }
+      ],
+      "sha256": "f6a21cb4b266783d24f69d8178787e7772e1475c20861386f3a5065eaf04d47b",
+      "meta": {
+        "topic_id": 100898,
+        "post_number": 16,
+        "username": "Zheaoli",
+        "name": "Nadeshiko Manju",
+        "user_title": "",
+        "flair_name": "",
+        "primary_group_name": "",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": null,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:100898:264509",
+      "source_id": "dpo:t100898",
+      "source_post_number": 17,
+      "seq": 16,
+      "version": 1,
+      "author": "AA-Turner",
+      "role": "maintainer",
+      "created_at": "2025-08-03T12:36:24.797000Z",
+      "reply_to": "dpo:100898:264470",
+      "quotes": [],
+      "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/17",
+      "text": "Note that the PEP does not propose deprecating or removing the `cProfile` module/name; both `cProfile` and `profiling.tracing` will point to the standard library’s tracing profiler.\n\nA",
+      "sentences": [
+        "Note that the PEP does not propose deprecating or removing the `cProfile` module/name; both `cProfile` and `profiling.tracing` will point to the standard library’s tracing profiler.",
+        "A"
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 181
+        },
+        {
+          "index": 2,
+          "start": 183,
+          "end": 184
+        }
+      ],
+      "sha256": "11577a5b84746b0194d739f00931481904c9e1675ab8c4b5971065188bc36e66",
+      "meta": {
+        "topic_id": 100898,
+        "post_number": 17,
+        "username": "AA-Turner",
+        "name": "Adam Turner",
+        "user_title": "CPython core developer",
+        "flair_name": "committers",
+        "primary_group_name": "committers",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": 16,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:100898:264541",
+      "source_id": "dpo:t100898",
+      "source_post_number": 18,
+      "seq": 17,
+      "version": 1,
+      "author": "Zheaoli",
+      "role": "participant",
+      "created_at": "2025-08-03T15:05:49.167000Z",
+      "reply_to": "dpo:100898:264509",
+      "quotes": [
+        "dpo:100898:264509"
+      ],
+      "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/18",
+      "text": "Yes, I believe we have the same thought. We move the old cProfile module to `profiling.tracing` and alias `profiling.tracing` as `cProfile`\n\nThe reason I mention PEP 387 in the last comment base on the reason following below:\n\nI believe we will remove `cProfile` module in the future to keep the stb lib clean and there would be just one `profiling` lib here.\n\nI have noticed that @pablogsal has documented the `profile` lib deprecation timeline as following below:\n\nIn Python 3.15: importing profile emits a DeprecationWarning.\n In Python 3.16: all uses of profile emit a DeprecationWarning.\n In Python 3.17: the module will be removed from the standard library.\n\nBut I’m not sure whether we need to discuss what we need to deprecate the `cProfile` in the certainly future and whether we need to define a deprecation timeline just like we did for `profile` lib.",
+      "sentences": [
+        "Yes, I believe we have the same thought.",
+        "We move the old cProfile module to `profiling.tracing` and alias `profiling.tracing` as `cProfile`",
+        "The reason I mention PEP 387 in the last comment base on the reason following below:",
+        "I believe we will remove `cProfile` module in the future to keep the stb lib clean and there would be just one `profiling` lib here.",
+        "I have noticed that @pablogsal has documented the `profile` lib deprecation timeline as following below:",
+        "In Python 3.15: importing profile emits a DeprecationWarning.",
+        "In Python 3.16: all uses of profile emit a DeprecationWarning.",
+        "In Python 3.17: the module will be removed from the standard library.",
+        "But I’m not sure whether we need to discuss what we need to deprecate the `cProfile` in the certainly future and whether we need to define a deprecation timeline just like we did for `profile` lib."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 40
+        },
+        {
+          "index": 2,
+          "start": 41,
+          "end": 139
+        },
+        {
+          "index": 3,
+          "start": 141,
+          "end": 225
+        },
+        {
+          "index": 4,
+          "start": 227,
+          "end": 359
+        },
+        {
+          "index": 5,
+          "start": 361,
+          "end": 465
+        },
+        {
+          "index": 6,
+          "start": 467,
+          "end": 528
+        },
+        {
+          "index": 7,
+          "start": 530,
+          "end": 592
+        },
+        {
+          "index": 8,
+          "start": 594,
+          "end": 663
+        },
+        {
+          "index": 9,
+          "start": 665,
+          "end": 862
+        }
+      ],
+      "sha256": "a59394473817b454ec99a24725cd72be420e787c69d258bfbd4f1ea0aa5285ab",
+      "meta": {
+        "topic_id": 100898,
+        "post_number": 18,
+        "username": "Zheaoli",
+        "name": "Nadeshiko Manju",
+        "user_title": "",
+        "flair_name": "",
+        "primary_group_name": "",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": 17,
+        "quote_refs": [
+          [
+            100898,
+            17
+          ]
+        ]
+      }
+    },
+    {
+      "id": "dpo:100898:264542",
+      "source_id": "dpo:t100898",
+      "source_post_number": 19,
+      "seq": 18,
+      "version": 1,
+      "author": "pablogsal",
+      "role": "author",
+      "created_at": "2025-08-03T15:08:30.805000Z",
+      "reply_to": "dpo:100898:264541",
+      "quotes": [
+        "dpo:100898:264541"
+      ],
+      "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/19",
+      "text": "Very unlikely. This will break users for not a lot of benefit. For example removing the aliases from `collections.abc` was quite painful and I don’t want to inflict a similar situation to users if we can avoid it. We can surely deal with some aliases in the stdlib. We can remove the references from the docs and eventually people will stop using it.\n\nThe difference here is that `cProfile` is still usefull as a tracing profiler (maybe less usefull than it used to be due to the recent optimizations and how they behave in the presence of profiling functions) so it doesn;t make sense to deprecate. `profile` has no advantage and is just adding confusion to users.",
+      "sentences": [
+        "Very unlikely.",
+        "This will break users for not a lot of benefit.",
+        "For example removing the aliases from `collections.abc` was quite painful and I don’t want to inflict a similar situation to users if we can avoid it.",
+        "We can surely deal with some aliases in the stdlib.",
+        "We can remove the references from the docs and eventually people will stop using it.",
+        "The difference here is that `cProfile` is still usefull as a tracing profiler (maybe less usefull than it used to be due to the recent optimizations and how they behave in the presence of profiling functions) so it doesn;t make sense to deprecate.",
+        "`profile` has no advantage and is just adding confusion to users."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 14
+        },
+        {
+          "index": 2,
+          "start": 15,
+          "end": 62
+        },
+        {
+          "index": 3,
+          "start": 63,
+          "end": 213
+        },
+        {
+          "index": 4,
+          "start": 214,
+          "end": 265
+        },
+        {
+          "index": 5,
+          "start": 266,
+          "end": 350
+        },
+        {
+          "index": 6,
+          "start": 352,
+          "end": 599
+        },
+        {
+          "index": 7,
+          "start": 600,
+          "end": 665
+        }
+      ],
+      "sha256": "0c33f6d2284e5e6342eb61d4286ee0a521790f55b2541f2373c25c7e3ae94e2a",
+      "meta": {
+        "topic_id": 100898,
+        "post_number": 19,
+        "username": "pablogsal",
+        "name": "Pablo Galindo Salgado",
+        "user_title": "Steering Council Member",
+        "flair_name": "steering-council",
+        "primary_group_name": "committers",
+        "moderator": true,
+        "admin": true,
+        "staff": true,
+        "reply_to_post_number": 18,
+        "quote_refs": [
+          [
+            100898,
+            18
+          ],
+          [
+            100898,
+            18
+          ]
+        ]
+      }
+    },
+    {
+      "id": "dpo:100898:264543",
+      "source_id": "dpo:t100898",
+      "source_post_number": 20,
+      "seq": 19,
+      "version": 1,
+      "author": "Zheaoli",
+      "role": "participant",
+      "created_at": "2025-08-03T15:13:09.994000Z",
+      "reply_to": "dpo:100898:264542",
+      "quotes": [
+        "dpo:100898:264542"
+      ],
+      "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/20",
+      "text": "Thanks for the explain\n\nUnderstood, It seems we need to more time than two major version to wait people migrate their code.\n\nMaking sense.\n\nThen I don’t have any questions about this PEP. Thanks for your work! I love it(lol",
+      "sentences": [
+        "Thanks for the explain",
+        "Understood, It seems we need to more time than two major version to wait people migrate their code.",
+        "Making sense.",
+        "Then I don’t have any questions about this PEP.",
+        "Thanks for your work!",
+        "I love it(lol"
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 22
+        },
+        {
+          "index": 2,
+          "start": 24,
+          "end": 123
+        },
+        {
+          "index": 3,
+          "start": 125,
+          "end": 138
+        },
+        {
+          "index": 4,
+          "start": 140,
+          "end": 187
+        },
+        {
+          "index": 5,
+          "start": 188,
+          "end": 209
+        },
+        {
+          "index": 6,
+          "start": 210,
+          "end": 223
+        }
+      ],
+      "sha256": "b6aa4196b576de3c705f06400ed77b5389de5cdfa1d122916ab7101ef14616c3",
+      "meta": {
+        "topic_id": 100898,
+        "post_number": 20,
+        "username": "Zheaoli",
+        "name": "Nadeshiko Manju",
+        "user_title": "",
+        "flair_name": "",
+        "primary_group_name": "",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": 19,
+        "quote_refs": [
+          [
+            100898,
+            19
+          ],
+          [
+            100898,
+            19
+          ]
+        ]
+      }
+    },
+    {
+      "id": "dpo:100898:268573",
+      "source_id": "dpo:t100898",
+      "source_post_number": 21,
+      "seq": 20,
+      "version": 1,
+      "author": "barry",
+      "role": "decider",
+      "created_at": "2025-08-21T18:08:54.476000Z",
+      "reply_to": null,
+      "quotes": [],
+      "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/21",
+      "text": "Today the Steering Council voted to accept PEP 799. Thank you @pablogsal and everyone who participated in its discussion.",
+      "sentences": [
+        "Today the Steering Council voted to accept PEP 799.",
+        "Thank you @pablogsal and everyone who participated in its discussion."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 51
+        },
+        {
+          "index": 2,
+          "start": 52,
+          "end": 121
+        }
+      ],
+      "sha256": "30e9fcc26917a0eea1800a092388efa7776d93c260497069eab8a9a046253c52",
+      "meta": {
+        "topic_id": 100898,
+        "post_number": 21,
+        "username": "barry",
+        "name": "Barry Warsaw",
+        "user_title": "Steering Council Member",
+        "flair_name": "steering-council",
+        "primary_group_name": "committers",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": null,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:100898:280915",
+      "source_id": "dpo:t100898",
+      "source_post_number": 22,
+      "seq": 21,
+      "version": 1,
+      "author": "karlicoss",
+      "role": "participant",
+      "created_at": "2025-12-26T15:13:48.287000Z",
+      "reply_to": null,
+      "quotes": [],
+      "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/22",
+      "text": "Sorry if I missed it, but didn’t find in the PEP or this discussion – will Tachyon be backwards compatible to older Python versions in some way? E.g. if I have a python 3.12 environment, would I be able to attach tachyon from a 3.15 virtualenv against it?\n\nI suspect the answer is no since profiler would be tightly coupled to python internals, but maybe worth clarifying explicitly!",
+      "sentences": [
+        "Sorry if I missed it, but didn’t find in the PEP or this discussion – will Tachyon be backwards compatible to older Python versions in some way?",
+        "E.g. if I have a python 3.12 environment, would I be able to attach tachyon from a 3.15 virtualenv against it?",
+        "I suspect the answer is no since profiler would be tightly coupled to python internals, but maybe worth clarifying explicitly!"
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 144
+        },
+        {
+          "index": 2,
+          "start": 145,
+          "end": 255
+        },
+        {
+          "index": 3,
+          "start": 257,
+          "end": 383
+        }
+      ],
+      "sha256": "1fbb88029e3e10c502c58cf62dea286f1dbd06eeca330e0a3d0da521f2a23c14",
+      "meta": {
+        "topic_id": 100898,
+        "post_number": 22,
+        "username": "karlicoss",
+        "name": "karlicoss",
+        "user_title": "",
+        "flair_name": "",
+        "primary_group_name": "",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "reply_to_post_number": null,
+        "quote_refs": []
+      }
+    },
+    {
+      "id": "dpo:100898:280918",
+      "source_id": "dpo:t100898",
+      "source_post_number": 23,
+      "seq": 22,
+      "version": 1,
+      "author": "pablogsal",
+      "role": "author",
+      "created_at": "2025-12-26T15:33:58.930000Z",
+      "reply_to": "dpo:100898:280915",
+      "quotes": [
+        "dpo:100898:280915"
+      ],
+      "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/23",
+      "text": "I will not, as it uses the technology we added in PEP 768 (and Remote debugging attachment protocol — Python 3.14.2 documentation) it follows the same guarantees: it only works for the same version and the same kind of build (normal<->normal and free-threaded<->free-threaded).",
+      "sentences": [
+        "I will not, as it uses the technology we added in PEP 768 (and Remote debugging attachment protocol — Python 3.14.2 documentation) it follows the same guarantees: it only works for the same version and the same kind of build (normal<->normal and free-threaded<->free-threaded)."
+      ],
+      "spans": [
+        {
+          "index": 1,
+          "start": 0,
+          "end": 277
+        }
+      ],
+      "sha256": "04412eb805c585b97c3f7504b68ef9f36b1b2afc414ae17bf5e901f2b5f42391",
+      "meta": {
+        "topic_id": 100898,
+        "post_number": 23,
+        "username": "pablogsal",
+        "name": "Pablo Galindo Salgado",
+        "user_title": "Steering Council Member",
+        "flair_name": "steering-council",
+        "primary_group_name": "committers",
+        "moderator": true,
+        "admin": true,
+        "staff": true,
+        "reply_to_post_number": 22,
+        "quote_refs": [
+          [
+            100898,
+            22
+          ]
+        ]
+      }
+    }
+  ],
+  "meta": {
+    "pep": 799,
+    "pep_authors": [
+      "Pablo Galindo Salgado",
+      "László Kiss Kollár"
+    ],
+    "topic_ids": [
+      100898
+    ],
+    "created_by": [
+      "pablogsal"
+    ],
+    "forum": "https://discuss.python.org",
+    "posts_count": 22,
+    "leak_blanked": 0
+  }
+}

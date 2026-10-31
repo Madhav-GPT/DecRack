@@ -1,0 +1,57 @@
+[
+  {
+    "gold_id": "pep806-r1",
+    "idea": "Workaround: an as_acm() wrapper",
+    "recoverable": null,
+    "matched": false,
+    "option_key": "A3",
+    "title": "Move `async` keyword inside the parens,",
+    "status": "rejected",
+    "status_kind": "confirmed",
+    "score": 0.219
+  },
+  {
+    "gold_id": "pep806-r2",
+    "idea": "Workaround: using AsyncExitStack",
+    "recoverable": null,
+    "matched": false,
+    "option_key": "A3",
+    "title": "Move `async` keyword inside the parens,",
+    "status": "rejected",
+    "status_kind": "confirmed",
+    "score": 0.328
+  },
+  {
+    "gold_id": "pep806-r3",
+    "idea": "Workaround: AsyncExitStack-based helper",
+    "recoverable": null,
+    "matched": false,
+    "option_key": "A3",
+    "title": "Move `async` keyword inside the parens,",
+    "status": "rejected",
+    "status_kind": "confirmed",
+    "score": 0.405
+  },
+  {
+    "gold_id": "pep806-r4",
+    "idea": "Syntax: allow async with sync_cm, async_cm:",
+    "recoverable": null,
+    "matched": false,
+    "option_key": "A3",
+    "title": "Move `async` keyword inside the parens,",
+    "status": "rejected",
+    "status_kind": "confirmed",
+    "score": 0.395
+  },
+  {
+    "gold_id": "pep806-r5",
+    "idea": "Syntax: ban single-line with async ...",
+    "recoverable": null,
+    "matched": false,
+    "option_key": "A3",
+    "title": "Move `async` keyword inside the parens,",
+    "status": "rejected",
+    "status_kind": "confirmed",
+    "score": 0.203
+  }
+]
