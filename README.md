@@ -1,6 +1,6 @@
 # DecRack
 
-**Decision memory for open-source projects, delivered as an MCP server and CLI. No UI.**
+**Decision memory for open-source projects, delivered as a CLI that people and coding agents use directly. No UI.**
 
 [![CI](https://github.com/Madhav-GPT/DecRack/actions/workflows/ci.yml/badge.svg)](https://github.com/Madhav-GPT/DecRack/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -11,9 +11,9 @@ DecRack is an open-source Python package that gives AI coding agents a project's
 
 Team Allied · Hacktoberfest 2026 Hack Day Sonipat · Problem Statement 6: Open Source Decision Intelligence and Knowledge Recovery
 
-**Contents:** [Problem](#the-problem) · [What it does](#what-decrack-does) · [OKF and RAG, plainly](#okf-and-rag-plainly) · [How it works](#how-it-works) · [Checking claims](#how-decrack-checks-its-claims) · [Quickstart](#quickstart) · [OpenCode](#use-it-inside-opencode) · [CLI](#cli-reference) · [MCP tools](#mcp-tools) · [Outputs](#outputs) · [Evaluation](#evaluation-the-withheld-pep-test) · [CI/CD](#cicd) · [Structure](#project-structure) · [Principles](#design-principles) · [Team](#team)
+**Contents:** [Problem](#the-problem) · [What it does](#what-decrack-does) · [OKF and RAG, plainly](#okf-and-rag-plainly) · [How it works](#how-it-works) · [Checking claims](#how-decrack-checks-its-claims) · [Quickstart](#quickstart) · [Agents](#use-it-from-opencode-or-any-agent) · [CLI](#cli-reference) · [Input checks](#input-checks) · [Outputs](#outputs) · [Evaluation](#evaluation-the-withheld-pep-test) · [CI/CD](#cicd) · [Structure](#project-structure) · [Principles](#design-principles) · [Team](#team)
 
-More detail: [Architecture](docs/ARCHITECTURE.md) · [Testing runbook](docs/TESTING.md) · [OpenCode and MCP setup](docs/OPENCODE.md) · [Demo script and Q&A](docs/DEMO.md) · [Examples](examples/README.md)
+More detail: [Architecture](docs/ARCHITECTURE.md) · [Testing runbook](docs/TESTING.md) · [Use from OpenCode or any agent](docs/OPENCODE.md) · [AGENTS.md](AGENTS.md) · [Demo script and Q&A](docs/DEMO.md) · [Examples](examples/README.md)
 
 ---
 
@@ -36,7 +36,7 @@ The hackathon's official test makes the problem concrete. The organizers hand ov
 | 3. Identify rejected alternatives and explain why | Conservative status rules say what was rejected, by whom and how firmly (`confirmed`, `inferred`, `contested`, `unresolved`); every reason cites the sentences it came from |
 | 4. Link decisions to the relevant source code | A `code_links` table built from exact facts only: files the thread names (`direct`), and files a PR changed or `git blame` points to (`historical`) |
 | 5. Maintain references to the original discussions | Every citation is a stable reference (post ID, version, sentence offsets) with a link to the post |
-| 6. Surface past decisions when a new PR modifies related code | `decrack check-pr`, plus the `check_change` and `decisions_for_files` MCP tools, reporting related history and possible conflicts |
+| 6. Surface past decisions when a new PR modifies related code | `decrack check-pr`, which people run on a PR and agents run before finishing a change, reporting related history and possible conflicts |
 | 7. Preserve traceability so maintainers can verify every decision | Source validity and decision authority checked by code on every claim, an optional semantic support check, `decrack verify` in CI, and every model call stored with its prompt and response |
 
 ---
@@ -45,11 +45,11 @@ The hackathon's official test makes the problem concrete. The organizers hand ov
 
 1. **Input.** Point it at a public discussion: a PEP thread on discuss.python.org (`pep:830` finds the thread for you), a GitHub issue or pull request, or an exported file.
 2. **Extraction.** A small open-weight model running **locally in Ollama** (`qwen2.5:1.5b`, about 1 GB) reads the thread, and deterministic code turns what it finds into decision records. Each record holds what was being decided, which options were considered, which were accepted or rejected, and why. Every claim cites the sentences it came from, and every citation is checked before it is kept.
-3. **Use.** A developer's agent in **OpenCode**, or in any MCP-capable harness running any free open model, asks DecRack "was this approach already rejected, and why?" before it writes code. `decrack check-pr` flags pull requests that touch code with recorded decisions.
+3. **Use.** A developer's agent in **OpenCode**, or in any harness that can run a shell command, follows [`AGENTS.md`](AGENTS.md) and asks DecRack "was this approach already rejected, and why?" before it writes code. `decrack check-pr` flags pull requests that touch code with recorded decisions.
 
 DecRack lives where developers already work:
 
-- **in the agent**, as an MCP server;
+- **in the agent**, through the CLI and an [`AGENTS.md`](AGENTS.md) instruction file;
 - **in the terminal**, as a CLI;
 - **in the repo**, as a markdown knowledge bundle in Google's [Open Knowledge Format](https://github.com/GoogleCloudPlatform/open-knowledge-format) (OKF) with a [MADR](https://adr.github.io/madr/)-style body;
 - **in CI**, as a pull request check.
@@ -60,7 +60,7 @@ DecRack lives where developers already work:
 > - **Two optional model steps, both off by default:** the support check (`--support-check`) and the evaluation's closed-book baseline (`--closed-book`).
 > - **Bigger open models still work** through `--model`.
 > - **Only local models.** DecRack never calls a hosted model. Every run in [`examples/runs/`](examples/) was produced by the local model, and each run's `run.json` records the model tag, its digest and the Ollama version.
-> - **The agent only calls tools.** The agent's own model calls DecRack's tools; it never does the extraction.
+> - **The agent only runs commands.** The agent's own model runs DecRack's CLI; it never does the extraction.
 
 ### An example decision card
 
@@ -90,7 +90,7 @@ dr-1acb7d33 · PEP 9999: Lazy widgets · 4 options: 1 accepted, 3 rejected
 
 - **Each option line** shows the status, the status kind, the basis and the confidence.
 - **`[p5.s2]` is a display alias:** sentence 2 of post 5. Behind it, the record stores the post's stable ID, its version and the sentence's character offsets, so the quote is always an exact slice of what the poster wrote.
-- **This card is compact on purpose.** `get_decision` with `detail="evidence"` expands it with each cited post and its neighbours.
+- **This card is compact on purpose.** `decrack show <id> --detail evidence` expands it with each cited post and its neighbours.
 - **The authority rules at work:** the author proposed the hard keyword in post 1, and a decider rejected it in post 8 in explicit decision language ("is rejected").
 
 ---
@@ -134,7 +134,7 @@ flowchart TD
     subgraph SRV["Serve: no model"]
         direction LR
         V1["CLI: why, check-pr"]
-        V2["MCP server"]
+        V2["JSON output for agents"]
         V3["OKF bundle"]
         V4["Eval reports"]
     end
@@ -175,7 +175,7 @@ Every post keeps a stable, source-native ID and version, and every sentence keep
 8. **Support check** (optional, off by default; turn it on with the global `--support-check` flag): a batched model call asks whether the cited sentences support each claim. With it off, records say `support: unchecked`.
 9. **Apply the conservative status rules** (below), and derive confidence from the evidence, never from the model's opinion of itself.
 
-**Serve** never waits for a model. The CLI, the MCP server, the OKF bundle, the PR check and the eval reports all read the same SQLite file.
+**Serve** never waits for a model. Searches, `show`, the OKF bundle, the PR check and the eval reports all read the same SQLite file.
 
 The full design, with diagrams of every stage, is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
@@ -241,33 +241,30 @@ uv run decrack why "exception notes"
 
 ---
 
-## Use it inside OpenCode
+## Use it from OpenCode or any agent
 
-Add DecRack to `opencode.json` in your project, or to `~/.config/opencode/opencode.json` for every project:
+DecRack has no plugin and no server. Agents run the same CLI that people do, guided by one instruction file, [`AGENTS.md`](AGENTS.md):
 
-```json
-{
-  "$schema": "https://opencode.ai/config.json",
-  "mcp": {
-    "decrack": {
-      "type": "local",
-      "command": ["uvx", "--from", "git+https://github.com/Madhav-GPT/DecRack", "decrack", "mcp"],
-      "enabled": true
-    }
-  }
-}
-```
+1. Install the CLI with `uv tool install git+https://github.com/Madhav-GPT/DecRack`, and pull the model with `ollama pull qwen2.5:1.5b`.
+2. Copy [`AGENTS.md`](AGENTS.md) to the root of your project, or paste its sections into the `AGENTS.md` you already have. OpenCode reads it automatically.
 
-With a local clone, use `"command": ["uv", "run", "--directory", "/absolute/path/to/DecRack", "decrack", "mcp"]` instead. `decrack doctor` also prints an OpenCode snippet you can paste.
+The file tells the agent to:
+
+- require a source, and ask for one rather than guess;
+- run `decrack run <source>`;
+- run `decrack why "<question>" --format json`;
+- check `decrack show <id> --detail evidence --format json` before claiming anything;
+- run `decrack check-pr <PR URL>` for changes.
+
+It also tells the agent to quote only DecRack's text, link the evidence, report status kinds honestly, and relay DecRack's error and fix messages as they are.
 
 Then ask your agent things like:
 
-- *"Before you change the traceback formatting, ask DecRack whether adding timestamps through exception notes was already rejected, and why."*
-- *"Run `decrack run https://discuss.python.org/t/106942` in the shell. When it finishes, use DecRack to list the rejected ideas with their quotes."* The MCP server is read-only, so the agent compiles new discussions through its shell tool.
-- *"I'm about to edit `src/widgets/config.py`. Which recorded decisions cover that file?"*
-- *"Review my change against the project's decision history."* (the `review_with_history` prompt)
+- *"Analyze https://github.com/owner/repo/issues/123 with DecRack and tell me which ideas were rejected and why."*
+- *"Use DecRack on pep:830. Was adding timestamps through exception notes rejected, and why?"*
+- *"I'm about to edit `src/widgets/config.py`. Ask DecRack which recorded decisions cover that file."*
 
-The [OpenCode guide](docs/OPENCODE.md) covers running OpenCode itself on a local open model, a generic MCP-client snippet, an optional `/why` command (`.opencode/commands/why.md`) and an `AGENTS.md` block that tells agents to consult DecRack before changing code.
+The [agent guide](docs/OPENCODE.md) covers running OpenCode on a local open model, an optional `/why` command and troubleshooting.
 
 ---
 
@@ -290,14 +287,14 @@ The global options go **before** the command, for example `decrack --db demo.db 
 |---|---|---|
 | `decrack ingest REF` | Fetch a discussion and store its posts, without compiling | no |
 | `decrack run REF [--out DIR]` | Fetch a discussion and compile it into a decision record. This is how every new discussion gets in. With `--out`, it also writes the run folder (`thread.json`, `records.json`, `run.json`) to DIR. | yes |
-| `decrack why QUERY [--limit N] [--raw]` | Search the records and print compact decision cards with links. If QUERY is a file path, it lists the decisions linked to that file. With `--raw`, it searches the raw stored posts instead: uncompiled and unchecked, the fallback when no record matches. | no |
+| `decrack why QUERY [--limit N] [--raw] [--format md\|json]` | Search the records and print compact decision cards with links. If QUERY is a file path, it lists the decisions linked to that file. With `--raw`, it searches the raw stored posts instead: uncompiled and unchecked, the fallback when no record matches. | no |
+| `decrack show ID [--detail card\|full\|evidence] [--budget-tokens N] [--format md\|json]` | Show one decision record. ID is a decision ID, or a thread ID such as `pep:830`. `card` is the compact card; `full` adds every option with its reasons and checks; `evidence` also adds each cited post, its reply parent and the next reply, within the token budget. Agents read this before they claim anything. | no |
 | `decrack check-pr [PR_URL] [--paths P ...] [--diff BASE..HEAD] [--repo DIR] [--blame] [--description TEXT] [--format md\|json]` | Report related history and possible conflicts for the files a change touches: recorded decisions, their rejected options and the evidence. `--blame` also walks `git blame` on the changed lines back to the PRs that last touched them. It prints the report and never posts anything. | no |
 | `decrack export okf --out DIR` | Write the OKF + MADR markdown bundle | no |
 | `decrack export calls --out FILE` | Export the recorded model calls as JSONL, for the offline tests to replay | no |
 | `decrack eval REF ... --gold eval/gold [--out examples/runs] [--closed-book]` | Run the withheld-PEP evaluation. It writes one run folder per PEP plus `eval-summary.md` and `eval-summary.json`, to `examples/runs` by default. Matching against the gold is deterministic fuzzy matching, and `matches.json` lists every pair for human review. `--closed-book` adds the optional baseline run. | yes |
 | `decrack verify DIR` | Re-check every quote of every run folder under DIR against its thread. Under `examples/runs` it also refuses any folder whose `run.json` isn't a live model run. | no |
-| `decrack doctor` | Check Ollama, the installed models and `opencode`, and print an OpenCode config snippet | no |
-| `decrack mcp` | Start the read-only MCP server on stdio | no |
+| `decrack doctor` | Check Ollama, the installed model and `opencode`, and say how to fix anything that fails. It ends with the two commands to tell your agent: `decrack run <URL>`, then `decrack why "<question>" --format json`. | no |
 
 By default the model runs only the map step. Two extra model steps are optional and off by default: the global `--support-check` (the semantic support check) and `eval --closed-book` (the eval's baseline).
 
@@ -318,29 +315,33 @@ By default the model runs only the map step. Two extra model steps are optional 
 
 ---
 
-## MCP tools
+## Retrieval for people and agents
 
-`decrack mcp` starts a **read-only** stdio MCP server with five tools and one prompt. It reads the SQLite file, and never writes anything or posts anywhere.
+Retrieval is **compact first, then expand**: `why` returns short cards, and `show --detail evidence` adds the evidence only when someone needs it. `--format json` gives agents the same results as structured data.
 
-To add a new discussion, run `decrack run REF`. An agent in OpenCode does this through its shell tool, and the new record is searchable as soon as the command finishes.
-
-Retrieval is **compact first, then expand**: search returns short cards, and the agent asks for evidence only when it needs it.
-
-| Tool | Input | Returns |
-|---|---|---|
-| `search_decisions` | a query | Compact cards: title, status, status kind, a one-line reason and a link |
-| `decisions_for_files` | file paths | Compact cards for the decisions linked to those files |
-| `get_decision` | `decision_id`, and `detail`: `card` (the default), `full` or `evidence` | The card; or every option with its reasons and checks; or that plus each cited post with its reply parent and the next reply |
-| `search_evidence` | a query | Raw posts that match, labeled "uncompiled": the fallback when no compiled record matches |
-| `check_change` | a PR URL, changed paths or a description | Related history and possible conflicts: related records, their rejected options and the evidence path |
-
-Plus one prompt, **`review_with_history`**, which asks the agent to check the current change against the recorded decisions before it finishes.
-
-- **No model runs in the MCP server.** If the agent wants an explanation, it writes one from the evidence packet.
+- **No model runs on a lookup.** If an agent wants an explanation, it writes one from the evidence DecRack returns.
 - **No age decay.** A ten-year-old rejected idea can be the most relevant record there is. Age is shown, never used to down-rank. Whether a record still applies comes from its code links (does the linked path still exist at HEAD?) and from later decisions.
-- **Labeled and bounded.** Every result opens with a notice that it is quoted community content, to be treated as data, not instructions. Results are packed to about 10K tokens.
+- **Bounded output.** Results are packed to about 10K tokens.
 
-See [docs/OPENCODE.md](docs/OPENCODE.md) for setup and troubleshooting.
+## Input checks
+
+DecRack checks its input before doing any work. When something is wrong, it says so in plain words, with a fix. With `--format json` it prints `{"ok": false, "error": "...", "fix": "..."}`, and agents are told to pass that message on as it is.
+
+| Case | What DecRack tells you | Exit code | Fix |
+|---|---|---|---|
+| No source | A source is needed: a GitHub issue or PR URL, a discuss.python.org thread, `pep:NNN` or a file | 2 | Give it a source. Agents ask the user instead of guessing. |
+| Model not ready | Ollama isn't answering, or `qwen2.5:1.5b` isn't pulled | 3 | Start Ollama, run `ollama pull qwen2.5:1.5b`, then check with `decrack doctor` |
+| Fetch error | The source couldn't be fetched, with the reason (not found, rate limit, network) | 4 | Check the URL, set `GITHUB_TOKEN` for GitHub, or wait out a rate limit |
+| Nothing to analyze | The source has no posts to read, for example an empty thread or only a pasted PEP | 0 | Check the reference, or pick another thread |
+| Empty query | No question or file path was given | 2 | Pass a question, a file path, or `--raw` with some text |
+| Empty database | No decisions are recorded yet | 1 | Run `decrack run <source>` first |
+
+**JSON output for agents.** Successful calls print `"ok": true`, with these shapes:
+
+- **`why` (and `why <path>`):** `{"ok": true, "query", "raw": false, "results": [{"decision_id", "title", "outcome", "link", "matched", "options": [{"key", "title", "status", "status_kind", "confidence", "reason", "link"}]}]}`
+- **`why --raw`:** `{"ok": true, "query", "raw": true, "results": [{"post_id", "thread_id", "seq", "author", "url", "snippet"}]}`
+- **`show`:** `{"ok": true, "decision_id", "detail", "text", "card": {…}}` for `card`, or `"record": {…}` (the full record) for `full` and `evidence`
+- **`check-pr`:** `{"ok": true, "paths", "prs", "matches", "markdown"}`
 
 ---
 
@@ -440,8 +441,7 @@ flowchart LR
         S2 --> S3["pytest, offline<br/>DECRACK_LLM=replay"]
         S3 --> S4["decrack verify<br/>examples"]
         S4 --> S5["compliance and<br/>secret scan"]
-        S5 --> S6["MCP self-check"]
-        S6 --> S7["uv build"]
+        S5 --> S7["uv build"]
     end
     JOB --> UP["upload dist/<br/>on pushes to main"]
 ```
@@ -452,7 +452,6 @@ flowchart LR
 | Tests | `uv run pytest`: the pipeline logic works end to end, offline, with recorded model responses and saved HTTP payloads |
 | Verify example evidence | Every quote in the committed real runs still matches its thread, and every folder under `examples/runs` is a live model run, never replayed or scripted output (`decrack verify examples`) |
 | Compliance and secret scan | `scripts/compliance_check.py` finds no closed-model provider names and nothing that looks like a secret |
-| MCP server self-check | The read-only MCP server starts over stdio and lists its five tools (`python -m decrack.mcp_server --self-check`) |
 | Build | The package builds (`uv build`). On pushes to `main`, `dist/` is uploaded as an artifact. |
 
 ---
@@ -475,15 +474,15 @@ DecRack/
 │   ├── verify.py         quote re-checks for `verify`
 │   ├── evaluate.py       the withheld-PEP evaluation
 │   ├── doctor.py         `doctor`
-│   ├── mcp_server.py     the read-only MCP server: five tools, one prompt
 │   └── cli.py            the `decrack` command (Typer)
 ├── tests/                offline tests; recorded model calls and saved HTTP payloads in tests/fixtures/
 ├── eval/gold/            gold rejected ideas per PEP, from each PEP's Rejected Ideas section
 ├── examples/             real outputs only: runs/ (one folder per run) and the okf/ bundle
 ├── scripts/              helper scripts, including the compliance scan
-├── docs/                 architecture, testing runbook, OpenCode setup, demo script
+├── docs/                 architecture, testing runbook, agent guide, demo script
 ├── .github/workflows/    ci.yml
 ├── pyproject.toml
+├── AGENTS.md             instructions that tell coding agents how to use DecRack
 ├── HACKATHON.md          the hackathon declaration, including the models used
 └── LICENSE               MIT
 ```
@@ -493,16 +492,16 @@ DecRack/
 ## Design principles
 
 1. **No quote, no claim.** Every option and reason cites sentences, and code drops any citation that doesn't resolve to real text in the cited post version. Whether that text supports the claim is checked separately.
-2. **Compile once, query cheaply.** The model runs once, when a thread is compiled. Queries, MCP calls and PR checks read stored records.
+2. **Compile once, query cheaply.** The model runs once, when a thread is compiled. Queries, agent lookups and PR checks read stored records.
 3. **Code decides structure; the model reads language.** IDs, chronology, roles, windows, status rules and confidence are deterministic code. By default the model does one job: it labels acts, names alternatives and cites sentences.
 4. **Metadata suggests authority; evidence establishes the decision.** Who counts as a decider comes from group membership or repository role, and a decision also needs explicit decision language in the cited sentence. A post can't promote itself.
 5. **Uncertainty is a valid answer.** `inferred`, `contested`, `unresolved` and low confidence are first-class results. Confidence comes from evidence, never from the model's estimate of itself.
-6. **Files are the universal API.** The markdown bundle works with zero integration. MCP adds structured queries on top.
+6. **Files are the universal API.** The markdown bundle works with zero integration. The CLI's JSON output adds structured queries on top.
 7. **Local, read-only, reproducible.** An open-weight model on your own machine, nothing posted anywhere, and every model call cached by hash.
 
 ## Deferred, not abandoned
 
-This version has no UI, on purpose. A web UI, ACP (Agent Client Protocol) harness control, decision timelines and graphs are **deferred, not abandoned**. The core library is UI-agnostic, and everything sits behind a clean core/adapter boundary: the CLI and the MCP server are two adapters over it already, and a UI would be a third.
+This version has no UI, on purpose. A web UI, ACP (Agent Client Protocol) harness control, decision timelines and graphs are **deferred, not abandoned**. The core library is UI-agnostic, and everything sits behind a clean core/adapter boundary: the CLI is one adapter over it already, and a UI would be another.
 
 ## Limitations
 

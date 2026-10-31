@@ -124,15 +124,16 @@ def test_db_option_is_respected(workdir):
     assert thread.posts[0].role == "author"
 
 
-def test_source_error_exits_1_without_traceback(workdir, monkeypatch):
+def test_a_source_that_cannot_be_read_stops_at_the_fetch_gate(workdir, monkeypatch):
     def broken(ref, settings=None, client=None):
         raise ValueError(f"unsupported source: {ref}")
 
     monkeypatch.setattr(cli, "load_source", broken)
-    result = invoke(workdir, "ingest", "nope")
-    assert result.exit_code == 1
-    assert "error: ValueError: unsupported source: nope" in result.output
+    result = invoke(workdir, "ingest", "pep:1")
+    assert result.exit_code == 4
+    assert "Could not read this discussion: unsupported source: pep:1" in result.output
     assert isinstance(result.exception, SystemExit)
+    assert not (workdir / "t.db").exists()  # nothing stored
 
 
 def test_model_error_exits_1(workdir, monkeypatch):
@@ -143,7 +144,7 @@ def test_model_error_exits_1(workdir, monkeypatch):
     assert isinstance(result.exception, SystemExit)
 
 
-def test_why_no_match(workdir):
+def test_why_no_match(saved_sample, workdir):
     result = invoke(workdir, "why", "qwertyzzz")
     assert result.exit_code == 0, result.output
     assert 'No recorded decisions match "qwertyzzz".' in result.output
@@ -220,7 +221,7 @@ def test_check_pr_diff_blames_only_with_the_flag(saved_sample, workdir, monkeypa
 def test_check_pr_needs_input(workdir):
     result = invoke(workdir, "check-pr")
     assert result.exit_code == 2
-    assert "give a PR URL" in result.output
+    assert "Give a PR URL, --paths, or --diff." in result.output
 
 
 def test_check_pr_rejects_unknown_format(workdir):
@@ -332,3 +333,53 @@ def test_pep_number():
     assert cli.pep_number("pep-0830") == 830
     assert cli.pep_number("notapep") is None
     assert cli.pep_number("pep:abc") is None
+
+
+def test_show_a_decision_at_each_detail(saved_sample, workdir):
+    card = invoke(workdir, "show", saved_sample.id)
+    assert card.exit_code == 0, card.output
+    assert NOTICE in card.output
+    assert saved_sample.id in card.output
+
+    full = invoke(workdir, "show", saved_sample.id, "--detail", "full")
+    assert full.exit_code == 0, full.output
+    assert "We rejected the decorator approach" in full.output  # quotes, word for word
+
+    evidence = invoke(workdir, "show", saved_sample.id, "--detail", "evidence")
+    assert evidence.exit_code == 0, evidence.output
+    assert "I propose PEP 9999 to add lazy widgets" in evidence.output  # the reply parent of the cited posts
+
+    as_json = invoke(workdir, "show", saved_sample.id, "--format", "json")
+    assert as_json.exit_code == 0, as_json.output
+    data = json.loads(as_json.stdout)
+    assert (data["ok"], data["decision_id"], data["detail"]) == (True, saved_sample.id, "card")
+    assert {"key", "title", "status", "status_kind", "confidence", "reason", "link"} <= set(data["card"]["options"][0])
+
+    by_thread = invoke(workdir, "show", "pep:9999", "--detail", "full", "--format", "json")
+    assert json.loads(by_thread.stdout)["record"]["id"] == saved_sample.id
+
+    missing = invoke(workdir, "show", "dr-00000000")
+    assert missing.exit_code == 1
+    assert "No decision 'dr-00000000' is recorded." in missing.output
+    assert invoke(workdir, "show", saved_sample.id, "--detail", "everything").exit_code == 2
+
+
+def test_why_json_returns_compact_cards(saved_sample, workdir):
+    result = invoke(workdir, "why", "decorator", "--format", "json")
+    assert result.exit_code == 0, result.output
+    data = json.loads(result.stdout)
+    assert (data["ok"], data["query"], data["raw"]) == (True, "decorator", False)
+    [card] = data["results"]
+    assert card["decision_id"] == saved_sample.id
+    assert card["link"] == saved_sample.thread_url
+    assert {option["status_kind"] for option in card["options"]} == {"confirmed"}
+
+    by_path = json.loads(invoke(workdir, "why", "Lib/widgets.py", "--format", "json").stdout)
+    assert [card["decision_id"] for card in by_path["results"]] == [saved_sample.id]
+
+    raw = json.loads(invoke(workdir, "why", "decorator", "--raw", "--format", "json").stdout)
+    assert raw["ok"] is True and raw["raw"] is True and raw["results"]
+
+
+def test_the_cli_has_no_mcp_command(workdir):
+    assert invoke(workdir, "mcp").exit_code == 2  # unknown command

@@ -34,7 +34,7 @@ class Settings(BaseModel):
     support_batch_size: int = 8
     request_timeout: float = 600.0
     eval_mode: bool = False  # turns on the PEP leak guard
-    budget_tokens: int = 10000  # size cap for MCP and CLI output
+    budget_tokens: int = 10000  # size cap for CLI output (why, show, check-pr)
 
 
 def load_settings(

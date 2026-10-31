@@ -2,8 +2,8 @@
 
 One database file in WAL mode, the stdlib ``sqlite3`` module and plain SQL.
 FTS5 indexes back the text searches when this SQLite build has FTS5; a LIKE
-fallback answers the same queries without it. Open one ``Store`` per thread:
-every MCP tool call opens its own.
+fallback answers the same queries without it. Open one ``Store`` per thread;
+never share a connection between threads.
 
 Posts are keyed by their stable, source-native ids. ``posts`` holds the current
 posts of each thread. ``post_versions`` keeps one row per (post id, version,

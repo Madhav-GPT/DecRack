@@ -1,29 +1,23 @@
 """``decrack doctor``: check the local setup without changing anything.
 
 It asks the local Ollama server which models are installed, checks that the
-configured model is one of them, looks for the ``opencode`` command, and
-prints the ``opencode.json`` snippet that connects OpenCode to DecRack's MCP
-server. The snippet runs this clone with ``uv run --directory``; the line
-after it gives the same command through ``uvx``, straight from the GitHub
-repository, for machines without a clone.
+configured model is one of them, looks for the ``opencode`` command, and ends
+with a one-line hint on how a coding agent uses DecRack: through the CLI.
 """
 
 from __future__ import annotations
 
-import json
-import shlex
 import shutil
-from pathlib import Path
 from typing import Any
 
 import httpx
 
-from decrack.config import DEFAULT_MODEL, DEFAULT_OLLAMA_HOST, Settings
+from decrack.config import Settings
 
 OLLAMA_HINT = "Install it from https://ollama.com and run `ollama serve`."
 OPENCODE_HINT = "Install it with `npm i -g opencode-ai` (see https://opencode.ai)."
 TAGS_TIMEOUT = 5.0
-GIT_SOURCE = "git+https://github.com/Madhav-GPT/DecRack"  # DecRack installs from its repository
+AGENT_HINT = 'Tell your agent: run `decrack run <URL>`, then `decrack why "<question>" --format json`.'
 
 
 def model_names(tags: Any) -> list[str]:
@@ -94,36 +88,5 @@ def run_doctor(settings: Settings, client: httpx.Client | None = None) -> tuple[
         lines.append(f"[missing] opencode is not on PATH. {OPENCODE_HINT}")
 
     lines.append("")
-    lines.append("Connect OpenCode to DecRack: add this to opencode.json in your project")
-    lines.append("(or to ~/.config/opencode/opencode.json for every project):")
-    lines.extend(opencode_snippet(settings).splitlines())
-    lines.append("")
-    lines.append("Without a clone, use this command instead (uvx installs DecRack from its GitHub repository):")
-    lines.append(shlex.join(uvx_command(settings)))
+    lines.append(AGENT_HINT)
     return lines, code
-
-
-def mcp_arguments(settings: Settings) -> list[str]:
-    """``decrack`` arguments that serve MCP on this database, model and Ollama address."""
-    arguments = ["decrack", "--db", str(Path(settings.db_path).expanduser().resolve())]
-    if settings.model != DEFAULT_MODEL:
-        arguments += ["--model", settings.model]
-    # The MCP server only learns a non-default Ollama address from this flag.
-    if settings.ollama_host.rstrip("/") != DEFAULT_OLLAMA_HOST:
-        arguments += ["--ollama-host", settings.ollama_host.rstrip("/")]
-    return arguments + ["mcp"]
-
-
-def uvx_command(settings: Settings) -> list[str]:
-    """``uvx --from git+https://github.com/Madhav-GPT/DecRack decrack --db <abs db> mcp``."""
-    return ["uvx", "--from", GIT_SOURCE, *mcp_arguments(settings)]
-
-
-def opencode_snippet(settings: Settings) -> str:
-    """JSON for ``opencode.json`` that starts ``decrack mcp`` from this project and database."""
-    command = ["uv", "run", "--directory", str(Path.cwd().resolve()), *mcp_arguments(settings)]
-    config = {
-        "$schema": "https://opencode.ai/config.json",
-        "mcp": {"decrack": {"type": "local", "command": command, "enabled": True}},
-    }
-    return json.dumps(config, indent=2)

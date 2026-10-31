@@ -19,7 +19,7 @@ import httpx
 import typer
 from pydantic import BaseModel
 
-from decrack import export_okf, search, surface, verify
+from decrack import export_okf, preflight, search, surface, verify
 from decrack.config import DEFAULT_MODEL, Settings, load_settings
 from decrack.doctor import run_doctor
 from decrack.models import DecisionRecord, Thread
@@ -59,6 +59,19 @@ def expected_errors() -> Iterator[None]:
         raise typer.Exit(1) from None
 
 
+@contextmanager
+def gates(as_json: bool = False) -> Iterator[None]:
+    """Stop at a failed preflight gate: one plain line (or the JSON error object) and the gate's exit code."""
+    try:
+        yield
+    except preflight.GateError as gate:
+        if as_json:
+            typer.echo(gate.as_json())
+        else:
+            typer.echo(gate.text(), err=gate.code != 0)
+        raise typer.Exit(gate.code) from None
+
+
 def progress(message: str) -> None:
     """Progress goes to stderr so stdout holds only results."""
     typer.echo(message, err=True)
@@ -74,21 +87,6 @@ def pep_number(ref: str) -> int | None:
     """``pep:830``, ``PEP 830``, ``pep-0830`` or ``830`` -> 830; anything else -> None."""
     match = PEP_REF.match(ref.strip())
     return int(match.group(1)) if match else None
-
-
-def ingest_thread(store: Store, ref: str, settings: Settings) -> Thread:
-    """Load a discussion, assign author/decider/maintainer roles and store it."""
-    thread = assign_roles(load_source(ref, settings))
-    store.save_thread(thread)
-    return thread
-
-
-def compile_and_save(store: Store, thread: Thread, settings: Settings) -> DecisionRecord:
-    """Extract the thread's decision record with the configured model and store it."""
-    llm = make_llm(settings, store)
-    record = compile_thread(thread, llm, settings, progress=progress)
-    store.save_record(record)
-    return record
 
 
 def write_json(path: Path, obj: Any) -> None:
@@ -120,6 +118,44 @@ def hit_block(record: DecisionRecord, why: str = "") -> str:
     if record.id not in card:
         card += f"\nRecord id: `{record.id}`"
     return f"Matched: {why}\n\n{card}" if why else card
+
+
+def card_json(record: DecisionRecord, matched: str = "") -> dict[str, Any]:
+    """A compact card for agents: the decision id, its link, and one line per option."""
+    options = []
+    for option in record.options:
+        reason = " ".join(option.reasons[0].text.split()) if option.reasons else ""
+        link = next((ev.url for ev in option.evidence if ev.url), record.thread_url)
+        options.append(
+            {
+                "key": option.key,
+                "title": option.title,
+                "status": option.status,
+                "status_kind": option.status_kind,
+                "confidence": option.confidence,
+                "reason": reason,
+                "link": link,
+            }
+        )
+    return {
+        "decision_id": record.id,
+        "title": record.question,
+        "outcome": record.outcome,
+        "link": record.thread_url,
+        "matched": matched,
+        "options": options,
+    }
+
+
+def echo_json(data: dict[str, Any]) -> None:
+    typer.echo(json.dumps(data, indent=2, ensure_ascii=False, default=to_jsonable))
+
+
+def check_format(fmt: str) -> bool:
+    """True for ``--format json``; md is the default; anything else is a usage error."""
+    if fmt not in ("md", "json"):
+        raise typer.BadParameter("use md or json", param_hint="--format")
+    return fmt == "json"
 
 
 def to_jsonable(value: Any) -> Any:
@@ -172,8 +208,12 @@ def ingest_cmd(
 ) -> None:
     """Fetch a discussion and store its posts (no model needed)."""
     settings = settings_of(ctx)
+    with gates():
+        preflight.check_source(ref)
+        thread = assign_roles(preflight.fetch(ref, settings, load_source))
+        preflight.check_content(thread)
     with expected_errors(), Store(settings.db_path) as store:
-        thread = ingest_thread(store, ref, settings)
+        store.save_thread(thread)
     typer.echo(f"Stored {thread.id}: {len(thread.posts)} posts — {thread.title}")
 
 
@@ -189,10 +229,18 @@ def run_cmd(
     """Ingest and extract in one step; running it again reuses the model calls cached in the database."""
     settings = settings_of(ctx)
     written: list[Path] = []
-    with expected_errors(), Store(settings.db_path) as store:
-        thread = ingest_thread(store, ref, settings)
+    with gates():
+        preflight.check_source(ref)
+    with gates(), expected_errors(), Store(settings.db_path) as store:
+        llm = make_llm(settings, store)
+        if preflight.needs_model_check(llm):
+            preflight.check_model(settings)
+        thread = assign_roles(preflight.fetch(ref, settings, load_source))
+        preflight.check_content(thread)
+        store.save_thread(thread)
         progress(f"Stored {thread.id}: {len(thread.posts)} posts — {thread.title}")
-        record = compile_and_save(store, thread, settings)
+        record = compile_thread(thread, llm, settings, progress=progress)
+        store.save_record(record)
         if out is not None:
             written = write_example(out, thread, [record])
     typer.echo(search.render_card(record))
@@ -209,23 +257,82 @@ def why_cmd(
         bool,
         typer.Option("--raw", help="Search the raw stored posts instead (uncompiled, unchecked): the fallback."),
     ] = False,
+    fmt: Annotated[str, typer.Option("--format", help="md or json.")] = "md",
 ) -> None:
-    """Search decision records; print their compact cards. With --raw, search the raw stored posts."""
+    """Search decisions by words, a question or a file path; print compact cards. --raw searches raw posts."""
     settings = settings_of(ctx)
-    with expected_errors(), Store(settings.db_path) as store:
+    as_json = check_format(fmt)
+    with gates(as_json):
+        query = preflight.check_query(query)
+    with gates(as_json), expected_errors(), Store(settings.db_path) as store:
+        preflight.check_records(store, raw=raw)
         if raw:
             rows = store.search_posts(query, limit)
             blocks = [search.render_posts(rows)] if rows else []
+            results: list[dict[str, Any]] = rows
             empty = f'No stored posts match "{query}".'
         else:
-            blocks = [hit_block(hit.record, hit.why) for hit in search.why(store, query, limit=limit)]
+            hits = search.why(store, query, limit=limit)
+            blocks = [hit_block(hit.record, hit.why) for hit in hits]
+            results = [card_json(hit.record, hit.why) for hit in hits]
             empty = f'No recorded decisions match "{query}".'
+    if as_json:
+        echo_json({"ok": True, "query": query, "raw": raw, "results": results})
+        return
     if not blocks:
         typer.echo(empty)
         return
     typer.echo(search.NOTICE)
     typer.echo("")
     typer.echo(search.pack(blocks, settings.budget_tokens))
+
+
+@app.command("show")
+def show_cmd(
+    ctx: typer.Context,
+    decision_id: Annotated[str, typer.Argument(help="Decision id from `decrack why` (dr-...) or a thread id (pep:830).")],
+    detail: Annotated[str, typer.Option("--detail", help="card, full, or evidence (adds the cited posts).")] = "card",
+    budget_tokens: Annotated[
+        Optional[int], typer.Option("--budget-tokens", min=1, help="Size cap for the output (default 10000).")
+    ] = None,
+    fmt: Annotated[str, typer.Option("--format", help="md or json.")] = "md",
+) -> None:
+    """Show one decision: a compact card, the full record, or the record with its cited posts in context.
+
+    "evidence" adds every cited post, the post it replies to and the next reply to it, within the budget.
+    """
+    settings = settings_of(ctx)
+    as_json = check_format(fmt)
+    if detail not in ("card", "full", "evidence"):
+        raise typer.BadParameter("use card, full or evidence", param_hint="--detail")
+    budget = budget_tokens or settings.budget_tokens
+    key = decision_id.strip()
+    with gates(as_json), expected_errors(), Store(settings.db_path) as store:
+        if not key:
+            raise preflight.GateError("Give a decision id, such as dr-1a2b3c4d.", "Find ids with `decrack why`.", 2)
+        preflight.check_records(store)
+        record = store.get_record(key) or store.record_for_thread(key)
+        if record is None:
+            raise preflight.GateError(f"No decision {key!r} is recorded.", "Find ids with `decrack why`.", 1)
+        thread = store.load_thread(record.thread_id) if detail == "evidence" else None
+    if detail == "evidence" and thread is not None:
+        text = search.render_evidence_packet(record, thread, budget)
+    else:
+        text = search.render_card(record, detail="card" if detail == "card" else "full")
+        if detail == "evidence":
+            text = f"The thread {record.thread_id} is not stored, so this is the full record.\n\n{text}"
+        text = search.pack([text], budget)
+    if as_json:
+        payload: dict[str, Any] = {"ok": True, "decision_id": record.id, "detail": detail, "text": text}
+        if detail == "card":
+            payload["card"] = card_json(record)
+        else:
+            payload["record"] = record.model_dump(mode="json")
+        echo_json(payload)
+        return
+    typer.echo(search.NOTICE)
+    typer.echo("")
+    typer.echo(text)
 
 
 @app.command("check-pr")
@@ -255,16 +362,15 @@ def check_pr_cmd(
     It reports history to weigh, never a verdict, and never posts anything.
     """
     settings = settings_of(ctx)
-    if fmt not in ("md", "json"):
-        raise typer.BadParameter("use md or json", param_hint="--format")
+    as_json = check_format(fmt)
     if diff and ".." not in diff:
         raise typer.BadParameter("expected BASE..HEAD", param_hint="--diff")
     path_list = [part.strip() for value in paths or [] for part in value.split(",") if part.strip()]
-    if not (pr_url or path_list or diff or description):
-        typer.echo("error: give a PR URL, --paths, --diff BASE..HEAD or --description.", err=True)
-        raise typer.Exit(2)
+    with gates(as_json):
+        preflight.check_change_input(pr_url, path_list, diff)
     repo_dir = str(repo) if repo is not None else (str(Path.cwd()) if diff else None)
-    with expected_errors(), Store(settings.db_path) as store:
+    with gates(as_json), expected_errors(), Store(settings.db_path) as store:
+        preflight.check_records(store)
         result = surface.check_change(
             store,
             pr_url=pr_url,
@@ -275,8 +381,8 @@ def check_pr_cmd(
             budget_tokens=settings.budget_tokens,
             blame=blame,
         )
-    if fmt == "json":
-        typer.echo(json.dumps(result, indent=2, ensure_ascii=False, default=to_jsonable))
+    if as_json:
+        echo_json({"ok": True, **result})
     else:
         typer.echo(result["markdown"])
 
@@ -343,13 +449,16 @@ def eval_cmd(
 
     # The evaluation must never read the PEP text it scores against, so the leak guard is always on.
     settings = settings.model_copy(update={"eval_mode": True})
-    with expected_errors(), Store(settings.db_path) as store:
+    with gates(), expected_errors(), Store(settings.db_path) as store:
+        llm = make_llm(settings, store)
+        if preflight.needs_model_check(llm):
+            preflight.check_model(settings)
         evaluate.run_eval(
             peps,
             gold,
             out,
             settings,
-            make_llm(settings, store),
+            llm,
             store,
             closed_book_baseline=closed_book,
             progress=progress,
@@ -375,20 +484,11 @@ def verify_cmd(
 
 @app.command("doctor")
 def doctor_cmd(ctx: typer.Context) -> None:
-    """Check Ollama, the model and OpenCode; print the OpenCode MCP snippet."""
+    """Check Ollama, the model and OpenCode; end with how an agent uses DecRack."""
     lines, code = run_doctor(settings_of(ctx))
     for line in lines:
         typer.echo(line)
     raise typer.Exit(code)
-
-
-@app.command("mcp")
-def mcp_cmd(ctx: typer.Context) -> None:
-    """Serve DecRack's tools over MCP stdio (for OpenCode or any MCP client)."""
-    # Imported here: only this command needs the mcp package.
-    from decrack import mcp_server
-
-    mcp_server.serve(settings_of(ctx))
 
 
 def main() -> None:

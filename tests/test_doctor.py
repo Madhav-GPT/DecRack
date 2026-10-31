@@ -1,17 +1,10 @@
-"""doctor: Ollama /api/tags checks through a mock transport, the OpenCode snippet and the uvx alternative."""
-
-import json
-import shlex
-from pathlib import Path
+"""doctor: Ollama /api/tags checks through a mock transport, and the agent hint it ends with."""
 
 import httpx
 import pytest
 
 from decrack.config import DEFAULT_MODEL, Settings
-from decrack.doctor import has_model, opencode_snippet, run_doctor, uvx_command
-
-GIT_SOURCE = "git+https://github.com/Madhav-GPT/DecRack"
-
+from decrack.doctor import AGENT_HINT, has_model, run_doctor
 
 def tags_client(names: list[str]) -> httpx.Client:
     def handler(request: httpx.Request) -> httpx.Response:
@@ -71,61 +64,9 @@ def test_ollama_answers_with_error_status(settings):
     assert any("HTTP 404" in line for line in lines)
 
 
-def test_doctor_prints_snippet_and_the_uvx_alternative(settings, tmp_path):
+def test_doctor_ends_with_the_agent_hint(settings):
     lines, _ = run_doctor(settings, client=tags_client([DEFAULT_MODEL]))
-    start = lines.index("{")
-    end = lines.index("}", start)  # json.dumps(indent=2) closes the outer object on a line of its own
-    config = json.loads("\n".join(lines[start : end + 1]))
-    command = config["mcp"]["decrack"]["command"]
-    assert command[:3] == ["uv", "run", "--directory"]
-    assert command[-1] == "mcp"
-
-    db = str((tmp_path / "t.db").resolve())
-    alternatives = [line for line in lines[end + 1 :] if line.startswith("uvx ")]
-    assert len(alternatives) == 1
-    assert shlex.split(alternatives[0]) == ["uvx", "--from", GIT_SOURCE, "decrack", "--db", db, "mcp"]
-    # DecRack is installed from its repository; the doctor never points at a package index.
-    assert not any("pypi" in line.lower() for line in lines)
-
-
-def test_opencode_snippet(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
-    config = json.loads(opencode_snippet(Settings(db_path="t.db")))
-    assert config["$schema"] == "https://opencode.ai/config.json"
-    server = config["mcp"]["decrack"]
-    assert server["type"] == "local"
-    assert server["enabled"] is True
-    command = server["command"]
-    assert command[:3] == ["uv", "run", "--directory"]
-    assert Path(command[3]).is_absolute()
-    assert command[-1] == "mcp"
-    db = Path(command[command.index("--db") + 1])
-    assert db.is_absolute()
-    assert db == (tmp_path / "t.db").resolve()
-    assert "--model" not in command
-    assert "--ollama-host" not in command
-
-
-def test_opencode_snippet_with_other_model(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
-    command = json.loads(opencode_snippet(Settings(db_path="t.db", model="test-model:b")))["mcp"]["decrack"]["command"]
-    assert command[-3:] == ["--model", "test-model:b", "mcp"]
-
-
-def test_uvx_command_carries_the_same_options(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
-    settings = Settings(db_path="t.db", model="test-model:b", ollama_host="http://10.0.0.5:11434")
-    command = uvx_command(settings)
-    assert command[:4] == ["uvx", "--from", GIT_SOURCE, "decrack"]
-    assert command[4:] == [
-        "--db",
-        str((tmp_path / "t.db").resolve()),
-        "--model",
-        "test-model:b",
-        "--ollama-host",
-        "http://10.0.0.5:11434",
-        "mcp",
-    ]
-    # The snippet runs the same decrack arguments from this clone.
-    snippet = json.loads(opencode_snippet(settings))["mcp"]["decrack"]["command"]
-    assert snippet[4:] == command[3:]
+    assert lines[-1] == AGENT_HINT
+    assert "decrack why" in AGENT_HINT and "--format json" in AGENT_HINT
+    # DecRack is used through its CLI: no MCP config, and no package index.
+    assert not any("mcp" in line.lower() or "pypi" in line.lower() for line in lines)
