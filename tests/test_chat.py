@@ -174,3 +174,26 @@ def test_cards_do_not_repeat_a_quote_or_show_template_reasons(sample_record):
 def test_styler_is_plain_without_a_terminal():
     assert chat.styler(False)("    status: rejected (confirmed)") == "    status: rejected (confirmed)"
     assert "\033[" in chat.styler(True)("    status: rejected (confirmed)")
+
+
+def test_github_confirmed_needs_the_deciders_own_words(sample_record):
+    record = sample_record.model_copy(deep=True, update={"thread_id": "gh:o/r#1"})
+    option = record.options[0]
+    option.status_kind = "confirmed"
+    option.status_history = []  # no decider statement behind it
+    card = build_cards([(record, "match")])[0]
+    assert card.status_kind == "inferred"
+
+
+def test_a_maintainers_wont_support_marks_the_option_rejected(sample_record):
+    record = sample_record.model_copy(deep=True)
+    option = record.options[-1]
+    option.title = "Default virtualenv"
+    option.status, option.status_kind = "unresolved", "unresolved"
+    said = [("zanieb", "decider", "We're probably not going to support a default virtual environment.", "https://x/1")]
+    card = next(c for c in build_cards([(record, "match")], deciders=said) if c.title == "Default virtualenv")
+    assert (card.status, card.status_kind) == ("rejected", "inferred")
+    assert card.note.startswith("@zanieb (decider)")
+    unrelated = [("zanieb", "decider", "We are not going to support Windows XP builds anymore.", "https://x/2")]
+    card = next(c for c in build_cards([(record, "match")], deciders=unrelated) if c.title == "Default virtualenv")
+    assert card.status == "unresolved"
