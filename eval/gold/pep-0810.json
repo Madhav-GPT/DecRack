@@ -1,0 +1,116 @@
+{
+  "pep": 810,
+  "title": "Explicit lazy imports",
+  "status": "Final",
+  "topics": [
+    "https://discuss.python.org/t/104131"
+  ],
+  "python_peps_commit": "e931180fc33ecad5a82e68ee86928f486c9ec3bb",
+  "leak_flags": [],
+  "items": [
+    {
+      "id": "pep810-r1",
+      "idea": "Making the new behavior the default",
+      "reason": "Changing import to be lazy by default is outside of the scope of this PEP. From the discussion on PEP 690 it is clear that this is a fairly contentious idea, although perhaps once we have wide-spread use of lazy imports this can be reconsidered.",
+      "recoverable": null
+    },
+    {
+      "id": "pep810-r2",
+      "idea": "Supporting __lazy_modules__ = [\"*\"] as built-in syntax",
+      "reason": "The suggestion to support __lazy_modules__ = [\"*\"] as a convenient way to make all imports in a module lazy without explicit enumeration has been considered. This approach was rejected because __lazy_modules__ already represents implicit action-at-a-distance behavior that is tolerated solely as a backwards compatibility mechanism. Extending support to wildcard patterns would significantly increase implementation complexity and invite scope creep into pattern matching and globbing functionality. As __lazy_modules__ is a permanent language feature that cannot be removed in future versions, the design prioritizes minimalism and restricts its scope to serving as a transitional tool for backwards compatibility.",
+      "recoverable": null
+    },
+    {
+      "id": "pep810-r3",
+      "idea": "Disallowing lazy imports inside with blocks",
+      "summary": "An earlier version of this PEP proposed disallowing lazy import statements inside with blocks, similar to the restriction on try blocks. The concern was that certain context managers (like contextlib.suppress(ImportError)) could suppress import errors in confusing ways when combined with lazy imports.",
+      "reason": "However, this restriction was rejected because with statements have much broader semantics than try/except blocks. While try/except is explicitly about catching exceptions, with blocks are commonly used for resource management, temporary state changes, or scoping -- contexts where lazy imports work perfectly fine.",
+      "recoverable": null
+    },
+    {
+      "id": "pep810-r4",
+      "idea": "Forcing eager imports in with blocks under the global flag",
+      "reason": "Another rejected idea was to make imports inside with blocks remain eager even when the global lazy imports flag is set to \"all\". The rationale was to be conservative: since with statements can affect how imports behave (e.g., by modifying sys.path or suppressing exceptions), forcing imports to remain eager could prevent subtle bugs. However, this would create inconsistent behavior where lazy import is allowed explicitly in with blocks, but normal imports remain eager when the global flag is enabled. This inconsistency between explicit and implicit laziness is confusing and hard to explain.",
+      "recoverable": null
+    },
+    {
+      "id": "pep810-r5",
+      "idea": "Modification of the dict object",
+      "reason": "The initial PEP for lazy imports (PEP 690) relied heavily on the modification of the internal dict object to support lazy imports. We recognize that this data structure is highly tuned, heavily used across the codebase, and very performance sensitive. Because of the importance of this data structure and the desire to keep the implementation of lazy imports encapsulated from users who may have no interest in the feature, we've decided to invest in an alternate approach.",
+      "recoverable": null
+    },
+    {
+      "id": "pep810-r6",
+      "idea": "Transforming lazy objects via __class__ mutation",
+      "summary": "An alternative implementation approach was proposed where lazy import objects would be transformed into their final form by mutating their internal state, rather than replacing the object entirely. Under this approach, a lazy object would be transformed in-place after the actual import completes.",
+      "reason": "This technique could potentially work for module objects, but breaks down completely for arbitrary objects imported via from statements. Any code holding a reference to the object before transformation will see a different type after transformation.",
+      "recoverable": null
+    },
+    {
+      "id": "pep810-r7",
+      "idea": "Making lazy imports find the module without loading it",
+      "summary": "The Python import machinery separates out finding a module and loading it, and the lazy import implementation could technically defer only the loading part. However, this approach was rejected for several critical reasons.",
+      "reason": "A significant part of the performance win comes from skipping the finding phase. More critically, separating finding from loading creates the worst of both worlds for error handling.",
+      "recoverable": null
+    },
+    {
+      "id": "pep810-r8",
+      "idea": "Placing the lazy keyword in the middle of from imports",
+      "reason": "While we found from foo lazy import bar to be a really intuitive placement for the new explicit syntax, we quickly learned that placing the lazy keyword here is already syntactically allowed in Python. This is because from . lazy import bar is legal syntax (because whitespace does not matter.)",
+      "recoverable": null
+    },
+    {
+      "id": "pep810-r9",
+      "idea": "Placing the lazy keyword at the end of import statements",
+      "reason": "We discussed appending lazy to the end of import statements like such import foo lazy or from foo import bar, baz lazy but ultimately decided that this approach provided less clarity. For example, if multiple modules are imported in a single statement, it is unclear if the lazy binding applies to all of the imported objects or just a subset of the items.",
+      "recoverable": null
+    },
+    {
+      "id": "pep810-r10",
+      "idea": "Adding an explicit eager keyword",
+      "reason": "Since we're not changing the default behavior, and we don't want to encourage use of the global flags, it's too early to consider adding superfluous syntax for the common, default case. It would create too much confusion about what the default is, or when the eager keyword would be necessary, or whether it affects lazy imports in the explicitly eagerly imported module.",
+      "recoverable": null
+    },
+    {
+      "id": "pep810-r11",
+      "idea": "Allowing the filter to force lazy imports even when globally disabled",
+      "summary": "As lazy imports allow some forms of circular imports that would otherwise fail, as an intentional and desirable thing (especially for typing-related imports), there was a suggestion to add a way to override the global disable and force particular imports to be lazy, for instance by calling the lazy imports filter even if lazy imports are globally disabled.",
+      "reason": "This approach could introduce a complex hierarchy of the different \"override\" systems, making it much harder to analyze and reason about the code. It's also easier to add more specific re-enabling mechanisms later, when we have a clearer picture of real-world use and patterns, than it is to remove a hastily added mechanism that isn't quite right.",
+      "recoverable": null
+    },
+    {
+      "id": "pep810-r12",
+      "idea": "Using underscore-prefixed names for advanced features",
+      "reason": "The global activation and filter functions (sys.set_lazy_imports, sys.set_lazy_imports_filter, sys.get_lazy_imports_filter) could be marked as \"private\" or \"advanced\" by using underscore prefixes (e.g., sys._set_lazy_imports_filter). This was rejected because branding as advanced features through documentation is sufficient. These functions have legitimate use cases for advanced users, particularly operators of large deployments. Providing an official mechanism prevents divergence from upstream CPython. The global mode is intentionally documented as an advanced feature for operators running huge fleets, not for day-to-day users or libraries. Python has precedent for advanced features that remain public APIs without underscore prefixes - for example, gc.disable(), gc.get_objects(), and gc.set_threshold() are advanced features that can cause issues if misused, yet they are not underscore-prefixed.",
+      "recoverable": null
+    },
+    {
+      "id": "pep810-r13",
+      "idea": "Using a decorator syntax for lazy imports",
+      "summary": "A decorator-based syntax could mark imports as lazy.",
+      "reason": "Decorators in Python are designed to wrap and transform callable objects (functions, classes, methods), not statements. Allowing decorators on import statements would open the door to many other potential statement decorators (@cached, @traced, @deprecated, etc.), significantly expanding the language's syntax in ways we don't want to explore.",
+      "recoverable": null
+    },
+    {
+      "id": "pep810-r14",
+      "idea": "Using a context manager instead of a new soft keyword",
+      "summary": "A backward compatible syntax, for example in the form of a context manager, has been proposed.",
+      "reason": "However, adding magic with statements with that kind of effect would be a significant change to Python and with statements in general, and it would not be easy to combine with the implementation for lazy imports in this proposal. Adding standard library support for existing lazy importers without changes to the implementation amounts to the status quo, and does not solve the performance and usability issues with those existing solutions.",
+      "recoverable": null
+    },
+    {
+      "id": "pep810-r15",
+      "idea": "Returning a proxy dict from globals()",
+      "summary": "An alternative to reifying on globals() or exposing lazy objects would be to return a proxy dictionary that automatically reifies lazy objects when they're accessed through the proxy. This would seemingly give the best of both worlds: globals() returns immediately without reification cost, but accessing items through the result would automatically resolve lazy imports.",
+      "reason": "However, this approach is fundamentally incompatible with how globals() is used in practice. Many standard library functions and built-ins expect globals() to return a real dict object, not a proxy.",
+      "recoverable": null
+    },
+    {
+      "id": "pep810-r16",
+      "idea": "Automatically reifying on __dict__ or globals() access",
+      "summary": "Three options were considered for how globals() and mod.__dict__ should behave with lazy imports: 1. Calling globals() or mod.__dict__ traverses and resolves all lazy objects before returning. 2. Calling globals() or mod.__dict__ returns the dictionary with lazy objects present (chosen). 3. Calling globals() returns the dictionary with lazy objects, but mod.__dict__ reifies everything.",
+      "reason": "Option 1 (always reifying) was rejected because it would make globals() and __dict__ access surprisingly expensive and prevent introspecting the lazy state of a module. Option 3 was initially considered to \"protect\" external code from seeing lazy objects, but real-world usage showed this created more problems than it solved, particularly for stdlib code that needs to introspect modules without triggering side effects.",
+      "recoverable": null
+    }
+  ]
+}

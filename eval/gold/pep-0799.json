@@ -1,0 +1,36 @@
+{
+  "pep": 799,
+  "title": "A dedicated profiling package for organizing Python profiling tools",
+  "status": "Final",
+  "topics": [
+    "https://discuss.python.org/t/100898"
+  ],
+  "python_peps_commit": "e931180fc33ecad5a82e68ee86928f486c9ec3bb",
+  "leak_flags": [],
+  "items": [
+    {
+      "id": "pep799-r1",
+      "idea": "Renaming cProfile",
+      "reason": "Renaming cProfile to profile.tracing was considered, but this change would impact a large amount of existing code. Maintaining the original name while aliasing it under profiling.tracing strikes a balance between compatibility and clarity.",
+      "recoverable": null
+    },
+    {
+      "id": "pep799-r2",
+      "idea": "Using profilers as the Module Name",
+      "reason": "The module was initially proposed as profilers (plural) but was changed to profiling (gerund form) based on community feedback. The gerund form is more consistent with other Python standard library modules that represent categories of functionality.",
+      "recoverable": null
+    },
+    {
+      "id": "pep799-r3",
+      "idea": "Multiple Names for the Sampling Profiler",
+      "reason": "An earlier version of this PEP proposed having the sampling profiler available under two names: profiling.sampling and profiling.tachyon. This was rejected to avoid confusion - when introducing new functionality, it's better to have a single, clear path to access it rather than multiple aliases. The name profiling.sampling was chosen as it clearly describes the profiling methodology, while \"tachyon\" remains as an internal codename that may be mentioned in documentation.",
+      "recoverable": null
+    },
+    {
+      "id": "pep799-r4",
+      "idea": "Top-Level tachyon Module",
+      "reason": "Introducing import tachyon as a new top-level module was rejected. Grouping tachyon under profiling helps establish a logical structure and prevents proliferation of top-level modules and also minimizes the usage of global namespace as requested by the Python Steering Council.",
+      "recoverable": null
+    }
+  ]
+}

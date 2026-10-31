@@ -1,0 +1,55 @@
+{
+  "pep": 842,
+  "title": "Module Exports",
+  "status": "Withdrawn",
+  "topics": [
+    "https://discuss.python.org/t/108266",
+    "https://discuss.python.org/t/108353",
+    "https://discuss.python.org/t/108460"
+  ],
+  "python_peps_commit": "e931180fc33ecad5a82e68ee86928f486c9ec3bb",
+  "leak_flags": [],
+  "items": [
+    {
+      "id": "pep842-r1",
+      "idea": "Reuse __all__ for exports",
+      "summary": "Instead of adding a new __export__ variable, an alternative was to reuse __all__ for names.",
+      "reason": "This was ultimately decided against because it seemed clear that there were cases where a name could be in __export__, but not in __all__. The primary example for this case was with static typing.",
+      "recoverable": null
+    },
+    {
+      "id": "pep842-r2",
+      "idea": "Emitting a warning upon accessing unexported attributes",
+      "reason": "This PEP initially proposed raising an ImportError upon accessing module attributes that were not listed in __export__. This was not well received, as the PEP did not clearly describe the intentions behind the proposal. Following that feedback, the ImportError turned into a warning, which was eventually determined to be a bad compromise, as the ergonomics of warnings are much worse than exceptions, and because many testing frameworks (such as pytest) turn warnings into exceptions during testing.",
+      "recoverable": null
+    },
+    {
+      "id": "pep842-r3",
+      "idea": "Introduce __export__ on its own",
+      "summary": "The original revision of this proposal included __export__ as a standalone variable and did not provide any new syntax. The appeal of this was that it was backwards compatible; projects could simply write __export__ = __all__, and then when users upgraded to a version that supported __export__, they would get the documentation and enforcement benefits described by this PEP.",
+      "reason": "It was eventually decided that this was too conservative, because while __export__ was compatible with __all__, it shared many of the same problems with it, such as forgetting to add or remove items from the list.",
+      "recoverable": null
+    },
+    {
+      "id": "pep842-r4",
+      "idea": "Add a private keyword for class bodies",
+      "summary": "During discussion of this proposal, it was suggested to add a private keyword for use in classes (or to allow export in class bodies).",
+      "reason": "This is considered out of scope for this PEP, and may be revisited by a future proposal.",
+      "recoverable": null
+    },
+    {
+      "id": "pep842-r5",
+      "idea": "Add public and private decorators as builtins",
+      "summary": "Instead of adding a new export keyword, it was suggested to add private and public decorators, based on Barry Warsaw's atpublic package, to the builtins module.",
+      "reason": "This is the author's next preferred solution after export syntax, but it does come with some caveats. In particular, there's no easy way to export simple variables without duplicating the name, which many dislike due to the violation of the DRY principle.",
+      "recoverable": null
+    },
+    {
+      "id": "pep842-r6",
+      "idea": "Make module names public by default",
+      "summary": "Many have argued that the current behavior of this proposal is counterintuitive, because in Python, names are public by default. This means the semantics of export break down when compared to other languages (see how JavaScript handles this). As a solution, it was proposed to keep names public by default and add a private keyword (along with a __private__ list) to describe which names are private.",
+      "reason": "This was rejected because it makes the intended goal of this proposal (making it clearer which names in a module are public) much harder to achieve in practice. It is expected that if __private__ were used instead of __export__, then module authors would often forget to mark a name as private, and thus users would be led to believe that a private name is public.",
+      "recoverable": null
+    }
+  ]
+}
