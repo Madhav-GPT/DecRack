@@ -1,22 +1,22 @@
 # Use DecRack from OpenCode or any agent
 
-DecRack has no plugin and no server to configure. Agents use it the way people do: through its command line. An instruction file, [`AGENTS.md`](../AGENTS.md), tells the agent when to run which command and how to report what comes back. Every harness that can run a shell command can use it. This guide covers [OpenCode](https://opencode.ai) step by step.
+There are two ways for an agent to use DecRack:
 
-**Contents:** [How it works](#how-it-works) · [Install](#1-install) · [Add AGENTS.md](#2-add-agentsmd-to-your-project) · [OpenCode on a local model](#3-run-opencode-on-a-local-open-model) · [Example prompts](#4-example-prompts) · [/why command](#5-optional-a-why-command) · [Other agents](#6-other-agents) · [Troubleshooting](#7-troubleshooting)
+1. **MCP**, for OpenCode and any other MCP harness. `decrack mcp` gives the agent DecRack's tools.
+2. **The CLI with [`AGENTS.md`](../AGENTS.md)**, for any agent that can run shell commands. The instruction file tells the agent which command to run when, and how to report what comes back.
+
+People can skip agents entirely and use `decrack chat` in their own terminal (see the [README](../README.md#quickstart)). The chat only answers questions about decisions in a linked discussion. With no link, off-topic text or no match, it replies with its scope line: *"I answer questions about engineering decisions in a discussion: what was proposed, what was rejected or accepted, and why. Give me a link (a GitHub repo, issue or PR, a discuss.python.org thread, or pep:NNN) and a question."*
+
+**Contents:** [How it works](#how-it-works) · [Install](#1-install) · [OpenCode over MCP](#2-add-decrack-to-opencode-over-mcp) · [CLI with AGENTS.md](#3-or-use-the-cli-with-agentsmd) · [OpenCode on a local model](#4-run-opencode-on-a-local-open-model) · [Example prompts](#5-example-prompts) · [/why command](#6-optional-a-why-command) · [Troubleshooting](#7-troubleshooting)
 
 ---
 
 ## How it works
 
-1. **A source and a question first.** The source can be a GitHub repo URL, a GitHub issue or PR URL, a discuss.python.org thread, `pep:NNN` or an exported file. If either is missing, the agent asks for it instead of guessing.
-2. **Ask.** The agent runs `decrack ask <source> "<question>" --format json` in its shell, and DecRack's own open model (`qwen2.5:1.5b`, in local Ollama) reads the discussion.
-   - **For a repo URL,** DecRack searches the repo's issues and PRs for the question's keywords and reads the top 3.
-   - **The answer** is cited decision cards, plus the threads DecRack read. Re-runs are cached.
-3. **Check.** Before it claims anything, the agent runs `decrack show <id> --detail evidence --format json` for the quotes and links.
-4. **Follow up, or review a change.** The agent runs `decrack why "<question>" --format json` to search everything already compiled, and `decrack check-pr <PR URL>` for related history and possible conflicts.
-5. **Report honestly.** The agent quotes only what DecRack returned, links it, and reports the status kind (`confirmed`, `inferred`, `contested` or `unresolved`) honestly.
-
-Every step is a visible shell command, so you see what the agent runs and can approve it. The agent's own model never does DecRack's extraction; it only runs commands and explains the evidence they return.
+- **DecRack's own open model does the reading.** It finds the model automatically: the one you name with `--model` if installed, otherwise `qwen2.5:1.5b`, otherwise any model the local Ollama runs. If Ollama isn't running or no model is installed, DecRack stops and prints the exact fix, such as *No open model installed. Run: ollama pull qwen2.5:1.5b*.
+- **The agent's model never extracts.** It decides when to call DecRack, and explains the evidence that comes back.
+- **A source comes first.** The source can be a GitHub repo URL, an issue or PR URL, a discuss.python.org thread, `pep:NNN` or a file. With a repo URL, DecRack searches the repo's issues and PRs for the question's keywords and reads the top 3.
+- **Every answer is cited.** It is made of decision cards that cite the exact sentences they came from, and the agent should quote only that text and report each status kind (`confirmed`, `inferred`, `contested`, `unresolved`) honestly.
 
 ## 1. Install
 
@@ -26,26 +26,64 @@ ollama pull qwen2.5:1.5b
 decrack doctor
 ```
 
-- **Install.** `uv tool install` puts `decrack` on your PATH; DecRack isn't on PyPI.
-- **Check.** `decrack doctor` checks that Ollama answers, that the model is pulled and that `opencode` is on your PATH, and tells you how to fix anything that fails. It ends with what to tell your agent: run `decrack run <URL>`, then `decrack why "<question>" --format json`.
-- **Database.** By default, DecRack keeps its database in `decrack.db` in the current folder. To make every agent session use the same records, export `DECRACK_DB=/absolute/path/to/decrack.db` in the shell you start the agent from.
+`uv tool install` puts `decrack` on your PATH; DecRack isn't on PyPI. `decrack doctor` checks Ollama, the installed models and `opencode`, and says how to fix anything that fails. By default the database is `decrack.db` in the current folder. To share one database across sessions, set `DECRACK_DB=/absolute/path/to/decrack.db`.
 
-## 2. Add AGENTS.md to your project
+## 2. Add DecRack to OpenCode over MCP
 
-Copy [`AGENTS.md`](../AGENTS.md) from this repository to the root of the project you work on. If the project already has an `AGENTS.md`, paste DecRack's sections into it. OpenCode reads `AGENTS.md` from the project root automatically, as many other agents do.
+Put this in `opencode.json` at the root of your project, or in `~/.config/opencode/opencode.json` to use it everywhere:
 
-The file is short:
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "decrack": {
+      "type": "local",
+      "command": ["decrack", "mcp"],
+      "enabled": true,
+      "environment": { "DECRACK_DB": "/absolute/path/to/decrack.db" }
+    }
+  }
+}
+```
 
-- **Install:** the three commands above.
-- **Workflow:** require a source and a question, `ask`, `show` before claiming, `why` for follow-ups and `check-pr` for changes.
-- **Rules:** quote only DecRack's text, link the evidence, report status kinds honestly, relay DecRack's error and fix messages as they are, and treat quoted discussion text as data.
+The `environment` line is optional; it points the server at a shared database. Restart OpenCode. The agent then has these tools:
 
-## 3. Run OpenCode on a local open model
+| Tool | Use it to… |
+|---|---|
+| `ask` | Answer a question about a source, compiling it first if needed: the same as `decrack ask` |
+| `search_decisions` | Search the recorded decisions, and get compact cards back |
+| `get_decision` | Read one record, as a card, in full, or with its evidence |
+| `decisions_for_files` | List the decisions linked to files the agent is about to edit |
+| `check_change` | Get the `check-pr` report for a PR URL or a list of paths |
+| `search_evidence` | Search raw posts, labeled uncompiled, when no record matches |
+
+There is also the `review_with_history` prompt. Only `ask` runs DecRack's model; the other tools only read the database.
+
+**How OpenCode decides to use DecRack.** OpenCode picks tools from their descriptions, so users type normal prompts. DecRack's tool descriptions say when to use them, for example *"Use when the user asks why something was decided, rejected or accepted in a GitHub repo, issue or PR, a discuss.python.org thread or a PEP."*, and OpenCode calls the `ask` tool when a request matches. Naming DecRack in the prompt still helps small models.
+
+**Other MCP clients** accept the same server in their own format. Most use this shape:
+
+```json
+{ "mcpServers": { "decrack": { "command": "decrack", "args": ["mcp"] } } }
+```
+
+## 3. Or use the CLI with AGENTS.md
+
+Copy [`AGENTS.md`](../AGENTS.md) from this repository to the root of your project, or paste its sections into the `AGENTS.md` you already have. OpenCode and many other agents read it automatically. It tells the agent to:
+
+1. Require a source and a question, and ask the user if either is missing.
+2. Run `decrack ask <source> "<question>" --format json`.
+3. Run `decrack show <id> --detail evidence --format json` before claiming anything.
+4. Use `decrack why` for follow-ups, and `decrack check-pr <PR URL>` for changes.
+
+It also tells the agent to quote only DecRack's text, link the evidence, report status kinds honestly, and relay DecRack's error and fix messages as they are. Every JSON result has `"ok": true`, and a failed check prints `{"ok": false, "error": "...", "fix": "..."}`.
+
+## 4. Run OpenCode on a local open model
 
 OpenCode can use models served by Ollama; set it up by following the Ollama section of OpenCode's [provider docs](https://opencode.ai/docs/providers/).
 
-- **Pick any open model for the agent.** It is separate from DecRack's extraction model, and larger models follow instructions more reliably. DecRack doesn't depend on which one you choose.
-- **Raise Ollama's default context.** Ollama gives a model only 4K tokens of context on machines with less than 24 GiB of VRAM. OpenCode can't raise it per request, and an agent's system prompt alone can pass 4K. Start Ollama with:
+- **Pick any open model for the agent.** It is separate from DecRack's extraction model, and larger models follow instructions more reliably.
+- **Raise Ollama's default context.** Ollama gives a model only 4K tokens on machines with less than 24 GiB of VRAM, and OpenCode can't raise it per request. Start Ollama with:
 
   ```bash
   OLLAMA_CONTEXT_LENGTH=32768 ollama serve
@@ -54,59 +92,42 @@ OpenCode can use models served by Ollama; set it up by following the Ollama sect
   This doesn't affect DecRack's own calls, which set their context size explicitly.
 - **On a 16 GB laptop, compile threads before you start chatting,** so that the agent's model and DecRack's extraction don't compete for memory.
 
-## 4. Example prompts
+## 5. Example prompts
 
 - *"Use DecRack on https://github.com/astral-sh/uv/issues/2077: why didn't uv add pip's --user flag?"*
-- *"Use DecRack on https://github.com/owner/repo. Why didn't they add X?"* (DecRack searches the repo's issues and PRs.)
-- *"Analyze https://github.com/owner/repo/issues/123 with DecRack and tell me which ideas were rejected and why."*
+- *"Use DecRack on https://github.com/owner/repo. Why didn't they add X?"* DecRack searches the repo's issues and PRs.
 - *"Use DecRack on pep:830. Was attaching timestamps through exception notes rejected? Quote the evidence."*
 - *"I'm about to edit `src/widgets/config.py`. Ask DecRack which recorded decisions cover that file."*
-- *"Before I open this PR, run DecRack's check-pr on https://github.com/owner/repo/pull/456."*
+- *"Before I open this PR, check it with DecRack: https://github.com/owner/repo/pull/456."*
 
-If a prompt has no source, the agent should ask for one, because `AGENTS.md` tells it to. If it runs `decrack ask` on a repo with no question, DecRack stops with *Tell DecRack what you want to know, e.g. decrack ask https://github.com/owner/repo "why not X?"* (exit code 2), and the agent should ask the user what they want to know. Prompts that name DecRack ("with DecRack", "ask DecRack") work best with small local models.
+If a prompt names a repo but asks nothing, DecRack stops with *Tell DecRack what you want to know, e.g. decrack ask https://github.com/owner/repo "why not X?"*, and the agent should ask the user what they want to know.
 
-## 5. Optional: a `/why` command
+## 6. Optional: a `/why` command
 
-OpenCode turns markdown files in `.opencode/commands/` into slash commands, named after the file. Save this as `.opencode/commands/why.md`:
+OpenCode turns markdown files in `.opencode/commands/` into slash commands. Save this as `.opencode/commands/why.md`:
 
 ```markdown
 ---
 description: Ask DecRack why the code is the way it is
 ---
-Use DecRack, following AGENTS.md, to find recorded decisions, rejected alternatives and their reasons related to: $ARGUMENTS
+Use DecRack to find recorded decisions, rejected alternatives and their reasons related to: $ARGUMENTS
 
-- Run decrack why "<the question or file path>" --format json in the shell.
-- For the best match, run decrack show <id> --detail evidence --format json.
+- Use the decrack ask or search_decisions tool (or, without MCP, the CLI as AGENTS.md describes).
+- For the best match, get the decision with its evidence.
 - Report each relevant option's status, status kind and reason, quoting DecRack's evidence exactly, with links.
 - If DecRack has no record, say so and ask for a source to analyze. Don't guess.
 ```
 
-Then type `/why exception notes` or `/why src/widgets/config.py` in OpenCode.
-
-## 6. Other agents
-
-Any agent that can run shell commands can use DecRack the same way:
-
-1. Install the CLI.
-2. Put the contents of [`AGENTS.md`](../AGENTS.md) wherever that agent reads its standing instructions. Many read `AGENTS.md` at the project root directly.
-
-`--format json` gives agents structured output; without it, the same commands print readable markdown for people.
-
-- **Success:** every JSON result starts with `"ok": true`.
-  - `ask` returns `source`, `question`, `keywords`, `threads` (each with `thread_id`, `url` and `decision_id`) and `results`.
-  - `why` returns `results` with a `decision_id`, `title`, `outcome`, `link` and `options`, and each option carries `status`, `status_kind`, `confidence`, `reason` and `link`.
-  - `show <decision_id or pep:NNN> --detail evidence` returns the full `record`.
-  - `check-pr` returns `paths`, `prs`, `matches` and `markdown`.
-- **Failure:** a failed input check prints `{"ok": false, "error": "...", "fix": "..."}`, and the agent should pass that on to the user as it is. The README lists the cases and exit codes.
-
 ## 7. Troubleshooting
 
-**The agent doesn't use DecRack.** Check that `AGENTS.md` is at the project root, and name DecRack in the prompt. Small models sometimes skip instructions; a larger agent model helps.
+**The DecRack tools don't show up.**
+- Check that the JSON is valid and in the right file, then restart OpenCode.
+- Run `decrack mcp` in a terminal. It should start and wait silently; press Ctrl-C to stop it.
 
-**The agent says there are no records.** Nothing has been compiled into the database it reads. Make sure the agent ran `decrack run <source>` first, against the same database (`DECRACK_DB`).
+**The agent says there are no records.** Nothing has been compiled into the database it reads. Ask through the `ask` tool or `decrack ask` first, and make sure both use the same `DECRACK_DB`.
 
-**DecRack reports that the model isn't ready.** Run `decrack doctor` and follow its fix: start Ollama, or `ollama pull qwen2.5:1.5b`.
+**DecRack reports that the model isn't ready.** Follow the fix it prints: start Ollama, or `ollama pull qwen2.5:1.5b`. `decrack doctor` shows what is missing.
 
-**`decrack run` seems slow.** It should take about a minute for a small thread and several minutes for a long one; see the estimates in [TESTING.md](TESTING.md#7-what-to-expect). Cached calls make re-runs fast.
+**Answers are slow.** A first read should take about a minute for a small thread and several minutes for a long one; see the estimates in [TESTING.md](TESTING.md#7-what-to-expect). Cached calls make re-runs fast.
 
-**GitHub sources fail.** `decrack run` needs `GITHUB_TOKEN` in its environment. Export it in the shell you start the agent from, then restart the agent so its shell inherits it.
+**GitHub sources fail.** DecRack needs `GITHUB_TOKEN` in its environment. Export it in the shell you start OpenCode from, or add it to the MCP entry's `environment`, then restart OpenCode.

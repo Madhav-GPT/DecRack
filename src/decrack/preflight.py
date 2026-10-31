@@ -23,7 +23,7 @@ from typing import Any
 import httpx
 
 from decrack import sources
-from decrack.config import Settings
+from decrack.config import DEFAULT_MODEL, Settings
 from decrack.doctor import has_model, model_names
 from decrack.models import Thread
 
@@ -36,6 +36,8 @@ EMPTY_DB = "No decisions recorded yet. Run `decrack run <URL>` first."
 EMPTY_QUERY = "Ask a question, or give a file path."
 CHANGE_INPUT = "Give a PR URL, --paths, or --diff."
 TAGS_TIMEOUT = 5.0
+OLLAMA_DOWN = "Ollama isn't running. Install it from https://ollama.com/download, then run: ollama serve"
+NO_MODEL = f"No open model installed. Run: ollama pull {DEFAULT_MODEL}"
 
 
 class GateError(Exception):
@@ -90,6 +92,38 @@ def check_model(settings: Settings, client: httpx.Client | None = None) -> None:
             http.close()
     if not has_model(model, installed):
         raise GateError(f"The model {model} is not installed in Ollama.", f"Run `ollama pull {model}`.", code=3)
+
+
+def installed_models(settings: Settings, client: httpx.Client | None = None) -> list[str]:
+    """Names of the models the local Ollama lists (``GET /api/tags``); gate 2 fails when it does not answer."""
+    http = client if client is not None else httpx.Client(timeout=TAGS_TIMEOUT)
+    try:
+        response = http.get(f"{settings.ollama_host.rstrip('/')}/api/tags", timeout=TAGS_TIMEOUT)
+        response.raise_for_status()
+        return model_names(response.json())
+    except (httpx.HTTPError, httpx.InvalidURL, ValueError):
+        raise GateError(OLLAMA_DOWN, code=3) from None
+    finally:
+        if client is None:
+            http.close()
+
+
+def pick_model(settings: Settings, client: httpx.Client | None = None) -> str:
+    """Gate 2 with auto-detect: the configured model if installed, else the default, else any local model.
+
+    Only models Ollama runs on this machine count: names with "cloud" in them are skipped.
+    """
+    local = [name for name in installed_models(settings, client) if "cloud" not in name.lower()]
+    for wanted in (settings.model, DEFAULT_MODEL):
+        if has_model(wanted, local):
+            return wanted
+    if local:
+        return local[0]
+    raise GateError(NO_MODEL, code=3)
+
+
+def using_line(model: str) -> str:
+    return f"Using {model} (local, open-weight via Ollama)"
 
 
 def fetch(ref: str, settings: Settings, loader: Callable[[str, Settings], Thread]) -> Thread:
