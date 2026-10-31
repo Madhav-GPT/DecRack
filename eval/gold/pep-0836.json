@@ -1,0 +1,42 @@
+{
+  "pep": 836,
+  "title": "JIT Go Brrr: The Path to a Supported JIT Compiler for CPython",
+  "status": "Withdrawn",
+  "topics": [
+    "https://discuss.python.org/t/108010"
+  ],
+  "python_peps_commit": "e931180fc33ecad5a82e68ee86928f486c9ec3bb",
+  "leak_flags": [],
+  "items": [
+    {
+      "id": "pep836-r1",
+      "idea": "Maintain the JIT Outside of CPython main",
+      "reason": "It has been suggested, both during the JIT's history and in recent discussion, that a compiler of this complexity might be better developed and maintained out of tree or as a separate project, rather than in CPython's main branch. However, keeping the JIT in main is a deliberate and hugely beneficial choice, originally articulated in PEP 744: it allows the JIT to be co-developed with the interpreter and maintained by the broader group of core developers and contributors rather than a small set of specialists working on a fork. The uops the JIT consumes are also co-designed with and regenerated from the interpreter. An out-of-tree JIT would have to track those definitions across a branch boundary, which raises the maintenance cost and the risk of drift precisely in the area where correctness matters most. The growth of the contributor base during the 3.15 cycle (see Maintenance Model) is itself evidence that in-tree development lowers, rather than raises, the barrier to participation. Keeping the JIT in the main branch of CPython also allows us to have a better pulse on the needs of distributors, and means that it's easier for end users to try out the JIT and let us know what behavior they observe and what issues they find.",
+      "recoverable": null
+    },
+    {
+      "id": "pep836-r2",
+      "idea": "Pluggable JIT Infrastructure",
+      "reason": "Another recurring idea is for CPython to expose a stable, general-purpose interface for plugging in arbitrary third-party JIT compilers, rather than maintaining one in tree. This PEP rejects this idea for the same reasons as maintaining the JIT outside of CPython main. Introducing a pluggable JIT risks diverting contributor effort and increases maintenance overhead. For example, an earlier version of the JIT in 3.13 had a semi-public experimental API. However, it leaked internal details to \"users\" (there were none) and made internal JIT development more difficult. Thus, we removed it. Furthermore, most language runtime JITs are deeply integrated with their respective runtimes to the extent that a pluggable JIT infrastructure may not be feasible.",
+      "recoverable": null
+    },
+    {
+      "id": "pep836-r3",
+      "idea": "Dropping the Build-Time LLVM Requirement",
+      "reason": "This PEP does not propose changing the JIT's reliance on the LLVM toolchain at build-time. We treat reducing build-time friction as important, but not as a precondition for agreeing on the path outlined here. PEP 774 proposes a solution for removing the LLVM prerequisite but at time of submission, the sitting Steering Council decided to defer making a decision on it until the JIT had achieved more substantial performance gains. We would also like to keep exploring options in this space and as such, would like to save this for a separate PEP.",
+      "recoverable": null
+    },
+    {
+      "id": "pep836-r4",
+      "idea": "A Higher-Tier JIT",
+      "reason": "We believe that multi-tiered JITs produce great performance and compelling warmup times. However, we also believe that for the time being, CPython's complexity and maintenance budget may not support such an endeavour. We are not saying this should never happen. Rather, our goal is to produce the best JIT we can for the current state of CPython, given the constraints we can work with. For that, we reject building yet another JIT on top of the current one for peak performance.",
+      "recoverable": null
+    },
+    {
+      "id": "pep836-r5",
+      "idea": "Enable/Support the Current JIT As-Is",
+      "reason": "The current JIT is undoubtedly the product of much attention and care -- we thank everyone who contributed to it. However, we understand the community as a whole have concerns that are still unaddressed and therefore need remedying. We also acknowledge that Python, and indeed CPython, is so widely-used that a change of this scale must be properly examined and considered before it can be a part of the project proper. As such, the current JIT cannot be enabled without more scrutiny and evolution.",
+      "recoverable": null
+    }
+  ]
+}

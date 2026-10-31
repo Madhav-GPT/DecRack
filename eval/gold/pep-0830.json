@@ -1,0 +1,92 @@
+{
+  "pep": 830,
+  "title": "Add timestamps to exceptions and tracebacks",
+  "status": "Draft",
+  "topics": [
+    "https://discuss.python.org/t/106942"
+  ],
+  "python_peps_commit": "e931180fc33ecad5a82e68ee86928f486c9ec3bb",
+  "leak_flags": [],
+  "items": [
+    {
+      "id": "pep830-r1",
+      "idea": "Using Exception Notes",
+      "reason": "Using PEP 678's .add_note() to attach timestamps was rejected for several reasons. Notes require creating string and list objects at raise time, imposing overhead even when timestamps are not displayed. Notes added when catching an exception reflect the catch time, not the raise time, and in async code this difference can be significant. Not all exceptions are caught (some propagate to top level or are logged directly), so catch-time notes would be applied inconsistently. A struct field captures the timestamp at the source and defers all formatting to display time.",
+      "recoverable": null
+    },
+    {
+      "id": "pep830-r2",
+      "idea": "Using sys.excepthook",
+      "reason": "sys.excepthook runs only when an uncaught exception reaches the top level, at display time rather than when the exception was created. For the motivating example above, the hook would fire once for the resulting ExceptionGroup after all tasks have completed, so every sub-exception would receive the same timestamp. Exceptions that are caught and logged never reach the hook at all.",
+      "recoverable": null
+    },
+    {
+      "id": "pep830-r3",
+      "idea": "Using sys.monitoring",
+      "summary": "An equivalent feature could in principle be built on PEP 669 as a third-party add-on without interpreter changes: register a C-implemented callable for sys.monitoring.events.RAISE that reads the clock and either sets a __timestamp_ns__ attribute on the exception or calls add_note(). STOP_ITERATION and RERAISE are separate events, so subscribing only to RAISE avoids the iterator hot path and naturally preserves the original timestamp on re-raise.",
+      "reason": "This is expected to cost more than the struct-field approach. Allocating a list, a string, and potentially an instance dict on every raise in a program felt extreme enough overhead-wise that this has not been tried.",
+      "recoverable": null
+    },
+    {
+      "id": "pep830-r4",
+      "idea": "Always Collecting vs. Always Displaying",
+      "summary": "Collecting timestamps (a clock_gettime call during instantiation) and displaying them in formatted tracebacks are separate concerns.",
+      "reason": "Always displaying was rejected because it adds noise that most users do not need. Always collecting (even when display is disabled) is cheap since the int64_t field exists in the struct regardless, but not collecting avoids any potential for performance impact when the feature is turned off, and there is no current reason to collect timestamps that will never be shown.",
+      "recoverable": null
+    },
+    {
+      "id": "pep830-r5",
+      "idea": "Runtime API",
+      "reason": "This is an operator-level setting, intended to be configured by whoever launches the process rather than by library or application code. Exposing a runtime toggle for process-wide state invites different parts of a program to fight over its value; keeping it fixed at startup avoids that. It has been omitted for now to keep things simple. If there is demand for runtime configurability, nothing blocks adding that at a later date.",
+      "recoverable": null
+    },
+    {
+      "id": "pep830-r6",
+      "idea": "Timestamp in the Traceback Header Line",
+      "reason": "Placing the timestamp in the Traceback (most recent call last): header was suggested as less disruptive to tools that parse the Type: message line. Each link in a __cause__ or __context__ chain, and each sub-exception in an ExceptionGroup, does get its own header, so this covers the common case. However, the header is only emitted when the exception has a __traceback__; an exception constructed and attached directly renders as just Type: message with no header. The standard library itself does this: concurrent.futures.ProcessPoolExecutor and multiprocessing.Pool attach a constructed _RemoteTraceback as __cause__ to carry a worker's formatted traceback across the process boundary, and it renders with no header. Appending to the message line is the only placement guaranteed to render for every displayed exception.",
+      "recoverable": null
+    },
+    {
+      "id": "pep830-r7",
+      "idea": "More Descriptive timestamps Parameter Name",
+      "reason": "Earlier drafts named the traceback formatting parameter no_timestamp, a boolean which read as a double negative. Longer alternatives such as allow_timestamps or show_timestamp were also considered. The short positive form timestamps was chosen as a tri-state defaulting to None (follow the global configuration), with the docstring and documentation covering the exact behavior.",
+      "recoverable": null
+    },
+    {
+      "id": "pep830-r8",
+      "idea": "Custom Timestamp Formats",
+      "reason": "User-defined format strings would add significant complexity. The two built-in formats (ns, iso) cover the common needs: decimal seconds for programmatic use and ISO 8601 for correlation with external systems.",
+      "recoverable": null
+    },
+    {
+      "id": "pep830-r9",
+      "idea": "Configurable Control Flow Exception Set",
+      "reason": "Allowing users to register additional exceptions to skip was rejected. The exclusion check runs in the hot path of exception creation and uses C type pointer identity for speed. Supporting a configurable set would require either isinstance checks (too slow, walks the MRO) or a hash set of type pointers (complexity with unclear benefit). StopIteration and StopAsyncIteration are the only exceptions raised at frequencies where the cost of clock_gettime is measurable. If a practical need arises, an API to register additional exclusions efficiently could be added as a follow-on enhancement.",
+      "recoverable": null
+    },
+    {
+      "id": "pep830-r10",
+      "idea": "Millisecond Precision",
+      "reason": "Nanosecond precision was chosen over millisecond to match time.time_ns() and to provide sufficient resolution for high-frequency exception scenarios.",
+      "recoverable": null
+    },
+    {
+      "id": "pep830-r11",
+      "idea": "Separate Millisecond and Microsecond Display Formats",
+      "reason": "Earlier drafts offered a us display format alongside ns, and a ms format was also suggested. These differed from ns only in the number of fractional digits shown. Since the decimal output is intended for machine consumption, truncating precision provides no real benefit, so only the full-precision ns format is offered. Users wanting a human-readable form should use iso.",
+      "recoverable": null
+    },
+    {
+      "id": "pep830-r12",
+      "idea": "Returning None When Unset",
+      "reason": "Returning None rather than 0 when no timestamp was collected would be slightly more Pythonic, but __timestamp_ns__ is exposed as a plain int64_t member descriptor on the C struct. Supporting None would require a custom getter and boxed storage. 0 is unambiguous.",
+      "recoverable": null
+    },
+    {
+      "id": "pep830-r13",
+      "idea": "Using a Coarse Clock",
+      "reason": "The reference implementation uses PyTime_TimeRaw, which reads the standard wall clock at full resolution; benchmarking shows this cost is not observable in practice. A coarse clock such as CLOCK_REALTIME_COARSE would be low resolution, insufficient for many needs, for no measurable benefit.",
+      "recoverable": null
+    }
+  ]
+}

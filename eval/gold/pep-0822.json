@@ -1,0 +1,48 @@
+{
+  "pep": 822,
+  "title": "Dedented Multiline String (d-string)",
+  "status": "Draft",
+  "topics": [
+    "https://discuss.python.org/t/105519"
+  ],
+  "python_peps_commit": "e931180fc33ecad5a82e68ee86928f486c9ec3bb",
+  "leak_flags": [
+    "t/105519 post 1: 'Abstract' heading"
+  ],
+  "items": [
+    {
+      "id": "pep822-r1",
+      "idea": "str.dedent() method",
+      "reason": "As mentioned in the Rationale section, this PEP doesn't reject the idea of a str.dedent() method. A faster version of textwrap.dedent() implemented in C would be useful for runtime dedentation.",
+      "recoverable": null
+    },
+    {
+      "id": "pep822-r2",
+      "idea": "Triple-backtick",
+      "summary": "It is considered that using triple backticks for dedented multiline strings could be an alternative syntax. This notation is familiar to us from Markdown. While there were past concerns about certain keyboard layouts, nowadays many people are accustomed to typing this notation.",
+      "reason": "However, this notation conflicts when embedding Python code within Markdown or vice versa. Therefore, considering these drawbacks, increasing the variety of quote characters is not seen as a superior idea compared to adding a prefix to string literals.",
+      "recoverable": null
+    },
+    {
+      "id": "pep822-r3",
+      "idea": "__future__ import",
+      "summary": "Instead of adding a prefix to string literals, the idea of using a __future__ import to change the default behavior of multiline string literals was also considered. This could help simplify Python's grammar in the future.",
+      "reason": "But rewriting all existing complex codebases to the new notation may not be straightforward. Until all users can rewrite existing codebases to the new notation, two types of Python syntax will coexist indefinitely. Therefore, many people preferred the new string prefix over the __future__ import.",
+      "recoverable": null
+    },
+    {
+      "id": "pep822-r4",
+      "idea": "Removing newline in the last line",
+      "summary": "Another idea considered was to remove the newline character from the last line. This idea is similar to Swift's multiline string literals.",
+      "reason": "However, including a newline at the end of the last line of a multiline string literal is a very common case, and requiring an empty line at the end would look quite unnatural compared to Python's traditional multiline string literals. On the other hand, removing the newline at the end of the line before the closing quote would likely cause confusion when rewriting code that uses textwrap.dedent(\"\"\"...\"\"\").",
+      "recoverable": null
+    },
+    {
+      "id": "pep822-r5",
+      "idea": "Allow content after opening quotes",
+      "summary": "There was also a proposal to allow writing content immediately after the opening quotes, just like existing \"\"\".",
+      "reason": "On the other hand, it increases the number of syntax rules that readers need to remember in order to understand how much indentation will be removed. Also, allowing content after opening quotes would not resolve the usability issue where existing textwrap.dedent(\"\"\"...\"\"\") users must write \"\"\"<newline> to avoid including the first newline.",
+      "recoverable": null
+    }
+  ]
+}

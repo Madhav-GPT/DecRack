@@ -1,0 +1,46 @@
+{
+  "pep": 844,
+  "title": "public and private builtins",
+  "status": "Draft",
+  "topics": [
+    "https://discuss.python.org/t/108515"
+  ],
+  "python_peps_commit": "e931180fc33ecad5a82e68ee86928f486c9ec3bb",
+  "leak_flags": [],
+  "items": [
+    {
+      "id": "pep844-r1",
+      "idea": "New export syntax instead of decorators",
+      "summary": "Before its withdrawal, PEP 842 proposed an export soft keyword covering the same ground as this PEP, for example export def, export class, export NAME = value. Its Rejected Ideas section considered builtin public and private decorators, described them as the author's next preferred alternative to syntax, and rejected them on the grounds that \"there's no easy way to export simple variables without duplicating the name.\" The objection outlives the PEP that raised it, and is answered here.",
+      "reason": "New syntax is the most expensive thing Python can add: it must be taught, it cannot be back-ported, it constrains the grammar permanently, and it is unavailable to every module that must still run on an older interpreter. A builtin costs none of that, is trivially shimmed on old versions, and (as is the case here) has a decade of usage experience behind it.",
+      "recoverable": null
+    },
+    {
+      "id": "pep844-r2",
+      "idea": "Add a new __export__ variable",
+      "summary": "See Why __all__ and not __export__.",
+      "reason": "Drift is a property of declaring at a distance, not a property of __all__. A module conscientious enough to maintain __export__ accurately would have been conscientious enough to maintain __all__ accurately; the ones that drift will drift in both.",
+      "recoverable": null
+    },
+    {
+      "id": "pep844-r3",
+      "idea": "Accept an __all__ that is not a list",
+      "summary": "The Specification requires __all__ to be a list for public() and private() to operate on it, which is stricter than either the Python language or the CPython implementation. The language reference only requires it to be \"a sequence of strings\", and CPython is even looser: from spam import * iterates over __all__ until it raises IndexError, so a tuple, a string, and a custom object with a suitable __getitem__ are all legal today.",
+      "reason": "Accepting any sequence is not implementable. There is no general way to append to an arbitrary object that merely supports __getitem__, so \"whatever the import system accepts\" cannot be the rule.",
+      "recoverable": null
+    },
+    {
+      "id": "pep844-r4",
+      "idea": "Leave it on PyPI",
+      "summary": "Leaving atpublic on PyPI is the status quo option. Users who want to opt into this functionality can simply add that library as a dependency and import the functions (or use the pip install atpublic[install] extra, which pulls in the companion atpublic-install distribution to populate builtins at startup).",
+      "reason": "However, if this is a problem worth solving now, then leaving this in a third-party package on PyPI doesn't serve our users adequately. The need to include a dependency and an explicit import may be just enough of a hurdle (albeit small) to stop widespread use of it.",
+      "recoverable": null
+    },
+    {
+      "id": "pep844-r5",
+      "idea": "A new standard library module instead of builtins",
+      "reason": "This would eliminate the third-party dependency problem, but still leaves the explicit import usability cost. In addition, there's no obvious place to add it to the stdlib other than in builtins. Two functions likely aren't worth the cost of a new top-level module. Besides, since __all__ is in a sense built into Python, these functions should be built in too.",
+      "recoverable": null
+    }
+  ]
+}
