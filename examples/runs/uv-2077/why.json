@@ -1,0 +1,187 @@
+{
+  "ok": true,
+  "query": "why not support the --user flag",
+  "raw": false,
+  "results": [
+    {
+      "decision_id": "dr-3054722d",
+      "title": "Support `--user` flag from pip",
+      "outcome": "3 options: 2 accepted, 1 unresolved",
+      "link": "https://github.com/astral-sh/uv/issues/2077",
+      "matched": "text match",
+      "options": [
+        {
+          "key": "A1",
+          "title": "Documenting how to get an equivalent by creating ~/.local venv",
+          "status": "accepted",
+          "status_kind": "confirmed",
+          "confidence": "high",
+          "reason": "The proposal to document the equivalent of `--user` flag by creating a `~/.local` venv is a good solution that addresses the side effects of `--user` and simplifies the user experience.",
+          "link": "https://github.com/astral-sh/uv/issues/2077"
+        },
+        {
+          "key": "A2",
+          "title": "Support `--user` flag from pip",
+          "status": "accepted",
+          "status_kind": "confirmed",
+          "confidence": "high",
+          "reason": "The proposal to support `--user` flag from pip is a good solution that addresses the side effects of `--user` flag in `pip`.",
+          "link": "https://github.com/astral-sh/uv/issues/2077"
+        },
+        {
+          "key": "A3",
+          "title": "Default virtualenv",
+          "status": "unresolved",
+          "status_kind": "unresolved",
+          "confidence": "low",
+          "reason": "The proposal to default to a virtualenv in `~/.venvs/default` is a good solution that addresses the need for a default virtualenv.",
+          "link": "https://github.com/astral-sh/uv/issues/2077"
+        }
+      ]
+    },
+    {
+      "decision_id": "dr-8cbfcc21",
+      "title": "PEP 830: Add timestamps to exceptions and tracebacks",
+      "outcome": "4 options: 3 rejected, 1 unresolved",
+      "link": "https://discuss.python.org/t/pep-830-add-timestamps-to-exceptions-and-tracebacks/106942",
+      "matched": "text match",
+      "options": [
+        {
+          "key": "A1",
+          "title": "Add a timestamp to exceptions and tracebacks at the time of instantiation.",
+          "status": "unresolved",
+          "status_kind": "unresolved",
+          "confidence": "low",
+          "reason": "This aligns with the current handling of exceptions and tracebacks and avoids unnecessary complexity.",
+          "link": "https://discuss.python.org/t/pep-830-add-timestamps-to-exceptions-and-tracebacks/106942/1"
+        },
+        {
+          "key": "A2",
+          "title": "Use `sys.excepthook` to add a timestamp to exceptions.",
+          "status": "rejected",
+          "status_kind": "inferred",
+          "confidence": "low",
+          "reason": "It does not get called at the time of raise or construction, which would defeat the purpose for this use.",
+          "link": "https://discuss.python.org/t/pep-830-add-timestamps-to-exceptions-and-tracebacks/106942/1"
+        },
+        {
+          "key": "A3",
+          "title": "Use `traceback.strip_exc_timestamps()` to remove timestamps from exceptions.",
+          "status": "rejected",
+          "status_kind": "inferred",
+          "confidence": "low",
+          "reason": "It impacts application performance, including pathological cases.",
+          "link": "https://discuss.python.org/t/pep-830-add-timestamps-to-exceptions-and-tracebacks/106942/1"
+        },
+        {
+          "key": "A4",
+          "title": "Use `traceback.format_exception_only()` to format the exception without timestamps.",
+          "status": "rejected",
+          "status_kind": "inferred",
+          "confidence": "low",
+          "reason": "It impacts application performance, including pathological cases.",
+          "link": "https://discuss.python.org/t/pep-830-add-timestamps-to-exceptions-and-tracebacks/106942/1"
+        }
+      ]
+    },
+    {
+      "decision_id": "dr-283f30d1",
+      "title": "PEP 799 – A dedicated profilers package for organizing Python profiling tool",
+      "outcome": "5 options: 1 rejected, 4 unresolved",
+      "link": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898",
+      "matched": "text match",
+      "options": [
+        {
+          "key": "A1",
+          "title": "profiling",
+          "status": "unresolved",
+          "status_kind": "unresolved",
+          "confidence": "low",
+          "reason": "The proposal aligns with the goal of providing a unified, high-performance profiler for Python, which is beneficial for observability and tool consistency.",
+          "link": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/1"
+        },
+        {
+          "key": "A2",
+          "title": "profilers",
+          "status": "unresolved",
+          "status_kind": "unresolved",
+          "confidence": "low",
+          "reason": "The proposal maintains consistency with the `profile` module name, which is widely used and understood, and aligns with the goal of providing a unified, high-performance profiler for Python.",
+          "link": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/1"
+        },
+        {
+          "key": "A3",
+          "title": "Use a dedicated profiling package",
+          "status": "unresolved",
+          "status_kind": "unresolved",
+          "confidence": "low",
+          "reason": "The proposal aims to provide a unified, high-performance profiler for Python, which is beneficial for observability and simplifies the implementation of a new profiler.",
+          "link": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/1"
+        },
+        {
+          "key": "A4",
+          "title": "Use the `profiling` module",
+          "status": "unresolved",
+          "status_kind": "unresolved",
+          "confidence": "low",
+          "reason": "The proposal aligns with the goal of providing a unified, high-performance profiler for Python, which is beneficial for observability and simplifies the implementation of a new profiler.",
+          "link": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/1"
+        },
+        {
+          "key": "A5",
+          "title": "Use a decorator",
+          "status": "rejected",
+          "status_kind": "inferred",
+          "confidence": "low",
+          "reason": "Decorators cannot wrap imports.",
+          "link": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/1"
+        }
+      ]
+    },
+    {
+      "decision_id": "dr-5f7bb216",
+      "title": "PEP 806: Mixed sync/async context managers with precise async marking",
+      "outcome": "4 options: 3 rejected, 1 unresolved",
+      "link": "https://discuss.python.org/t/pep-806-mixed-sync-async-context-managers-with-precise-async-marking/103971",
+      "matched": "text match",
+      "options": [
+        {
+          "key": "A1",
+          "title": "Allow `async with` to accept both sync and async context managers in",
+          "status": "unresolved",
+          "status_kind": "unresolved",
+          "confidence": "low",
+          "reason": "This proposal allows for a cleaner and more readable code, eliminating the need for nested indentation and making it easier to understand the context managers used.",
+          "link": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/1"
+        },
+        {
+          "key": "A2",
+          "title": "Use `async with` when someone uses it for a sync manager,",
+          "status": "rejected",
+          "status_kind": "contested",
+          "confidence": "low",
+          "reason": "This solution ensures that the correct context managers are used and makes the code more explicit, avoiding potential issues with the current nested indentation.",
+          "link": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/1"
+        },
+        {
+          "key": "A3",
+          "title": "Move `async` keyword inside the parens,",
+          "status": "rejected",
+          "status_kind": "confirmed",
+          "confidence": "high",
+          "reason": "This change makes the code more readable and explicit, allowing for a clearer distinction between sync and async context managers, but it does not address the issue of nested indentation.",
+          "link": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/1"
+        },
+        {
+          "key": "A4",
+          "title": "Allow `with async foo as bar` as an equivalent to `async with",
+          "status": "rejected",
+          "status_kind": "contested",
+          "confidence": "low",
+          "reason": "This solution maintains the syntactic visibility of context managers and avoids the need for additional checks, making the code more readable and explicit, but it does not address the issue of nested indentation.",
+          "link": "https://discuss.python.org/t/allow-mixed-sync-async-context-managers-in-async-with-statements/92939/1"
+        }
+      ]
+    }
+  ]
+}
