@@ -28,8 +28,8 @@ def write(root: Path, relative: str, text: str) -> None:
 
 
 def test_clean_tree_passes(tmp_path):
-    write(tmp_path, "src/decrack/llm.py", 'HOST = "http://127.0.0.1:11434"\nMODEL = "qwen3.5:4b"\n')
-    write(tmp_path, "README.md", "Runs gemma4:e4b in local Ollama.\n")
+    write(tmp_path, "src/decrack/llm.py", 'HOST = "http://127.0.0.1:11434"\nMODEL = "qwen2.5:1.5b"\n')
+    write(tmp_path, "README.md", "Runs qwen2.5:1.5b in local Ollama.\n")
     result = run_scan(tmp_path)
     assert result.returncode == 0, result.stdout
     assert "compliance: OK" in result.stdout

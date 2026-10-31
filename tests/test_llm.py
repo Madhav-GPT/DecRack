@@ -76,7 +76,7 @@ def reply(content: str) -> httpx.Response:
     return httpx.Response(
         200,
         json={
-            "model": "qwen3.5:4b",
+            "model": "qwen2.5:1.5b",
             "message": {"role": "assistant", "content": content},
             "done": True,
             "prompt_eval_count": 120,
@@ -106,14 +106,14 @@ def map_request(model: str = DEFAULT_MODEL, options: dict = OPTIONS, extra: dict
 
 def test_ollama_request_shape_and_think_stripping():
     client, sent = mock_client(reply("<think>Let me look at the posts.</think>\n" + json.dumps(GOOD)))
-    llm = OllamaLLM(model="qwen3.5:4b", num_ctx=8192, client=client)
+    llm = OllamaLLM(model="qwen2.5:1.5b", num_ctx=8192, client=client)
     assert llm.complete_json("map", MESSAGES, MapOutput, key_extra=EXTRA) == GOOD
     assert (llm.calls, llm.cache_hits, llm.tokens_in, llm.tokens_out) == (1, 0, 120, 30)
 
     [(url, body)] = sent
     assert url == f"{DEFAULT_OLLAMA_HOST}/api/chat"
     assert set(body) == {"model", "messages", "format", "stream", "options"}  # key_extra stays local
-    assert body["model"] == "qwen3.5:4b"
+    assert body["model"] == "qwen2.5:1.5b"
     assert body["messages"] == MESSAGES
     assert body["stream"] is False
     assert "think" not in body  # sent only when think=True
@@ -203,17 +203,17 @@ def test_a_connection_error_says_how_to_start_ollama():
     def refuse(request: httpx.Request) -> httpx.Response:
         raise httpx.ConnectError("connection refused", request=request)
 
-    llm = OllamaLLM(model="qwen3.5:4b", client=httpx.Client(transport=httpx.MockTransport(refuse)))
+    llm = OllamaLLM(model="qwen2.5:1.5b", client=httpx.Client(transport=httpx.MockTransport(refuse)))
     with pytest.raises(LLMUnavailableError) as info:
         llm.complete_json("map", MESSAGES, MapOutput)
     assert "ollama serve" in str(info.value)
-    assert "ollama pull qwen3.5:4b" in str(info.value)
+    assert "ollama pull qwen2.5:1.5b" in str(info.value)
 
 
 def test_a_missing_model_suggests_ollama_pull():
-    client, _ = mock_client(httpx.Response(404, json={"error": "model 'gemma4:e4b' not found"}))
-    llm = OllamaLLM(model="gemma4:e4b", client=client)
-    with pytest.raises(LLMUnavailableError, match="ollama pull gemma4:e4b"):
+    client, _ = mock_client(httpx.Response(404, json={"error": "model 'qwen2.5:1.5b' not found"}))
+    llm = OllamaLLM(model="qwen2.5:1.5b", client=client)
+    with pytest.raises(LLMUnavailableError, match="ollama pull qwen2.5:1.5b"):
         llm.complete_json("map", MESSAGES, MapOutput)
 
 
@@ -222,8 +222,8 @@ def test_a_missing_model_suggests_ollama_pull():
 
 TAGS = {
     "models": [
-        {"name": "gemma4:e4b", "model": "gemma4:e4b", "digest": "1" * 64},
-        {"name": "qwen3.5:4b", "model": "qwen3.5:4b", "digest": "2" * 64},
+        {"name": "test-model:b", "model": "test-model:b", "digest": "1" * 64},
+        {"name": "qwen2.5:1.5b", "model": "qwen2.5:1.5b", "digest": "2" * 64},
         {"model": "local-notes:latest", "digest": "3" * 64},
     ]
 }
@@ -242,7 +242,7 @@ def info_client(tags: httpx.Response, version: httpx.Response) -> tuple[httpx.Cl
 
 def test_runtime_info_reads_the_model_digest_and_the_ollama_version():
     client, seen = info_client(httpx.Response(200, json=TAGS), httpx.Response(200, json={"version": "0.12.6"}))
-    llm = OllamaLLM(model="qwen3.5:4b", client=client)
+    llm = OllamaLLM(model="qwen2.5:1.5b", client=client)
     assert llm.runtime_info() == {"model_digest": "2" * 64, "ollama_version": "0.12.6"}
     assert seen == [("GET", "/api/tags"), ("GET", "/api/version")]
     assert llm.calls == 0  # not a model call
@@ -264,7 +264,7 @@ def test_runtime_info_gives_empty_strings_when_anything_fails():
 
     # The model is not installed, and the version answer has no version.
     client, _ = info_client(httpx.Response(200, json=TAGS), httpx.Response(200, json={"other": 1}))
-    assert OllamaLLM(model="qwen3.5:9b", client=client).runtime_info() == {"model_digest": "", "ollama_version": ""}
+    assert OllamaLLM(model="test-model:c", client=client).runtime_info() == {"model_digest": "", "ollama_version": ""}
 
     # Half an answer is still used.
     missing = httpx.Response(404, text="404 page not found")
@@ -275,7 +275,7 @@ def test_runtime_info_gives_empty_strings_when_anything_fails():
 # ReplayLLM
 
 
-def recorded(response: dict, model: str = "qwen3.5:4b", num_ctx: int = 32768, extra: dict | None = None) -> dict:
+def recorded(response: dict, model: str = "qwen2.5:1.5b", num_ctx: int = 32768, extra: dict | None = None) -> dict:
     """One JSONL row as ``Store.export_llm_calls`` writes it."""
     request = map_request(model, {"num_ctx": num_ctx, "temperature": 0}, extra)
     return {"key": call_key(request), "step": "map", "model": model, "request": request, "response": response}
@@ -290,7 +290,7 @@ def test_replay_strict_and_loose_hits(tmp_path):
     chained = {**EXTRA, "chain": "c" * 64}
     write_calls(path, [recorded(GOOD, extra=EXTRA), recorded(OTHER, num_ctx=4096, extra=chained)])
 
-    strict = ReplayLLM(path, model="qwen3.5:4b", num_ctx=32768)
+    strict = ReplayLLM(path, model="qwen2.5:1.5b", num_ctx=32768)
     assert strict.complete_json("map", MESSAGES, MapOutput, key_extra=EXTRA) == GOOD
     assert (strict.mode, strict.calls, strict.cache_hits, strict.tokens_in, strict.tokens_out) == (
         "replay",
@@ -301,7 +301,7 @@ def test_replay_strict_and_loose_hits(tmp_path):
     )
 
     # Another model tag, num_ctx and digest (none, offline) still replay through the loose key ...
-    loose = ReplayLLM(path, model="qwen3.5:9b", num_ctx=8192)
+    loose = ReplayLLM(path, model="test-model:b", num_ctx=8192)
     assert loose.complete_json("map", MESSAGES, MapOutput, key_extra={**EXTRA, "digest": ""}) == GOOD
     assert loose.complete_json("map", MESSAGES, MapOutput, key_extra={**chained, "digest": ""}) == OTHER
     # ... but another chain, window or known state does not.
@@ -370,8 +370,8 @@ def test_key_extra_goes_into_the_request_and_changes_the_key():
 
 
 def test_the_loose_key_ignores_model_options_and_digest():
-    base = map_request("qwen3.5:4b", OPTIONS, EXTRA)
-    other = map_request("qwen3.5:9b", {"num_ctx": 4096, "temperature": 0}, {**EXTRA, "digest": ""})
+    base = map_request("qwen2.5:1.5b", OPTIONS, EXTRA)
+    other = map_request("test-model:b", {"num_ctx": 4096, "temperature": 0}, {**EXTRA, "digest": ""})
     assert call_key(base) != call_key(other)
     assert loose_key(base) == loose_key(other)
     # The rest of extra still counts.
@@ -430,14 +430,14 @@ def test_every_llm_reports_its_mode_and_usage(tmp_path):
 
 
 def test_make_llm_picks_the_runtime(tmp_path):
-    replay = make_llm(Settings(llm_mode="replay", replay_file=str(tmp_path / "calls.jsonl"), model="gemma4:e4b"))
+    replay = make_llm(Settings(llm_mode="replay", replay_file=str(tmp_path / "calls.jsonl"), model="test-model:b"))
     assert isinstance(replay, ReplayLLM)
-    assert (replay.model, replay.mode) == ("gemma4:e4b", "replay")
+    assert (replay.model, replay.mode) == ("test-model:b", "replay")
 
-    live = make_llm(Settings(model="qwen3.5:9b", num_ctx=16384))
+    live = make_llm(Settings(model="test-model:b", num_ctx=16384))
     try:
         assert isinstance(live, OllamaLLM)
-        assert (live.model, live.num_ctx, live.host, live.mode) == ("qwen3.5:9b", 16384, DEFAULT_OLLAMA_HOST, "live")
+        assert (live.model, live.num_ctx, live.host, live.mode) == ("test-model:b", 16384, DEFAULT_OLLAMA_HOST, "live")
     finally:
         live.close()
 

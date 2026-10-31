@@ -17,7 +17,6 @@ from pydantic import BaseModel
 
 DEFAULT_OLLAMA_HOST = "http://127.0.0.1:11434"
 DEFAULT_MODEL = "qwen2.5:1.5b"
-ALTERNATIVE_MODELS = ("qwen3.5:4b", "gemma4:e4b")
 DEFAULT_DB = "decrack.db"
 DEFAULT_REPLAY_FILE = "tests/fixtures/llm_calls.jsonl"
 

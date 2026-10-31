@@ -237,8 +237,8 @@ def test_export_okf(saved_sample, workdir):
 
 def test_export_calls(workdir):
     with Store(workdir / "t.db") as store:
-        request = {"model": "qwen3.5:4b", "step": "map", "messages": []}
-        store.put_llm_call("k1", "map", "qwen3.5:4b", request, {"items": []})
+        request = {"model": "qwen2.5:1.5b", "step": "map", "messages": []}
+        store.put_llm_call("k1", "map", "qwen2.5:1.5b", request, {"items": []})
     target = workdir / "calls" / "calls.jsonl"
     result = invoke(workdir, "export", "calls", "--out", str(target))
     assert result.exit_code == 0, result.output
@@ -264,10 +264,10 @@ def test_doctor_gets_global_options(workdir, monkeypatch):
 
     monkeypatch.setattr(cli, "run_doctor", fake_doctor)
     db = str(workdir / "t.db")
-    args = ["--db", db, "--model", "gemma4:e4b", "--ollama-host", "http://10.0.0.5:11434/", "doctor"]
+    args = ["--db", db, "--model", "test-model:b", "--ollama-host", "http://10.0.0.5:11434/", "doctor"]
     result = runner.invoke(cli.app, args)
     assert result.exit_code == 0, result.output
-    assert f"[ok] db={db} model=gemma4:e4b host=http://10.0.0.5:11434" in result.output.splitlines()
+    assert f"[ok] db={db} model=test-model:b host=http://10.0.0.5:11434" in result.output.splitlines()
 
 
 def test_support_check_flag_turns_the_check_on(workdir, monkeypatch):

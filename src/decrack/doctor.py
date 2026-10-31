@@ -27,7 +27,7 @@ GIT_SOURCE = "git+https://github.com/Madhav-GPT/DecRack"  # DecRack installs fro
 
 
 def model_names(tags: Any) -> list[str]:
-    """Installed model names from an ``/api/tags`` reply, such as ``["qwen3.5:4b"]``."""
+    """Installed model names from an ``/api/tags`` reply, such as ``["qwen2.5:1.5b"]``."""
     names: list[str] = []
     if not isinstance(tags, dict):
         return names

@@ -70,7 +70,7 @@ def test_default_settings(monkeypatch, tmp_path):
 def test_precedence_env_then_flags(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
     # A decrack.toml in the working directory is ignored: there is no settings file.
-    (tmp_path / "decrack.toml").write_text('[decrack]\nmodel = "gemma4:e4b"\n', encoding="utf-8")
+    (tmp_path / "decrack.toml").write_text('[decrack]\nmodel = "test-model:b"\n', encoding="utf-8")
     monkeypatch.setenv("DECRACK_DB", "from-env.db")
     monkeypatch.setenv("DECRACK_LLM", "replay")
 
@@ -82,10 +82,10 @@ def test_precedence_env_then_flags(monkeypatch, tmp_path):
     assert settings.ollama_host == DEFAULT_OLLAMA_HOST
 
     flagged = load_settings(
-        db="flag.db", model="qwen3.5:4b", ollama_host="http://192.168.1.20:11434/", support_check=True
+        db="flag.db", model="test-model:b", ollama_host="http://192.168.1.20:11434/", support_check=True
     )
     assert flagged.db_path == "flag.db"  # the flag wins over DECRACK_DB
-    assert flagged.model == "qwen3.5:4b"
+    assert flagged.model == "test-model:b"
     assert flagged.ollama_host == "http://192.168.1.20:11434"
     assert flagged.support_check is True
 
