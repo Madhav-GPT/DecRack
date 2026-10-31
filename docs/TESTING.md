@@ -58,15 +58,14 @@ uv sync                     # installs DecRack plus pytest and ruff
 uv run decrack doctor
 ```
 
-To run it without a clone, use `uvx --from git+https://github.com/Madhav-GPT/DecRack decrack doctor`. MCP clients start the server with `uvx --from git+https://github.com/Madhav-GPT/DecRack decrack mcp`, or `uv run --directory /path/to/clone decrack mcp` (see [OPENCODE.md](OPENCODE.md)).
+To put a bare `decrack` command on your PATH, run `uv tool install git+https://github.com/Madhav-GPT/DecRack`. Coding agents use the same CLI, guided by [`AGENTS.md`](../AGENTS.md) (see [OPENCODE.md](OPENCODE.md)).
 
-`doctor` checks three things and tells you how to fix each one that fails:
+`doctor` checks three things and tells you how to fix each one that fails. It ends with the two commands to tell your agent (`decrack run <URL>`, then `decrack why "<question>" --format json`):
 
 1. that Ollama answers at `http://127.0.0.1:11434`;
 2. that the configured model is pulled;
 3. that `opencode` is on your PATH.
 
-It also prints an OpenCode config snippet.
 
 There is no config file. Settings are the global flags (`--db`, `--model`, `--ollama-host`, `--support-check`, all placed before the command), plus two environment variables: `DECRACK_DB` for the database file and `DECRACK_LLM=replay` for offline replay.
 
@@ -172,7 +171,6 @@ uv run python -m compileall -q src                               # compile
 uv run pytest -q                                                 # tests
 uv run decrack verify examples                                   # example evidence
 uv run python scripts/compliance_check.py                        # compliance scan
-uv run python -m decrack.mcp_server --self-check                 # MCP self-check
 uv build                                                         # build
 ```
 
@@ -221,6 +219,14 @@ The very first call also loads the model into memory, which adds a few seconds.
 
 ## 8. Troubleshooting
 
+**Reading DecRack's errors.** Every input check prints a plain error and its fix; with `--format json` it prints `{"ok": false, "error": "...", "fix": "..."}`. The exit codes are:
+
+- 2: no source, or an empty query;
+- 3: the model isn't ready;
+- 4: the fetch failed;
+- 1: the database is empty;
+- 0: nothing to analyze.
+
 **`doctor` says Ollama isn't reachable.**
 - Start the Ollama app, or run `ollama serve`.
 - Check that it answers with `curl http://127.0.0.1:11434/api/tags`.
@@ -258,6 +264,6 @@ The very first call also loads the model into memory, which adds a few seconds.
 
 **Citations show `source_changed`.** Someone edited the post after DecRack read it. The old text stays in `post_versions`, so the old citation still resolves, but it no longer matches the live post. Re-run the thread to compile against the current versions.
 
-**"database is locked".** Another `decrack` command, such as a second `decrack run`, is writing; the MCP server only reads. Wait for it to finish, or give one of them its own file with `--db`.
+**"database is locked".** Another `decrack` command, such as a second `decrack run`, is writing. Wait for it to finish, or give one of them its own file with `--db`.
 
 **`doctor` can't find `opencode`.** Install OpenCode (<https://opencode.ai>) and make sure the `opencode` binary is on your PATH. See [OPENCODE.md](OPENCODE.md).

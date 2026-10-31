@@ -36,9 +36,6 @@ jobs:
         run: uv run decrack verify examples
       - name: Open-model compliance and secret scan
         run: uv run python scripts/compliance_check.py
-      - name: MCP server self-check
-        if: hashFiles('src/decrack/mcp_server.py') != ''
-        run: uv run python -m decrack.mcp_server --self-check
       - name: Build package
         run: uv build
       - name: Upload build (main only)

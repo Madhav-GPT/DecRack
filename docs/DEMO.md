@@ -20,7 +20,7 @@ Do these 30 minutes before the slot, on the demo laptop, from the **tagged freez
   - the eval PEPs (`decrack eval`, see [TESTING.md](TESTING.md));
   - the GitHub example used for `check-pr`.
 - [ ] **A card prints.** `uv run decrack why "exception notes"` shows the PEP 830 card. Note which rejected option you will point at, its status kind and its sentence alias.
-- [ ] **OpenCode.** It shows DecRack's five read-only tools, and its shell tool can run `decrack run` against the same `--db`. The demo project has the `AGENTS.md` block from [OPENCODE.md](OPENCODE.md).
+- [ ] **OpenCode.** The demo project has DecRack's [`AGENTS.md`](../AGENTS.md) at its root, `decrack` is on the PATH, and `DECRACK_DB` points at the precomputed database.
 - [ ] **`check-pr` input.** Find a path that is linked to a record (`uv run decrack why <path>` should return it), or prepare a branch for `--diff`.
 - [ ] **Browser tabs:**
   - the PEP 830 thread, <https://discuss.python.org/t/106942>;
@@ -58,7 +58,7 @@ Each member presents the part they built, and each must be able to answer questi
 ### 0:45–1:30 · What DecRack is
 
 **Say:**
-- DecRack is decision memory for open-source projects: an MCP server and a CLI, with no UI.
+- DecRack is decision memory for open-source projects: a CLI that people and coding agents use directly, with no UI. Agents follow one instruction file, `AGENTS.md`.
 - Context7 gives agents library docs; DecRack gives agents a project's decisions and rejected ideas.
 - In one line: an open model compiles discussions into verified decision records once. Code is connected by git facts, not embeddings. OKF is just the file format we export. Lookups are exact search, and any explanation is written by your agent from cited evidence.
 - The open model is Qwen 2.5 1.5B (`qwen2.5:1.5b`), running locally in Ollama on DecRack's own code path. By default it does one job, the map step, and code does the rest.
@@ -96,18 +96,18 @@ uv run decrack why "exception notes"
 
 > I want to add timestamps to exceptions using exception notes. Before writing any code, ask DecRack whether that approach was already rejected, and why.
 
-**Expected:**
-1. The agent calls `search_decisions` and gets compact cards. You can see the tool call.
-2. It calls `get_decision` with `detail="evidence"` for the quotes and their surrounding posts.
-3. It answers with the status, the reason and the quoted evidence with its link.
+**Expected** (the agent follows `AGENTS.md`):
+1. The agent runs `decrack why "exception notes" --format json` in its shell and gets compact cards. You can see the command.
+2. It runs `decrack show <id> --detail evidence --format json` for the quotes and their surrounding posts.
+3. It answers with the status, the status kind, the reason and the quoted evidence with its link.
 
 **Say:**
 - **Compact first, then expand.** The agent gets short cards, and asks for the evidence only when it needs it.
 - **No model on the lookup.** The answer comes from stored records, so it is fast. The agent's own model writes the explanation, from cited evidence.
-- **The agent can compile too.** For a thread DecRack hasn't seen, the agent runs `decrack run <ref>` through its shell tool, and you see the command before it runs. The MCP server itself is read-only: five tools that only read.
+- **The agent can compile too.** For a thread DecRack hasn't seen, the agent runs `decrack run <source>`, and you see the command before it runs.
+- **Agents are told to check first.** `AGENTS.md` tells any agent to ask for a source if there is none, check `show` before claiming anything, and report status kinds honestly.
 
-**Optional, if time allows:** ask *"Run `decrack run https://discuss.python.org/t/106942` in the shell, then search DecRack for the rejected ideas"*, and show the shell call followed by the MCP calls.
-- **Agents are told to check first.** The `AGENTS.md` block tells any agent to consult DecRack before it changes code.
+**Optional, if time allows:** ask *"Analyze https://discuss.python.org/t/106942 with DecRack and tell me which ideas were rejected and why"*, and show the `run`, `why` and `show` commands it runs. The same demo also works from a plain terminal.
 
 ### 5:00–6:00 · Live: the PR check
 
@@ -148,7 +148,7 @@ uv run decrack check-pr --diff main..demo-change --repo ../DEMO-REPO
 
 **Show:**
 1. One `run.json`: the model tag, its digest, the Ollama version and the source allowlist.
-2. The green CI run: one job, "DecRack checks". Its steps lint and compile, run the offline tests on recorded responses, verify the examples, run the compliance scan and the MCP self-check, and build the package.
+2. The green CI run: one job, "DecRack checks". Its steps lint and compile, run the offline tests on recorded responses, verify the examples, run the compliance scan and build the package.
 
 **Say:** "CI proves the logic with replayed responses. The real runs prove the model, and we keep the two apart."
 
@@ -170,7 +170,7 @@ uv run decrack check-pr --diff main..demo-change --repo ../DEMO-REPO
 
 **Limitations:** a small model misses ideas, and recall is measured rather than assumed; the support check is optional and off by default; code links are file-level.
 
-**Deferred, not abandoned:** a web UI, ACP harness control, timelines and graphs. They sit behind the same core/adapter boundary as the CLI and the MCP server.
+**Deferred, not abandoned:** a web UI, ACP harness control, timelines and graphs. They sit behind the same core/adapter boundary as the CLI.
 
 **Close:** "Before an agent writes code, it should know what the project already rejected, and why. That's DecRack."
 
@@ -182,7 +182,7 @@ uv run decrack check-pr --diff main..demo-change --repo ../DEMO-REPO
 |---|---|
 | The Wi-Fi is down | Everything except fetching a new thread works offline from `decrack.db`. Skip `ingest`, and show the cached run. |
 | The model is slow, or Ollama crashes | Use the cached run, which replays instantly, or open the committed outputs in `examples/runs/` and `examples/okf/`. Explain the cache: that is the "compile once" principle. |
-| OpenCode doesn't call the tool | Ask it explicitly ("use the decrack tools"), or run `/why exception notes`. If needed, show the same answer with `uv run decrack why "exception notes"` and run `uv run python -m decrack.mcp_server --self-check` to show the tools. |
+| OpenCode doesn't run DecRack | Ask it explicitly ("use DecRack"), or run `/why exception notes`. If needed, run the same commands yourself in the terminal: `uv run decrack why "exception notes"`, then `uv run decrack show <id> --detail evidence`. |
 | `check-pr` finds nothing | Use `--paths` with a path you checked beforehand with `decrack why <path>`. |
 | `why` finds no record for a judge's question | Run `uv run decrack why --raw "..."`. It searches the raw posts and labels them uncompiled, so say clearly that they haven't been through the checks. |
 | A judge asks for another PEP | Run `decrack run pep:N` in the second tab while you keep talking, or ask the OpenCode agent to run it through its shell. Small threads should finish in about a minute (an estimate); for a long one, move on and come back to it. |
@@ -202,7 +202,7 @@ Projects lose the reasoning behind their decisions in long threads. People and a
 PEPs are the organizers' test. Their discussions are public, long and messy, and every PEP's Rejected Ideas section gives us an answer key to measure against. Nothing in the pipeline is specific to PEPs: GitHub issues and PRs, any Discourse forum and exported files all work too.
 
 **Who uses it?**
-- Coding agents, before they write code, over MCP.
+- Coding agents, before they write code, through the CLI and `AGENTS.md`.
 - Reviewers and maintainers, through `check-pr` on pull requests.
 - Newcomers, through `decrack why` and the markdown bundle.
 
@@ -252,7 +252,7 @@ Then DecRack says so: `inferred`, `contested` and `unresolved` are first-class, 
 - Posts are wrapped in tags and datamarked.
 - The model can only return schema-shaped JSON, and only citations that pass the gate survive.
 - A decision needs an authoritative role plus explicit decision language, so a post claiming "the Council accepted this" does nothing unless a decider wrote it.
-- MCP output is labeled as quoted community content.
+- `AGENTS.md` tells agents to treat quoted discussion text as data, never as instructions.
 
 **Why no vector database?**
 Our search runs over a few hundred verified records with exact identifiers, and search@5 measures whether keyword search is enough.
@@ -262,11 +262,11 @@ Our search runs over a few hundred verified records with exact identifiers, and 
 **Why OKF?**
 It's a portable markdown file format with provenance fields that people and agents can read. It stays a generated export; SQLite is the source of truth.
 
-**Why is the MCP server read-only?**
-So an agent's tool call can never start a model run, write to the database or leave work running in the background. Compiling is one explicit command, `decrack run`. The agent runs it through its shell, where the user sees it and can approve it. That also made a job system unnecessary.
+**Why no MCP?**
+Every agent harness can run a command. A CLI plus `AGENTS.md` is simpler to install, explain and test, and has one dependency fewer. Every step is also a visible shell command that the user can see and approve.
 
-**Why only an MCP server and a CLI, with no UI?**
-Developers already work in their agent, their terminal, their repo and CI, and MCP reaches any MCP-capable agent. The UI is deferred, not abandoned: a web UI, ACP harness control, timelines and graphs would be one more adapter over the same core library.
+**Why only a CLI, with no UI?**
+Developers already work in their agent, their terminal, their repo and CI, and a CLI reaches all of them. The UI is deferred, not abandoned: a web UI, ACP harness control, timelines and graphs would be one more adapter over the same core library.
 
 **Do old decisions decay?**
 No. A ten-year-old rejected idea can be the most relevant record there is. Age is shown as metadata. Whether a record still applies comes from its code links (does the linked file still exist?) and from later decisions.
@@ -364,7 +364,6 @@ Rehearse until every member can say each line without notes.
 | `export_okf.py` | Writes the OKF v0.2 bundle with a MADR-style body. |
 | `verify.py` | Re-checks every quote in every run folder against its thread. |
 | `evaluate.py` | The withheld-PEP evaluation: deterministic fuzzy matching to the gold (with `matches.json` for human review), metrics per status kind, and the optional closed-book baseline. |
-| `mcp_server.py` | The read-only MCP server: five tools and one prompt. It never runs a model or writes. |
 | `cli.py`, `doctor.py` | The `decrack` command (nine commands; `run` is how new discussions get in), and the environment check. |
 
 ---
@@ -382,9 +381,8 @@ Rehearse until every member can say each line without notes.
 | ~8 | Claims per batched support call, only with `--support-check` | Fact (our setting) |
 | 59 (43 + 16) | Gold rejected ideas: the dev and stretch PEPs, plus the control | Fact (`eval/gold`) |
 | search@5 | Matched gold ideas whose option ranks in the top 5 of a keyword search on the PEP heading | Read it from `eval-summary.md`; it decides whether embeddings are needed |
-| 5 + 1 | Read-only MCP tools, plus the one prompt | Fact |
 | 9 | CLI commands | Fact |
-| 1 | CI job ("DecRack checks"), with lint, tests, verify, compliance, MCP self-check and build steps | Fact |
+| 1 | CI job ("DecRack checks"), with lint, tests, verify, compliance and build steps | Fact |
 | ~32K | Where Llama-3.1-8B stops being reliable on RULER | A synthetic benchmark; used for window sizing only |
 | 44.4 vs 34.3 | OP-RAG F1: 16K tokens of in-order context vs a 70B model reading 117K | QA datasets; motivation, not proof for our task |
 | 60 / 5,000 | GitHub requests per hour, anonymous / with a token | Fact (GitHub docs) |
