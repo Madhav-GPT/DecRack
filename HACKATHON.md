@@ -5,8 +5,7 @@
 - **Project:** DecRack
 - **Team:** Allied
 - **Problem statement:** PS6 — Open Source Decision Intelligence and Knowledge Recovery
-- **Confirmed team member:** Madhav Gupta
-- **Additional team members:** Names are pending confirmation; none are listed until confirmed.
+- **Confirmed team members:** Madhav Gupta, Aish Sagwal, Kabir Vashisht, and Akshara Verma
 
 ## Project goal
 
