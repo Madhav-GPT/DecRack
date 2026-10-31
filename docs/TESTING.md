@@ -27,17 +27,18 @@ uv installs Python 3.12 for the project by itself when needed.
 
 1. Install Ollama from <https://ollama.com/download>, or with `brew install ollama` on macOS.
 2. Start it: open the Ollama app, or run `ollama serve` in a terminal.
-3. Pull the models:
+3. Pull the model:
 
 ```bash
-ollama pull qwen3.5:4b      # the default extraction model, about 3.3 GB
-ollama pull gemma4:e4b      # optional alternative, about 6.6 GB
+ollama pull qwen2.5:1.5b    # DecRack's model, about 1 GB
 ollama list                 # shows each tag and its ID (digest)
 ```
 
+DecRack is built and timed on a base M4 MacBook Pro with 16 GB. Bigger open models still work: pull one and pass `--model TAG` before the command.
+
 > **The 4K context trap.** Ollama's default context is only **4K tokens** on machines with less than 24 GiB of VRAM, which means every 16 GB laptop. Longer prompts are cut **silently**.
 >
-> - **DecRack's own calls are safe.** DecRack sets the context size on every request (`num_ctx`, 32,768 by default; see `decrack.toml.example`).
+> - **DecRack's own calls are safe.** DecRack sets the context size on every request (`num_ctx`, 8,192 by default, for windows of 3,000 tokens).
 > - **OpenCode's calls are not.** OpenCode reaches Ollama through an endpoint that can't set the context size per request. If you will run OpenCode on a local model, raise Ollama's default instead: quit the Ollama app, then start the server with
 >
 >   ```bash
@@ -67,7 +68,7 @@ To run it without a clone, use `uvx --from git+https://github.com/Madhav-GPT/Dec
 
 It also prints an OpenCode config snippet.
 
-To change defaults (the model, window sizes, the context size), copy `decrack.toml.example` to `decrack.toml` and edit it. `decrack.toml` is git-ignored.
+There is no config file. Settings are the global flags (`--db`, `--model`, `--ollama-host`, `--support-check`, all placed before the command), plus two environment variables: `DECRACK_DB` for the database file and `DECRACK_LLM=replay` for offline replay.
 
 ### GitHub token (only for GitHub sources)
 
@@ -83,18 +84,14 @@ DecRack reads the token from the environment only, sends it only to the GitHub A
 ## 2. Smoke test
 
 ```bash
-uv run decrack run pep:830            # 29 posts: a few model calls, a few minutes
+uv run decrack run pep:830            # 29 posts: a handful of model calls, under a minute (estimate)
 uv run decrack why "exception notes"
 uv run decrack why "excepthook"
 ```
 
 You should see a compact decision card for PEP 830. Each option shows its status, its status kind (`confirmed`, `inferred`, `contested` or `unresolved`) and its confidence, and the quotes carry sentence aliases such as `[p4.s2]`. Run `uv run decrack run pep:830` a second time: it should finish almost at once, because every model call is now cached in `decrack.db`.
 
-Use another model with a global option, which goes before the command:
-
-```bash
-uv run decrack --model gemma4:e4b run pep:830
-```
+To try a bigger open model, pass its Ollama tag with the global `--model` option, which goes before the command (`uv run decrack --model TAG run pep:830`). To turn on the optional support check, add the global `--support-check` flag, also before the command (`uv run decrack --support-check run pep:830`). Records then carry `supported`, `partial` or `unsupported` verdicts instead of `support: unchecked`, and a claim judged unsupported is downgraded from `confirmed` to `inferred`.
 
 ---
 
@@ -117,13 +114,14 @@ uv run decrack eval pep:830 pep:799 pep:806 pep:836 pep:822 pep:844 pep:842 pep:
 This writes one run folder per PEP, `examples/runs/pep-0830/` and so on, plus `examples/runs/eval-summary.md` and `eval-summary.json`. (`examples/runs` is also the default for `--out`.) Each folder holds:
 
 - `thread.json`: the input exactly as ingested;
-- `records.json`: what the model and the checks produced;
+- `records.json`: what the model and the code produced;
 - `scores.json`: the scores against the gold;
+- `matches.json`: every predicted-to-gold pair from the deterministic fuzzy matching, for human review;
 - `run.json`: the model tag, the model digest (from Ollama's `/api/show`), the Ollama version, `num_ctx` and the other settings, the prompt and schema versions, the source allowlist, timings, calls and tokens.
 
-Add `--judge` if you want the local model to confirm matches against the gold. PEP 810 is long (464 posts), so run it last, or leave it out if time is short. The demo uses PEP 830.
+The five dev PEPs should take about 5–7 minutes on a base M4 with 16 GB (an estimate until measured). PEP 810 is long (464 posts), so run it last, or leave it out if time is short. The demo uses PEP 830. To include the optional support check, put the global flag before the command: `uv run decrack --support-check eval …`.
 
-**Check 20 support verdicts by hand.** For each eval run, pick 20 claims at random from the `records.json` files. Read each claim and its cited sentences, and note whether you agree with the `support` verdict (`supported`, `partial` or `unsupported`). Record the agreement in the PR that adds the runs.
+**Review the matches by hand.** For each PEP, read `matches.json`: does each predicted option really match its gold idea? Note any wrong or missed pairs in the PR that adds the runs. If you ran with `--support-check`, also spot-check a sample of the `support` verdicts in `records.json`.
 
 **One GitHub example** (for the `check-pr` demo). Pick a merged pull request with a real design discussion in its review comments, such as 20–60 comments with at least one alternative turned down. Then run:
 
@@ -164,17 +162,17 @@ uv run decrack export calls --out tests/fixtures/llm_calls.jsonl
 
 ## 5. Run the offline checks
 
-These are the same commands CI runs (`.github/workflows/ci.yml`), so a green run here should mean a green run there:
+These are the steps of CI's one job, "DecRack checks" (`.github/workflows/ci.yml`), so a green run here should mean a green run there:
 
 ```bash
 export DECRACK_LLM=replay                                        # no model from here on
 
-uv run ruff check src tests scripts --select E9,F63,F7,F82       # quality
-uv run python -m compileall -q src                               # quality
+uv run ruff check src tests scripts                              # lint
+uv run python -m compileall -q src                               # compile
 uv run pytest -q                                                 # tests
-uv run decrack verify examples                                   # evidence
-uv run python scripts/compliance_check.py                        # evidence
-uv run python -m decrack.mcp_server --self-check                 # mcp
+uv run decrack verify examples                                   # example evidence
+uv run python scripts/compliance_check.py                        # compliance scan
+uv run python -m decrack.mcp_server --self-check                 # MCP self-check
 uv build                                                         # build
 ```
 
@@ -193,10 +191,10 @@ uvx datasette decrack.db          # optional browser view of every table
 
 - [ ] `examples/runs/` has a folder per PEP (each with `run.json`), plus `eval-summary.md`, and `uv run decrack verify examples` is clean.
 - [ ] Every `run.json` shows the model digest and the Ollama version.
-- [ ] 20 support verdicts per eval run were checked by hand, and the agreement is noted.
+- [ ] Every `matches.json` was reviewed by hand, and any wrong pairs are noted in the PR.
 - [ ] `tests/fixtures/llm_calls.jsonl` is exported, and `DECRACK_LLM=replay uv run pytest -q` passes.
 - [ ] The results table in `README.md` is filled from `examples/runs/eval-summary.md`.
-- [ ] `HACKATHON.md` names exactly the model tag found in `examples/runs/*/run.json` (for example `qwen3.5:4b` via Ollama). Claiming a model the code doesn't use costs points.
+- [ ] `HACKATHON.md` names exactly the model tag found in `examples/runs/*/run.json` (`qwen2.5:1.5b` via Ollama). Claiming a model the code doesn't use costs points.
 - [ ] Every PR's "Models the product uses" line matches that tag.
 - [ ] `decrack.db` stays on the demo laptop as the precomputed demo state. It is git-ignored; don't commit it.
 
@@ -204,22 +202,20 @@ uvx datasette decrack.db          # optional browser view of every table
 
 ## 7. What to expect
 
-Rough estimates for a 16 GB laptop running `qwen3.5:4b`. Each compile makes:
+**These are estimates until we measure them,** for `qwen2.5:1.5b` on a base M4 MacBook Pro with 16 GB, at about 6–8 seconds per model call.
 
-- one map call per window, of about 6,000 tokens;
-- one merge call;
-- a few reason calls;
-- about one support call per 8 claims.
+- **What a compile costs.** By default it makes one map call per window of about 3,000 tokens, and nothing else touches the model.
+- **The optional steps add calls.** `--support-check` adds about one call per 8 claims, and `--closed-book` adds one call per PEP.
+- **The real numbers** for every run are in its `run.json` (seconds, model calls, windows, tokens) and in `llm_calls` (milliseconds and tokens per call).
 
-The real numbers for every run are in its `run.json` (seconds, model calls, windows, tokens) and in `llm_calls` (milliseconds and tokens per call).
-
-| Thread | Posts | Model calls | Time |
+| Thread | Posts | Map calls | Time |
 |---|---|---|---|
-| PEP 830 | 29 | about 4–8 | a few minutes |
-| PEP 836 | 84 | about 8–12 | 5–10 minutes |
-| PEP 810 | 464 | about 30–40 | 20–30 minutes |
+| PEP 830 | 29 | about 4–6 | under a minute |
+| PEP 836 | 84 | about 10–15 | 1–2 minutes |
+| The 5 dev PEPs (830, 799, 806, 836, 822) | 316 | about 40–50 | about 5–7 minutes |
+| PEP 810 | 464 | about 50–60 | about 6–8 minutes |
 
-A single call usually takes 30–60 seconds, and the very first one also loads the model into memory.
+The very first call also loads the model into memory, which adds a few seconds.
 
 ---
 
@@ -230,24 +226,24 @@ A single call usually takes 30–60 seconds, and the very first one also loads t
 - Check that it answers with `curl http://127.0.0.1:11434/api/tags`.
 - If Ollama runs on another machine, start it there with `OLLAMA_HOST=0.0.0.0 ollama serve` and pass `--ollama-host http://THAT-MACHINE:11434` before the command. The flag is the only way to change the host.
 
-**"model not found".** Run `ollama pull qwen3.5:4b` and confirm the tag with `ollama list`. The tag must match `--model` exactly.
+**"model not found".** Run `ollama pull qwen2.5:1.5b` and confirm the tag with `ollama list`. The tag must match `--model` exactly.
 
 **Runs are slow.**
 - **Close heavy apps.** The model needs the memory.
-- **Don't run OpenCode's model and a DecRack extraction at the same time on a 16 GB machine.** Two loaded models compete for memory. `OLLAMA_MAX_LOADED_MODELS=1` keeps only one loaded.
-- **Stay on `qwen3.5:4b`.** Larger models are slower.
+- **Don't run OpenCode's model and a `decrack run` at the same time on a 16 GB machine.** Two loaded models compete for memory. `OLLAMA_MAX_LOADED_MODELS=1` keeps only one loaded.
+- **Stay on `qwen2.5:1.5b`.** Larger models are slower.
+- **Leave the optional steps off.** `--support-check` adds model calls; leave it out when you only need speed.
 - **Precompute.** Run the demo and eval threads well before the demo; cached calls replay instantly.
 - **Re-run after a crash.** Calls that finished are cached, so the run picks up where it stopped.
-- **Raise the timeout.** One reply may take up to `request_timeout` seconds (600 by default; set it in `decrack.toml`).
 
 **Answers look truncated, or the model ignores most of the thread.**
-- Run `ollama ps` and check the context. DecRack's own requests ask for 32,768 tokens.
-- If `tokens_in` in `llm_calls` sits near 4,096, something capped the context.
+- Run `ollama ps` and check the context. DecRack's own requests ask for 8,192 tokens.
+- If `tokens_in` in `llm_calls` is stuck at exactly 4,096 on many calls, something capped the context.
 
 **The model's JSON fails validation.**
 - The call fails with an error naming the step.
 - Run the same command again: finished calls are cached, so only the failed one re-runs.
-- If one thread keeps failing, try `--model gemma4:e4b` for that thread.
+- If one thread keeps failing, try a bigger open model for that thread with `--model TAG`.
 
 **GitHub returns 401, 403 or 404.**
 - Check that `GITHUB_TOKEN` is exported in this shell.
@@ -262,6 +258,6 @@ A single call usually takes 30–60 seconds, and the very first one also loads t
 
 **Citations show `source_changed`.** Someone edited the post after DecRack read it. The old text stays in `post_versions`, so the old citation still resolves, but it no longer matches the live post. Re-run the thread to compile against the current versions.
 
-**"database is locked".** Another DecRack process, often a running MCP server, is writing. Wait for it to finish, or give one of them its own file with `--db`.
+**"database is locked".** Another `decrack` command, such as a second `decrack run`, is writing; the MCP server only reads. Wait for it to finish, or give one of them its own file with `--db`.
 
 **`doctor` can't find `opencode`.** Install OpenCode (<https://opencode.ai>) and make sure the `opencode` binary is on your PATH. See [OPENCODE.md](OPENCODE.md).

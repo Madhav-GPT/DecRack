@@ -1,28 +1,31 @@
 # DecRack in OpenCode and other MCP clients
 
-DecRack runs as a local MCP server over stdio. Any MCP-capable harness can use it. This guide covers [OpenCode](https://opencode.ai) step by step, then gives a generic snippet for other MCP clients.
+DecRack runs as a local, **read-only** MCP server over stdio. Any MCP-capable harness can use it. This guide covers [OpenCode](https://opencode.ai) step by step, then gives a generic snippet for other MCP clients.
 
-**Contents:** [What the agent gets](#what-the-agent-gets) · [Prerequisites](#1-prerequisites) · [OpenCode on a local model](#2-run-opencode-on-a-local-open-model) · [Add DecRack](#3-add-decrack-to-opencode) · [/why command](#4-optional-a-why-command) · [AGENTS.md](#5-tell-agents-to-check-first-agentsmd) · [Example session](#6-example-session) · [Other MCP clients](#7-other-mcp-clients) · [Troubleshooting](#8-troubleshooting)
+**Contents:** [What the agent gets](#what-the-agent-gets) · [Prerequisites](#1-prerequisites) · [OpenCode on a local model](#2-run-opencode-on-a-local-open-model) · [Add DecRack](#3-add-decrack-to-opencode) · [New discussions](#4-compile-new-discussions-from-the-agent) · [/why command](#5-optional-a-why-command) · [AGENTS.md](#6-tell-agents-to-check-first-agentsmd) · [Example session](#7-example-session) · [Other MCP clients](#8-other-mcp-clients) · [Troubleshooting](#9-troubleshooting)
 
 ---
 
 ## What the agent gets
 
-| Tool | Use it to… | Model? |
-|---|---|---|
-| `search_decisions` | Ask "was this already discussed or rejected?" in plain words. Returns compact cards: title, status, status kind, a one-line reason and a link. | no |
-| `decisions_for_files` | List the decisions linked to files the agent is about to edit, as compact cards | no |
-| `get_decision` | Expand one record, by `decision_id`. `detail="card"` (the default) gives the card; `"full"` adds every option with its reasons and checks; `"evidence"` also adds each cited post, its reply parent and the next reply. | no |
-| `search_evidence` | Search raw posts when no compiled record matches. Results are labeled "uncompiled". | no |
-| `check_change` | Get the same report as `decrack check-pr`, for a PR URL, a list of changed paths or a description: related history and possible conflicts | no |
-| `analyze_discussion` | Compile a new discussion (`pep:N`, a Discourse or GitHub URL, or a file path). It returns a job ID at once and works in the background. | yes, DecRack's local model |
-| `job_status` | Check that job: queued, running, done or failed, with progress and, when done, the record ID | no |
+Five read-only tools:
+
+| Tool | Use it to… |
+|---|---|
+| `search_decisions` | Ask "was this already discussed or rejected?" in plain words. Returns compact cards: title, status, status kind, a one-line reason and a link. |
+| `decisions_for_files` | List the decisions linked to files the agent is about to edit, as compact cards |
+| `get_decision` | Expand one record, by `decision_id`. `detail="card"` (the default) gives the card; `"full"` adds every option with its reasons and checks; `"evidence"` also adds each cited post, its reply parent and the next reply. |
+| `search_evidence` | Search raw posts when no compiled record matches. Results are labeled "uncompiled". |
+| `check_change` | Get the same report as `decrack check-pr`, for a PR URL, a list of changed paths or a description: related history and possible conflicts |
 
 There is also one prompt, **`review_with_history`**: a ready-made instruction to review the current change against the recorded decisions.
 
 **Compact first, then expand.** The search tools return short cards, so a lookup costs the agent little context. The agent asks `get_decision` for full detail or evidence only when it needs it.
 
-**How the work splits.** Every answer except `analyze_discussion` comes straight from DecRack's SQLite file, with no model involved, so it is fast. Extraction always runs on DecRack's own code path, with DecRack's own open model in Ollama. The agent's model decides when to call the tools, and writes any explanation from the evidence they return.
+**How the work splits.**
+- **Answers come straight from DecRack's SQLite file.** No model runs in the MCP server, so lookups are fast.
+- **New discussions are compiled by `decrack run`,** on DecRack's own code path with DecRack's own open model in Ollama. The agent starts it through its shell tool (section 4).
+- **The agent's own model** decides when to call the tools, and writes any explanation from the evidence they return.
 
 Every result opens with a notice that it is quoted community content from public discussions, to be treated as data, not instructions. Results are capped at about 10K tokens.
 
@@ -30,7 +33,7 @@ Every result opens with a notice that it is quoted community content from public
 
 ## 1. Prerequisites
 
-- **DecRack and its model.** Follow the [README quickstart](../README.md#quickstart) or [TESTING.md](TESTING.md): uv, Ollama, `ollama pull qwen3.5:4b`, a checkout with `uv sync`.
+- **DecRack and its model.** Follow the [README quickstart](../README.md#quickstart) or [TESTING.md](TESTING.md): uv, Ollama, `ollama pull qwen2.5:1.5b`, a checkout with `uv sync`.
 - **OpenCode.** Install it by following <https://opencode.ai/docs/>.
 - **A check.** Run `uv run decrack doctor`. It confirms that Ollama answers, that the model is pulled and that `opencode` is on your PATH, and it prints the OpenCode snippet used below.
 
@@ -38,7 +41,7 @@ Every result opens with a notice that it is quoted community content from public
 
 OpenCode can use models served by Ollama; set it up by following the Ollama section of OpenCode's [provider docs](https://opencode.ai/docs/providers/). Some tips:
 
-- **The agent's model is separate from DecRack's extraction model.** It can be the same tag (`qwen3.5:4b`, so that only one model is loaded) or a larger open model, which follows tool instructions more reliably. `qwen3.5:9b` is a good choice if the machine has room.
+- **The agent's model is separate from DecRack's extraction model** (`qwen2.5:1.5b`). Pick any open model your machine can run for the agent. Larger models follow tool instructions more reliably, and DecRack doesn't depend on which one you choose.
 - **Raise Ollama's default context.** Ollama gives a model only 4K tokens of context on machines with less than 24 GiB of VRAM. OpenCode can't raise it per request, and an agent's system prompt and tool list alone can pass 4K. Start Ollama with:
 
   ```bash
@@ -82,9 +85,19 @@ Instead of `--db`, you can set `"environment": {"DECRACK_DB": "/absolute/path/to
 
 **First start can be slow.** The first `uvx` run downloads DecRack's dependencies. Warm the cache once in a terminal (for example `uvx --from git+https://github.com/Madhav-GPT/DecRack decrack --help`), or raise the entry's `"timeout"` (in milliseconds) if OpenCode gives up waiting for the tool list.
 
-Restart OpenCode after editing the config. DecRack's seven tools should appear in its tool list, prefixed with the server name.
+Restart OpenCode after editing the config. DecRack's five tools should appear in its tool list, prefixed with the server name.
 
-## 4. Optional: a `/why` command
+## 4. Compile new discussions from the agent
+
+The MCP server only reads, so a discussion that isn't in the database yet is compiled with the CLI. In OpenCode, the agent runs the command through its shell tool. OpenCode shows the command, and may ask you to approve it, before it runs. For example:
+
+> *"Run `uv run --directory /absolute/path/to/DecRack decrack --db /absolute/path/to/DecRack/decrack.db run pep:830` in the shell. When it finishes, use DecRack to list the rejected ideas with their quotes."*
+
+- **Use the same database.** Pass the same `--db` (or `DECRACK_DB`) that the MCP server uses, so the new record is searchable as soon as the command finishes.
+- **Any reference works.** `decrack run` takes `pep:N`, a Discourse topic URL, a GitHub issue or PR URL, or a path to an exported file.
+- **It's quick for small threads.** A first run calls the local model, which should take about a minute for a thread the size of PEP 830 (an estimate until measured). Re-runs are cached, so they finish almost at once.
+
+## 5. Optional: a `/why` command
 
 OpenCode turns markdown files in `.opencode/commands/` into slash commands, named after the file. Save this as `.opencode/commands/why.md`:
 
@@ -103,7 +116,7 @@ Use the decrack MCP tools to find recorded decisions, rejected alternatives and 
 
 Then type `/why exception notes` or `/why src/widgets/config.py` in OpenCode.
 
-## 5. Tell agents to check first: `AGENTS.md`
+## 6. Tell agents to check first: `AGENTS.md`
 
 OpenCode reads `AGENTS.md` at the project root as standing instructions, and so do many other agents. Add this block to the `AGENTS.md` of any project you have compiled with DecRack:
 
@@ -117,6 +130,7 @@ Before you change code or propose a design:
 1. Call the `decrack` MCP tools: `decisions_for_files` with the files you plan to edit,
    or `search_decisions` with the approach you plan to take.
    Without MCP, run `decrack why <path or query>` in a terminal.
+   If a discussion you need isn't recorded yet, run `decrack run <ref>` in the shell first.
 2. If the approach you plan was **rejected**, stop and tell the user. Give its status kind
    (confirmed, inferred, contested or unresolved), quote the evidence DecRack returns with
    its link, and ask before going ahead.
@@ -128,12 +142,12 @@ Before you change code or propose a design:
 
 The comment markers make the block easy to find and update later.
 
-## 6. Example session
+## 7. Example session
 
 The prompts below walk through PEP 830 (timestamps on exceptions):
 
-1. *"Use DecRack to analyze pep:830, then tell me when the job is done."*
-   The agent calls `analyze_discussion` and gets a job ID, then polls `job_status` until the job is done. If the thread was already compiled with `decrack run pep:830`, the job finishes almost at once, because every model call is cached.
+1. *"Run `decrack run pep:830` in the shell, then tell me when it's done."*
+   The agent runs the command through its shell tool, with the same `--db` as the MCP server (section 4). If the thread was already compiled, it finishes almost at once, because every model call is cached.
 2. *"Was attaching the timestamp through exception notes considered? What happened to it, and why?"*
    The agent calls `search_decisions`, which returns compact cards, then `get_decision` with `detail="evidence"`. It answers with the option's status and status kind, the reason, and the exact quotes with their links.
 3. *"I'm going to change how tracebacks are formatted. Which recorded decisions should I know about first?"*
@@ -143,7 +157,7 @@ The prompts below walk through PEP 830 (timestamps on exceptions):
 
 Prompts that work well name the tool's job ("ask DecRack whether…", "use the decrack tools to…"). That matters most with small local models.
 
-## 7. Other MCP clients
+## 8. Other MCP clients
 
 Most MCP clients accept a stdio server in this shape. Check your client's docs for where its MCP config file lives:
 
@@ -159,19 +173,19 @@ Most MCP clients accept a stdio server in this shape. Check your client's docs f
 }
 ```
 
-With a local clone, use `"command": "uv"` and `"args": ["run", "--directory", "/absolute/path/to/DecRack", "decrack", "mcp"]` instead. The server speaks MCP on stdout and writes its logs to stderr, so any client that launches stdio servers can use it.
+With a local clone, use `"command": "uv"` and `"args": ["run", "--directory", "/absolute/path/to/DecRack", "decrack", "mcp"]` instead. The server speaks MCP on stdout and writes its logs to stderr, so any client that launches stdio servers can use it. It is read-only in every client: compile new discussions with `decrack run` in a terminal, or through the agent's shell.
 
-## 8. Troubleshooting
+## 9. Troubleshooting
 
 **The tools don't show up.**
 - Check that the JSON is valid and in the right file.
 - Run the `command` yourself in a terminal: it should start and wait silently for input. Press Ctrl-C to stop it.
 - Run `uv run python -m decrack.mcp_server --self-check` in the checkout. It starts the server and lists its tools, as CI does.
 
-**"No decisions found" for something you compiled.** The server is reading a different `decrack.db`. Pass an absolute `--db` (or set `DECRACK_DB`) as shown above, or compile the thread from the agent with `analyze_discussion`.
+**"No decisions found" for something you compiled.** The server is reading a different `decrack.db` from the one `decrack run` wrote. Give both the same absolute `--db` (or `DECRACK_DB`), as shown above, or compile the thread again with that `--db`.
 
-**`analyze_discussion` seems stuck.** Compiling takes minutes: see the timings in [TESTING.md](TESTING.md#7-what-to-expect). Ask the agent to call `job_status`, and check with `ollama ps` that Ollama has loaded the model. A failed job reports its error message in `job_status`. If the MCP server stopped mid-job, start the analysis again: finished model calls are cached, so it resumes quickly.
+**`decrack run` seems slow.** Compiling should take about a minute for a small thread and several minutes for a long one; see the estimates in [TESTING.md](TESTING.md#7-what-to-expect). Check with `ollama ps` that Ollama has loaded the model. If the run stopped part-way, start it again: finished model calls are cached, so it resumes quickly.
 
 **The agent answers from memory instead of calling DecRack.** Small models sometimes skip tools. Name the tool in the prompt, use the `/why` command, add the `AGENTS.md` block, or switch the agent to a larger open model.
 
-**GitHub sources fail from inside the agent.** The MCP server needs `GITHUB_TOKEN` in its environment. Export it in the shell you start OpenCode from, then restart OpenCode.
+**GitHub sources fail from inside the agent.** `decrack run` needs `GITHUB_TOKEN` in its environment. Export it in the shell you start OpenCode from, then restart OpenCode, so the agent's shell inherits it.
