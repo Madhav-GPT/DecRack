@@ -11,10 +11,11 @@
 
 DecRack is intended to recover decisions and their reasoning from historical technical discussions, issues, pull requests, and forums, then surface relevant decisions when someone changes related code.
 
-## Planned AI model strategy
+## AI models the product uses
 
-DecRack is intended to support open-weight models running locally on users' machines. The system is planned to be model-agnostic, with room for additional compatible open-weight models and local runtimes.
+DecRack runs open-weight models locally through Ollama's native API (`http://127.0.0.1:11434` by default). It calls no hosted model API.
 
-- **Provisional candidate for evaluation: Qwen3-4B** ([model card](https://huggingface.co/Qwen/Qwen3-4B)). Its Apache-2.0 license is permissive, it has local deployment options, and its size makes it a candidate to evaluate for structured extraction of decisions and reasons from technical discussions. Its suitability for DecRack still needs to be tested.
-- **Possible integration layer:** An existing compatible agent or harness such as OpenCode may be configured to use a local open-weight model through a runtime such as Ollama. OpenCode is an integration option, not an AI model.
-- **Status:** The Qwen3-4B model choice and any agent/runtime integration are planned only. They have not been implemented or tested in DecRack. No open-source model integration or scoring claim is made at this stage; that requires a working integration and demonstration.
+- **`qwen3.5:4b` via Ollama, the default.** It is `DEFAULT_MODEL` in `src/decrack/config.py`. The extraction pipeline calls it to label what each post does and name the alternatives (`map`), to merge duplicate alternatives (`merge`), to refine reasons (`refine_reasons`) and to check that each claim is supported by its quotes (`support`). The evaluation also uses it as the matching judge (`judge`) and for the closed-book baseline (`closed_book`). Why: it is small enough to run on a 16 GB laptop and returns schema-constrained JSON, which the pipeline validates before using it.
+- **`gemma4:e4b` via Ollama, the supported alternative.** It is listed in `ALTERNATIVE_MODELS` in `src/decrack/config.py` and selected with `decrack --model gemma4:e4b`. Why: a second open-weight model family of similar size, for machines or comparisons where Qwen is not the right fit.
+
+Real example outputs are produced with `decrack eval` on a local machine running Ollama.
