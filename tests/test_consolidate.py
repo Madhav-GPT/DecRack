@@ -455,3 +455,30 @@ def test_summarize_outcome():
         "3 options: 1 withdrawn, 1 deferred, 1 proposed"
     )
 
+
+
+def test_a_not_planned_thread_cannot_confirm_an_author_only_acceptance():
+    from decrack.models import Option, Thread
+    from decrack.pipeline.consolidate import reconcile_with_outcome
+
+    def accepted(key: str, basis: str) -> Option:
+        return Option(
+            key=key, title=key, status="accepted", status_kind="confirmed", status_basis=basis, confidence="high"
+        )
+
+    by_author, by_decider = accepted("A1", "author_statement"), accepted("A2", "decider_statement")
+    thread = Thread(id="gh:o/r#2077", kind="github_issue", meta={"state": "closed", "state_reason": "not_planned"})
+    reconcile_with_outcome(thread, [by_author, by_decider])
+    assert (by_author.status_kind, by_author.confidence) == ("contested", "low")
+    assert "not planned" in by_author.status_note
+    assert (by_decider.status_kind, by_decider.confidence) == ("confirmed", "high")
+
+    unmerged_pr = Thread(id="gh:o/r#9", kind="github_pr", meta={"state": "closed", "merged": False})
+    pr_option = accepted("A1", "author_statement")
+    reconcile_with_outcome(unmerged_pr, [pr_option])
+    assert pr_option.status_kind == "contested"
+
+    completed = Thread(id="gh:o/r#10", kind="github_issue", meta={"state": "closed", "state_reason": "completed"})
+    kept = accepted("A1", "author_statement")
+    reconcile_with_outcome(completed, [kept])
+    assert kept.status_kind == "confirmed"

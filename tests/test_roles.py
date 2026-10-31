@@ -85,14 +85,29 @@ def test_github_roles():
     assert roles(thread) == ["author", "decider", "maintainer", "participant", "decider", "participant"]
 
 
-def test_github_member_who_opens_and_closes_is_the_decider():
+def test_github_owner_who_opens_and_closes_stays_the_author():
+    # Opening, proposing and closing your own issue is not an independent decision.
     thread = Thread(
         id="gh:o/r#2",
         kind="github_issue",
-        meta={"opener": "lead", "closed_by": {"login": "lead"}},
+        meta={"opener": "lead", "closed_by": {"login": "lead"}, "state_reason": "not_planned"},
         posts=[post(1, "lead", author_association="OWNER"), post(2, "newbie", author_association="NONE")],
     )
-    assert roles(thread) == ["decider", "participant"]
+    assert roles(thread) == ["author", "participant"]
+
+
+def test_github_decider_is_the_member_who_closed_it():
+    thread = Thread(
+        id="gh:o/r#6",
+        kind="github_issue",
+        meta={"opener": "lead", "closed_by": "maint"},
+        posts=[
+            post(1, "lead", author_association="OWNER"),
+            post(2, "maint", author_association="MEMBER"),
+            post(3, "other", author_association="MEMBER"),
+        ],
+    )
+    assert roles(thread) == ["author", "decider", "maintainer"]
 
 
 def test_github_closer_without_rights_stays_author():
