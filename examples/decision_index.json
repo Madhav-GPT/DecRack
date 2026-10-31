@@ -1,0 +1,34 @@
+{
+  "decisions": [
+    {
+      "id": "sample-c-parser-001",
+      "title": "Keep the C parser on the large-file path",
+      "outcome": "accepted",
+      "rationale": "The Rust prototype was reported to be about twice as slow on large files, so the team kept the C parser.",
+      "alternatives": [
+        "Replace the parser with Rust"
+      ],
+      "related_paths": [
+        "src/parser/core.c"
+      ],
+      "confidence": 0.91,
+      "source": {
+        "discussion_id": "sample-parser-thread",
+        "title": "Keep the C parser for the large-file path",
+        "url": "https://example.invalid/project/issues/1832"
+      },
+      "evidence": [
+        {
+          "message_id": "issue-1832-comment-1",
+          "author": "maintainer-a",
+          "url": "https://example.invalid/project/issues/1832#issuecomment-1"
+        },
+        {
+          "message_id": "pr-1901-comment-4",
+          "author": "maintainer-b",
+          "url": "https://example.invalid/project/pull/1901#issuecomment-4"
+        }
+      ]
+    }
+  ]
+}
