@@ -47,7 +47,7 @@ HELP = [
 ]
 SOURCE_RE = re.compile(
     r"(?:https?://)?(?:www\.)?github\.com/[\w.-]+/[\w.-]+(?:/(?:issues|pull)/\d+)?"
-    r"|(?:https?://)?discuss\.python\.org/t/\S+"
+    r"|(?:https?://)?discuss\.python\.org/t/[^\s\"'”’]+"
     r"|\b[\w.-]+/[\w.-]+#\d+"
     r"|\bpep:\s*\d+",
     re.IGNORECASE,
@@ -95,9 +95,10 @@ def parse_line(line: str) -> ChatInput:
     match = SOURCE_RE.search(text)
     if match is None:
         return ChatInput(None, "", None, " ".join(text.split()).strip(" .,;:"))
-    source = match.group(0).rstrip(".,;:)!?")
+    # Closing quotes and punctuation after the link are not part of it.
+    source = match.group(0).rstrip(".,;:)!?\"'”’»")
     lowered = source.lower()
-    if lowered.startswith("pep"):
+    if re.fullmatch(r"pep:\s*\d+", lowered):  # pepy-tech/pepy#12 is a GitHub shorthand, not a PEP
         source = "pep:" + re.sub(r"\D", "", source)
     elif "github.com/" in lowered or "discuss.python.org/" in lowered:
         # Links typed without https:// or with www. still count.

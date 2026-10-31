@@ -75,6 +75,13 @@ def test_parse_line_accepts_shorthand_and_links_without_https():
     )
 
 
+def test_links_stop_at_quotes_and_only_pep_n_is_a_pep():
+    quoted = parse_line("What was decided? “https://discuss.python.org/t/105519”")
+    assert quoted.source == "https://discuss.python.org/t/105519"
+    assert parse_line("What’s “pepy-tech/pepy#12” about?").source == "pepy-tech/pepy#12"
+    assert parse_line("why ‘pep: 830’?").source == "pep:830"
+
+
 def test_pick_model_prefers_the_configured_then_the_default_then_any_local():
     assert preflight.pick_model(Settings(model="test-model:b"), tags_client([DEFAULT_MODEL, "test-model:b"])) == (
         "test-model:b"
@@ -99,6 +106,7 @@ def test_pick_model_gates():
 
 def test_no_link_asks_for_one(session):
     assert session.handle("what is the weather like?") == [NO_LINK, EXAMPLE]
+    assert session.handle("Why didn’t uv add pip’s “--user” flag?") == [NO_LINK, EXAMPLE]
     assert SCOPE in session.handle("/help")
 
 
