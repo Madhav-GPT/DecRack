@@ -43,7 +43,7 @@ The hackathon's official test makes the problem concrete. The organizers hand ov
 
 ## What DecRack does
 
-1. **Input.** Point it at a public discussion: a PEP thread on discuss.python.org (`pep:830` finds the thread for you), a GitHub issue or pull request, or an exported file.
+1. **Input.** Point it at a public discussion: a PEP thread on discuss.python.org (`pep:830` finds the thread for you), a GitHub issue or pull request, or an exported file. Or give it a whole GitHub repo and a question: `decrack ask` finds the matching issues and PRs itself.
 2. **Extraction.** A small open-weight model running **locally in Ollama** (`qwen2.5:1.5b`, about 1 GB) reads the thread, and deterministic code turns what it finds into decision records. Each record holds what was being decided, which options were considered, which were accepted or rejected, and why. Every claim cites the sentences it came from, and every citation is checked before it is kept.
 3. **Use.** A developer's agent in **OpenCode**, or in any harness that can run a shell command, follows [`AGENTS.md`](AGENTS.md) and asks DecRack "was this approach already rejected, and why?" before it writes code. `decrack check-pr` flags pull requests that touch code with recorded decisions.
 
@@ -223,12 +223,23 @@ uv sync
 # 3. Check the setup: Ollama, the installed models and opencode
 uv run decrack doctor
 
-# 4. Compile the PEP 830 discussion into decision records
-uv run decrack run pep:830
+# 4. Ask a question about a discussion
+uv run decrack ask pep:830 "was attaching timestamps through exception notes rejected?"
 
-# 5. Ask why
-uv run decrack why "exception notes"
+# 5. Check the evidence behind an answer (the ID is on its card)
+uv run decrack show pep:830 --detail evidence
 ```
+
+- **A question about a whole repo.** `decrack ask` also takes an issue URL or a repo URL. Given a repo, it searches that repo's issues and PRs for the question's keywords and reads the top 3:
+
+  ```bash
+  uv run decrack ask https://github.com/astral-sh/uv/issues/2077 "why didn't uv add pip's --user flag?"
+  uv run decrack ask https://github.com/astral-sh/uv "why didn't uv add pip's --user flag?"
+  ```
+
+  GitHub sources need a `GITHUB_TOKEN` on a shared network.
+- **No question?** `decrack ask https://github.com/owner/repo` on its own stops with *Tell DecRack what you want to know, e.g. decrack ask https://github.com/owner/repo "why not X?"*, and exits with code 2.
+- **Follow-ups.** `uv run decrack why "exception notes"` searches everything compiled so far, and `uv run decrack run <source>` compiles a discussion without asking anything.
 
 - **Timing.** These are estimates until we measure them:
   - about 6–8 seconds per model call on a base M4 with 16 GB, so step 4 takes about a minute the first time;
@@ -250,16 +261,17 @@ DecRack has no plugin and no server. Agents run the same CLI that people do, gui
 
 The file tells the agent to:
 
-- require a source, and ask for one rather than guess;
-- run `decrack run <source>`;
-- run `decrack why "<question>" --format json`;
+- require a source and a question, and ask for them rather than guess;
+- run `decrack ask <source> "<question>" --format json`, where the source can be a repo URL, an issue or PR URL, a thread, `pep:NNN` or a file;
 - check `decrack show <id> --detail evidence --format json` before claiming anything;
-- run `decrack check-pr <PR URL>` for changes.
+- use `decrack why` for follow-ups, and `decrack check-pr <PR URL>` for changes.
 
 It also tells the agent to quote only DecRack's text, link the evidence, report status kinds honestly, and relay DecRack's error and fix messages as they are.
 
 Then ask your agent things like:
 
+- *"Use DecRack on https://github.com/astral-sh/uv/issues/2077: why didn't uv add pip's --user flag?"*
+- *"Use DecRack on https://github.com/owner/repo. Why didn't they add X?"* The agent runs `decrack ask` on the repo, and DecRack finds the matching issues and PRs.
 - *"Analyze https://github.com/owner/repo/issues/123 with DecRack and tell me which ideas were rejected and why."*
 - *"Use DecRack on pep:830. Was adding timestamps through exception notes rejected, and why?"*
 - *"I'm about to edit `src/widgets/config.py`. Ask DecRack which recorded decisions cover that file."*
@@ -274,7 +286,7 @@ The [agent guide](docs/OPENCODE.md) covers running OpenCode on a local open mode
 decrack [--db PATH] [--model TAG] [--ollama-host URL] [--support-check] COMMAND [ARGS]
 ```
 
-The global options go **before** the command, for example `decrack --db demo.db run pep:830` or `decrack --support-check run pep:830`. There are nine commands.
+The global options go **before** the command, for example `decrack --db demo.db run pep:830` or `decrack --support-check run pep:830`. There are ten commands; `ask` is the one most people need.
 
 `REF` is any of:
 
@@ -285,6 +297,7 @@ The global options go **before** the command, for example `decrack --db demo.db 
 
 | Command | What it does | Model |
 |---|---|---|
+| `decrack ask SOURCE ["QUESTION"] [--max-threads N] [--format md\|json]` | Answer a question with cited decision cards. SOURCE is anything `run` accepts, or a GitHub repo URL, which needs a question. For a repo, DecRack searches its issues and PRs with the question's keywords (stopwords removed, at most 6). It runs the top N matches (default 3, at most 5), skips threads with nothing to analyze, and says which threads it read. Cached model calls are reused. | yes |
 | `decrack ingest REF` | Fetch a discussion and store its posts, without compiling | no |
 | `decrack run REF [--out DIR]` | Fetch a discussion and compile it into a decision record. This is how every new discussion gets in. With `--out`, it also writes the run folder (`thread.json`, `records.json`, `run.json`) to DIR. | yes |
 | `decrack why QUERY [--limit N] [--raw] [--format md\|json]` | Search the records and print compact decision cards with links. If QUERY is a file path, it lists the decisions linked to that file. With `--raw`, it searches the raw stored posts instead: uncompiled and unchecked, the fallback when no record matches. | no |
@@ -325,19 +338,22 @@ Retrieval is **compact first, then expand**: `why` returns short cards, and `sho
 
 ## Input checks
 
-DecRack checks its input before doing any work. When something is wrong, it says so in plain words, with a fix. With `--format json` it prints `{"ok": false, "error": "...", "fix": "..."}`, and agents are told to pass that message on as it is.
+DecRack checks its input before doing any work, and the model check runs before any search or fetch. When something is wrong, it says so in plain words, with a fix. With `--format json` it prints `{"ok": false, "error": "...", "fix": "..."}`, and agents are told to pass that message on as it is.
 
 | Case | What DecRack tells you | Exit code | Fix |
 |---|---|---|---|
 | No source | A source is needed: a GitHub issue or PR URL, a discuss.python.org thread, `pep:NNN` or a file | 2 | Give it a source. Agents ask the user instead of guessing. |
 | Model not ready | Ollama isn't answering, or `qwen2.5:1.5b` isn't pulled | 3 | Start Ollama, run `ollama pull qwen2.5:1.5b`, then check with `decrack doctor` |
-| Fetch error | The source couldn't be fetched, with the reason (not found, rate limit, network) | 4 | Check the URL, set `GITHUB_TOKEN` for GitHub, or wait out a rate limit |
+| Fetch error | The source or the repo search couldn't be fetched, with the reason (not found, rate limit, network) | 4 | Check the URL, set `GITHUB_TOKEN` for GitHub, or wait out a rate limit |
 | Nothing to analyze | The source has no posts to read, for example an empty thread or only a pasted PEP | 0 | Check the reference, or pick another thread |
 | Empty query | No question or file path was given | 2 | Pass a question, a file path, or `--raw` with some text |
+| No question for `ask` | *Tell DecRack what you want to know, e.g. decrack ask https://github.com/owner/repo "why not X?"* | 2 | Add the question in quotes |
+| No search hits | *No issues or PRs in owner/repo match: (keywords).* | 1 | *Try other words, or give an issue URL.* |
 | Empty database | No decisions are recorded yet | 1 | Run `decrack run <source>` first |
 
 **JSON output for agents.** Successful calls print `"ok": true`, with these shapes:
 
+- **`ask`:** `{"ok": true, "source", "question", "keywords", "threads": [{"thread_id", "url", "decision_id"}], "results": [cards in the same shape as why]}`
 - **`why` (and `why <path>`):** `{"ok": true, "query", "raw": false, "results": [{"decision_id", "title", "outcome", "link", "matched", "options": [{"key", "title", "status", "status_kind", "confidence", "reason", "link"}]}]}`
 - **`why --raw`:** `{"ok": true, "query", "raw": true, "results": [{"post_id", "thread_id", "seq", "author", "url", "snippet"}]}`
 - **`show`:** `{"ok": true, "decision_id", "detail", "text", "card": {…}}` for `card`, or `"record": {…}` (the full record) for `full` and `evidence`

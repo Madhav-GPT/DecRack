@@ -26,7 +26,9 @@ from decrack.models import DecisionRecord, Thread
 from decrack.pipeline.llm import LLMError, make_llm
 from decrack.pipeline.roles import assign_roles
 from decrack.pipeline.run import compile_thread
+from decrack.sources import github as github_source
 from decrack.sources import load as load_source
+from decrack.sources import make_client
 from decrack.store import Store
 
 app = typer.Typer(
@@ -46,6 +48,14 @@ EXPECTED_ERRORS = (
     sqlite3.Error,
     subprocess.SubprocessError,
 )
+ASK_HELP = 'Tell DecRack what you want to know, e.g. decrack ask https://github.com/owner/repo "why not X?"'
+# Words that carry no meaning in a GitHub search for a question.
+QUESTION_STOPWORDS = frozenset(
+    "a an and are as at be been but by can could did do does for from had has have how i if in into is it its "
+    "may might no not of on or our should so than that the their them then there these they this those to us "
+    "was we were what when where which who why will with would you your".split()
+)
+MAX_KEYWORDS = 6
 PEP_REF = re.compile(r"^(?:pep[\s:_-]*)?0*(\d{1,5})$", re.IGNORECASE)
 
 
@@ -290,7 +300,9 @@ def why_cmd(
 @app.command("show")
 def show_cmd(
     ctx: typer.Context,
-    decision_id: Annotated[str, typer.Argument(help="Decision id from `decrack why` (dr-...) or a thread id (pep:830).")],
+    decision_id: Annotated[
+        str, typer.Argument(help="Decision id from `decrack why` (dr-...) or a thread id (pep:830).")
+    ],
     detail: Annotated[str, typer.Option("--detail", help="card, full, or evidence (adds the cited posts).")] = "card",
     budget_tokens: Annotated[
         Optional[int], typer.Option("--budget-tokens", min=1, help="Size cap for the output (default 10000).")
@@ -333,6 +345,102 @@ def show_cmd(
     typer.echo(search.NOTICE)
     typer.echo("")
     typer.echo(text)
+
+
+def question_keywords(question: str) -> list[str]:
+    """The question's words minus stopwords, at most MAX_KEYWORDS, for the GitHub search API."""
+    words: list[str] = []
+    for word in re.findall(r"\w+", question.lower()):
+        if len(word) > 1 and word not in QUESTION_STOPWORDS and word not in words:
+            words.append(word)
+    return words[:MAX_KEYWORDS]
+
+
+@app.command("ask")
+def ask_cmd(
+    ctx: typer.Context,
+    source: Annotated[
+        str,
+        typer.Argument(help="A GitHub repo URL, or anything `run` accepts (issue/PR URL, thread URL, pep:N, file)."),
+    ],
+    question: Annotated[Optional[str], typer.Argument(help='What you want to know, such as "why not X?".')] = None,
+    max_threads: Annotated[
+        int, typer.Option("--max-threads", min=1, max=5, help="For a repo URL: how many matching issues/PRs to read.")
+    ] = 3,
+    fmt: Annotated[str, typer.Option("--format", help="md or json.")] = "md",
+) -> None:
+    """Answer a question from one discussion, or from a repo's issues and PRs that best match it.
+
+    For a repo URL, DecRack searches its issues and PRs with the question's keywords, runs the top
+    matches (cached runs are reused) and answers from their decision records. Otherwise it runs the
+    one discussion given and answers from its record.
+    """
+    settings = settings_of(ctx)
+    as_json = check_format(fmt)
+    question = (question or "").strip()
+    repo = github_source.parse_repo_url(source)
+    with gates(as_json):
+        if repo is not None and not question:
+            raise preflight.GateError(ASK_HELP, code=2)
+        if repo is None:
+            preflight.check_source(source)
+    keywords = question_keywords(question) if repo is not None else []
+    with gates(as_json), expected_errors(), Store(settings.db_path) as store:
+        llm = make_llm(settings, store)
+        if preflight.needs_model_check(llm):
+            preflight.check_model(settings)
+        refs = [source]
+        if repo is not None:
+            owner, name = repo
+
+            def search_repo(ref: str, _settings: Settings) -> list[str]:
+                with make_client() as client:
+                    return github_source.search_threads(owner, name, keywords, client, max_threads)
+
+            # The search goes through the fetch gate too: 404, rate limit and network errors read plainly.
+            refs = preflight.fetch(source, settings, search_repo)
+            if not refs:
+                raise preflight.GateError(
+                    f"No issues or PRs in {owner}/{name} match: {' '.join(keywords)}.",
+                    "Try other words, or give an issue URL.",
+                    1,
+                )
+        records: list[DecisionRecord] = []
+        for ref in refs:
+            thread = assign_roles(preflight.fetch(ref, settings, load_source))
+            if not any(post.sentences for post in thread.posts):
+                progress(f"{thread.id}: nothing to analyze, skipped")
+                continue
+            store.save_thread(thread)
+            progress(f"Stored {thread.id}: {len(thread.posts)} posts — {thread.title}")
+            record = compile_thread(thread, llm, settings, progress=progress)
+            store.save_record(record)
+            records.append(record)
+        if not records:
+            raise preflight.GateError(preflight.NOTHING_TO_ANALYZE, code=0)
+        # Records the question matches come first; every record read is part of the answer.
+        ranked = search.why(store, question, limit=50) if question else []
+    ids = [record.id for record in records]
+    why_of = {hit.record.id: hit.why for hit in ranked if hit.record.id in ids}
+    ordered = sorted(records, key=lambda record: (record.id not in why_of, ids.index(record.id)))
+    if as_json:
+        echo_json(
+            {
+                "ok": True,
+                "source": source,
+                "question": question,
+                "keywords": keywords,
+                "threads": [{"thread_id": r.thread_id, "url": r.thread_url, "decision_id": r.id} for r in records],
+                "results": [card_json(record, why_of.get(record.id, "")) for record in ordered],
+            }
+        )
+        return
+    read = ", ".join(record.thread_url or record.thread_id for record in records)
+    typer.echo(f"Read {len(records)} thread(s): {read}")
+    typer.echo(search.NOTICE)
+    typer.echo("")
+    blocks = [hit_block(record, why_of.get(record.id, "")) for record in ordered]
+    typer.echo(search.pack(blocks, settings.budget_tokens))
 
 
 @app.command("check-pr")

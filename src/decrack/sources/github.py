@@ -33,6 +33,7 @@ URL_RE = re.compile(
     re.IGNORECASE,
 )
 SHORT_RE = re.compile(rf"^(?:gh:)?({_NAME})/({_NAME})#(\d+)$", re.IGNORECASE)
+REPO_URL_RE = re.compile(rf"^(?:https?://)?(?:www\.)?github\.com/({_NAME})/({_NAME})/?$", re.IGNORECASE)
 API_ITEM_RE = re.compile(r"/repos/([^/]+)/([^/]+)/(?:issues|pulls)/(\d+)")
 # PR templates leave HTML comments that GitHub never shows; they are not part of the discussion.
 HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
@@ -59,6 +60,24 @@ def is_github_ref(ref: str) -> bool:
     except ValueError:
         return False
     return True
+
+
+def parse_repo_url(value: str) -> tuple[str, str] | None:
+    """``(owner, repo)`` for a bare repository URL such as ``https://github.com/python/cpython``, else None."""
+    match = REPO_URL_RE.match((value or "").strip())
+    if match is None:
+        return None
+    owner, repo = match.group(1), match.group(2)
+    repo = repo[:-4] if repo.lower().endswith(".git") else repo
+    return (owner, repo) if owner.strip(".") and repo.strip(".") else None
+
+
+def search_threads(owner: str, repo: str, keywords: list[str], client: httpx.Client, limit: int = 3) -> list[str]:
+    """URLs of the ``limit`` issues and PRs of owner/repo that best match ``keywords``, by GitHub's search API."""
+    query = " ".join([f"repo:{owner}/{repo}", *keywords])
+    data = _get_json(client, f"{GITHUB_API}/search/issues", params={"q": query, "per_page": limit})
+    items = data.get("items") if isinstance(data, dict) else None
+    return [item["html_url"] for item in (items or [])[:limit] if isinstance(item, dict) and item.get("html_url")]
 
 
 def _headers() -> dict[str, str]:

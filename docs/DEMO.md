@@ -71,6 +71,8 @@ Each member presents the part they built, and each must be able to answer questi
 uv run decrack doctor
 uv run decrack run pep:830
 uv run decrack why "exception notes"
+# or both steps in one go:
+uv run decrack ask pep:830 "was attaching timestamps through exception notes rejected?"
 ```
 
 **Say, while it runs:**
@@ -364,7 +366,7 @@ Rehearse until every member can say each line without notes.
 | `export_okf.py` | Writes the OKF v0.2 bundle with a MADR-style body. |
 | `verify.py` | Re-checks every quote in every run folder against its thread. |
 | `evaluate.py` | The withheld-PEP evaluation: deterministic fuzzy matching to the gold (with `matches.json` for human review), metrics per status kind, and the optional closed-book baseline. |
-| `cli.py`, `doctor.py` | The `decrack` command (nine commands; `run` is how new discussions get in), and the environment check. |
+| `cli.py`, `doctor.py` | The `decrack` command (ten commands; `ask` answers a question from a discussion or a whole repo, and `run` compiles one discussion), and the environment check. |
 
 ---
 
@@ -381,7 +383,7 @@ Rehearse until every member can say each line without notes.
 | ~8 | Claims per batched support call, only with `--support-check` | Fact (our setting) |
 | 59 (43 + 16) | Gold rejected ideas: the dev and stretch PEPs, plus the control | Fact (`eval/gold`) |
 | search@5 | Matched gold ideas whose option ranks in the top 5 of a keyword search on the PEP heading | Read it from `eval-summary.md`; it decides whether embeddings are needed |
-| 9 | CLI commands | Fact |
+| 10 | CLI commands | Fact |
 | 1 | CI job ("DecRack checks"), with lint, tests, verify, compliance and build steps | Fact |
 | ~32K | Where Llama-3.1-8B stops being reliable on RULER | A synthetic benchmark; used for window sizing only |
 | 44.4 vs 34.3 | OP-RAG F1: 16K tokens of in-order context vs a 70B model reading 117K | QA datasets; motivation, not proof for our task |
