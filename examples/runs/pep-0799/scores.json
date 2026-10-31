@@ -1,0 +1,48 @@
+{
+  "pep": 799,
+  "gold_total": 4,
+  "gold_recoverable": 4,
+  "predicted_options": 5,
+  "predicted_rejected": 1,
+  "predicted_by_kind": {
+    "confirmed": 0,
+    "inferred": 1
+  },
+  "matched": 0,
+  "matched_by_kind": {
+    "confirmed": 0,
+    "inferred": 0
+  },
+  "matched_recoverable": 0,
+  "recall_recoverable": 0.0,
+  "precision_strict": 0.0,
+  "precision_by_kind": {
+    "confirmed": null,
+    "inferred": 0.0
+  },
+  "reason_agreement": 0.0,
+  "evidence_backed_recall": 0.0,
+  "matched_outside_post1": 0,
+  "recall_any_status": 0.5,
+  "matching": "similarity",
+  "closed_book_ideas": 1,
+  "closed_book_recall": 0.0,
+  "model": "qwen2.5:1.5b",
+  "model_digest": "65ec06548149b04c096a120e4a6da9d4017ea809c91734ea5631e89f96ddc57b",
+  "ollama_version": "0.40.13",
+  "mode": "live",
+  "prompt_version": "decrack-prompts-3",
+  "llm_calls": 2,
+  "minutes": 0.67,
+  "posts": 22,
+  "leak_blanked": 0,
+  "search_recall_at_5": null,
+  "search_hits": 0,
+  "search_misses": [],
+  "closed_book": [
+    {
+      "idea": "short name",
+      "reason": "one sentence"
+    }
+  ]
+}

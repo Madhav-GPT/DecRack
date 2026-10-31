@@ -1,0 +1,145 @@
+[
+  {
+    "gold_id": "pep830-r1",
+    "idea": "Using Exception Notes",
+    "recoverable": null,
+    "matched": false,
+    "option_key": "A2",
+    "title": "Use `sys.excepthook` to add a timestamp to exceptions.",
+    "status": "rejected",
+    "status_kind": "inferred",
+    "score": 0.389
+  },
+  {
+    "gold_id": "pep830-r2",
+    "idea": "Using sys.excepthook",
+    "recoverable": null,
+    "matched": true,
+    "option_key": "A2",
+    "title": "Use `sys.excepthook` to add a timestamp to exceptions.",
+    "status": "rejected",
+    "status_kind": "inferred",
+    "score": 0.5
+  },
+  {
+    "gold_id": "pep830-r3",
+    "idea": "Using sys.monitoring",
+    "recoverable": null,
+    "matched": false,
+    "option_key": "A2",
+    "title": "Use `sys.excepthook` to add a timestamp to exceptions.",
+    "status": "rejected",
+    "status_kind": "inferred",
+    "score": 0.282
+  },
+  {
+    "gold_id": "pep830-r4",
+    "idea": "Always Collecting vs. Always Displaying",
+    "recoverable": null,
+    "matched": false,
+    "option_key": "A4",
+    "title": "Use `traceback.format_exception_only()` to format the exception without timestamps.",
+    "status": "rejected",
+    "status_kind": "inferred",
+    "score": 0.207
+  },
+  {
+    "gold_id": "pep830-r5",
+    "idea": "Runtime API",
+    "recoverable": null,
+    "matched": false,
+    "option_key": "A2",
+    "title": "Use `sys.excepthook` to add a timestamp to exceptions.",
+    "status": "rejected",
+    "status_kind": "inferred",
+    "score": 0.258
+  },
+  {
+    "gold_id": "pep830-r6",
+    "idea": "Timestamp in the Traceback Header Line",
+    "recoverable": null,
+    "matched": false,
+    "option_key": "A3",
+    "title": "Use `traceback.strip_exc_timestamps()` to remove timestamps from exceptions.",
+    "status": "rejected",
+    "status_kind": "inferred",
+    "score": 0.367
+  },
+  {
+    "gold_id": "pep830-r7",
+    "idea": "More Descriptive timestamps Parameter Name",
+    "recoverable": null,
+    "matched": false,
+    "option_key": "A3",
+    "title": "Use `traceback.strip_exc_timestamps()` to remove timestamps from exceptions.",
+    "status": "rejected",
+    "status_kind": "inferred",
+    "score": 0.46
+  },
+  {
+    "gold_id": "pep830-r8",
+    "idea": "Custom Timestamp Formats",
+    "recoverable": null,
+    "matched": false,
+    "option_key": "A2",
+    "title": "Use `sys.excepthook` to add a timestamp to exceptions.",
+    "status": "rejected",
+    "status_kind": "inferred",
+    "score": 0.48
+  },
+  {
+    "gold_id": "pep830-r9",
+    "idea": "Configurable Control Flow Exception Set",
+    "recoverable": null,
+    "matched": false,
+    "option_key": "A2",
+    "title": "Use `sys.excepthook` to add a timestamp to exceptions.",
+    "status": "rejected",
+    "status_kind": "inferred",
+    "score": 0.444
+  },
+  {
+    "gold_id": "pep830-r10",
+    "idea": "Millisecond Precision",
+    "recoverable": null,
+    "matched": false,
+    "option_key": "A2",
+    "title": "Use `sys.excepthook` to add a timestamp to exceptions.",
+    "status": "rejected",
+    "status_kind": "inferred",
+    "score": 0.333
+  },
+  {
+    "gold_id": "pep830-r11",
+    "idea": "Separate Millisecond and Microsecond Display Formats",
+    "recoverable": null,
+    "matched": false,
+    "option_key": "A2",
+    "title": "Use `sys.excepthook` to add a timestamp to exceptions.",
+    "status": "rejected",
+    "status_kind": "inferred",
+    "score": 0.33
+  },
+  {
+    "gold_id": "pep830-r12",
+    "idea": "Returning None When Unset",
+    "recoverable": null,
+    "matched": false,
+    "option_key": "A4",
+    "title": "Use `traceback.format_exception_only()` to format the exception without timestamps.",
+    "status": "rejected",
+    "status_kind": "inferred",
+    "score": 0.272
+  },
+  {
+    "gold_id": "pep830-r13",
+    "idea": "Using a Coarse Clock",
+    "recoverable": null,
+    "matched": false,
+    "option_key": "A2",
+    "title": "Use `sys.excepthook` to add a timestamp to exceptions.",
+    "status": "rejected",
+    "status_kind": "inferred",
+    "score": 0.225
+  }
+]

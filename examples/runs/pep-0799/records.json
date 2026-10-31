@@ -1,0 +1,1615 @@
+[
+  {
+    "id": "dr-283f30d1",
+    "thread_id": "pep:799",
+    "thread_url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898",
+    "question": "PEP 799 – A dedicated profilers package for organizing Python profiling tool",
+    "outcome": "5 options: 1 rejected, 4 unresolved",
+    "options": [
+      {
+        "key": "A1",
+        "title": "profiling",
+        "summary": "The proposal aligns with the goal of providing a unified, high-performance profiler for Python, which is beneficial for observability and",
+        "status": "unresolved",
+        "status_kind": "unresolved",
+        "status_basis": "none",
+        "status_post": null,
+        "decided_by": null,
+        "status_note": "",
+        "status_history": [
+          {
+            "post_id": "dpo:100898:264267",
+            "act": "accept",
+            "role": "author",
+            "author": "pablogsal",
+            "evidence_type": "author_position",
+            "evidence": [
+              {
+                "post_id": "dpo:100898:264174",
+                "post_version": 2,
+                "post_sha256": "a120dfd0f96b0c57c53619130376f7150df860ab973a288a181ca68ad1ca9a54",
+                "sentence_indexes": [
+                  2
+                ],
+                "start": 14,
+                "end": 194,
+                "quote": "This is a straightforward structural proposal: PEP 799 introduces a new `profilers` standard library module to house Python’s built-in profilers under a single, coherent namespace.",
+                "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/1",
+                "author": "pablogsal",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "author_position"
+              },
+              {
+                "post_id": "dpo:100898:264197",
+                "post_version": 3,
+                "post_sha256": "000f370f329a3fd213e0f2a2c2c11f2a6b8d4c4501740c9663287f2298684e49",
+                "sentence_indexes": [
+                  6
+                ],
+                "start": 1927,
+                "end": 2058,
+                "quote": "-   Including this in the stdlib helps steer users away from outdated tools like `profile`, and toward modern, efficient practices.",
+                "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/3",
+                "author": "pablogsal",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "author_position"
+              },
+              {
+                "post_id": "dpo:100898:264212",
+                "post_version": 1,
+                "post_sha256": "4aee3fc1933a917db18a401b3b45988204f7bebe9e577f8513aac59806c105f0",
+                "sentence_indexes": [
+                  2
+                ],
+                "start": 45,
+                "end": 111,
+                "quote": "I agree that `profiling` is a better module name than `profilers`.",
+                "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/4",
+                "author": "guido",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "author_position"
+              },
+              {
+                "post_id": "dpo:100898:264214",
+                "post_version": 1,
+                "post_sha256": "7c7844580f02617301b514f64f0fcc0f9547154c4983e66257d28c1c14eabeaf",
+                "sentence_indexes": [
+                  6
+                ],
+                "start": 143,
+                "end": 151,
+                "quote": "0 voters",
+                "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/6",
+                "author": "pablogsal",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "author_position"
+              },
+              {
+                "post_id": "dpo:100898:264266",
+                "post_version": 1,
+                "post_sha256": "19344f6b764436ecd48fd265d1c5c174bd32570002ba8927802779faab704858",
+                "sentence_indexes": [
+                  2
+                ],
+                "start": 131,
+                "end": 291,
+                "quote": "Aliases can make sense when we need compatibility, but if we’re introducing something new, I’d prefer having it under only one name so users don’t get confused.",
+                "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/7",
+                "author": "Jelle",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "author_position"
+              },
+              {
+                "post_id": "dpo:100898:264267",
+                "post_version": 3,
+                "post_sha256": "7d4e225a77369d14f3a02b560871b644220cfad0dc3843d61eae66c9ee280670",
+                "sentence_indexes": [
+                  2
+                ],
+                "start": 10,
+                "end": 216,
+                "quote": "The idea is that we would mostly advertise the `profilers.sampling` one but I wanted to have an alias for the name the same way you would have `cProfile` (which we are not removing) and `profilers.tracing`.",
+                "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/8",
+                "author": "pablogsal",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "author_position"
+              }
+            ],
+            "support": "unchecked",
+            "status_after": "unresolved"
+          }
+        ],
+        "reasons": [
+          {
+            "stance": "pro",
+            "text": "The proposal aligns with the goal of providing a unified, high-performance profiler for Python, which is beneficial for observability and tool consistency.",
+            "evidence": [
+              {
+                "post_id": "dpo:100898:264174",
+                "post_version": 2,
+                "post_sha256": "a120dfd0f96b0c57c53619130376f7150df860ab973a288a181ca68ad1ca9a54",
+                "sentence_indexes": [
+                  2
+                ],
+                "start": 14,
+                "end": 194,
+                "quote": "This is a straightforward structural proposal: PEP 799 introduces a new `profilers` standard library module to house Python’s built-in profilers under a single, coherent namespace.",
+                "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/1",
+                "author": "pablogsal",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "author_position"
+              },
+              {
+                "post_id": "dpo:100898:264197",
+                "post_version": 3,
+                "post_sha256": "000f370f329a3fd213e0f2a2c2c11f2a6b8d4c4501740c9663287f2298684e49",
+                "sentence_indexes": [
+                  6
+                ],
+                "start": 1927,
+                "end": 2058,
+                "quote": "-   Including this in the stdlib helps steer users away from outdated tools like `profile`, and toward modern, efficient practices.",
+                "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/3",
+                "author": "pablogsal",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "author_position"
+              },
+              {
+                "post_id": "dpo:100898:264212",
+                "post_version": 1,
+                "post_sha256": "4aee3fc1933a917db18a401b3b45988204f7bebe9e577f8513aac59806c105f0",
+                "sentence_indexes": [
+                  2
+                ],
+                "start": 45,
+                "end": 111,
+                "quote": "I agree that `profiling` is a better module name than `profilers`.",
+                "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/4",
+                "author": "guido",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "author_position"
+              },
+              {
+                "post_id": "dpo:100898:264214",
+                "post_version": 1,
+                "post_sha256": "7c7844580f02617301b514f64f0fcc0f9547154c4983e66257d28c1c14eabeaf",
+                "sentence_indexes": [
+                  6
+                ],
+                "start": 143,
+                "end": 151,
+                "quote": "0 voters",
+                "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/6",
+                "author": "pablogsal",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "author_position"
+              },
+              {
+                "post_id": "dpo:100898:264266",
+                "post_version": 1,
+                "post_sha256": "19344f6b764436ecd48fd265d1c5c174bd32570002ba8927802779faab704858",
+                "sentence_indexes": [
+                  2
+                ],
+                "start": 131,
+                "end": 291,
+                "quote": "Aliases can make sense when we need compatibility, but if we’re introducing something new, I’d prefer having it under only one name so users don’t get confused.",
+                "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/7",
+                "author": "Jelle",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "author_position"
+              },
+              {
+                "post_id": "dpo:100898:264267",
+                "post_version": 3,
+                "post_sha256": "7d4e225a77369d14f3a02b560871b644220cfad0dc3843d61eae66c9ee280670",
+                "sentence_indexes": [
+                  2
+                ],
+                "start": 10,
+                "end": 216,
+                "quote": "The idea is that we would mostly advertise the `profilers.sampling` one but I wanted to have an alias for the name the same way you would have `cProfile` (which we are not removing) and `profilers.tracing`.",
+                "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/8",
+                "author": "pablogsal",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "author_position"
+              }
+            ],
+            "support": "unchecked"
+          }
+        ],
+        "evidence": [
+          {
+            "post_id": "dpo:100898:264174",
+            "post_version": 2,
+            "post_sha256": "a120dfd0f96b0c57c53619130376f7150df860ab973a288a181ca68ad1ca9a54",
+            "sentence_indexes": [
+              2
+            ],
+            "start": 14,
+            "end": 194,
+            "quote": "This is a straightforward structural proposal: PEP 799 introduces a new `profilers` standard library module to house Python’s built-in profilers under a single, coherent namespace.",
+            "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/1",
+            "author": "pablogsal",
+            "source_check": "valid",
+            "support": "unchecked",
+            "evidence_type": "author_position"
+          },
+          {
+            "post_id": "dpo:100898:264197",
+            "post_version": 3,
+            "post_sha256": "000f370f329a3fd213e0f2a2c2c11f2a6b8d4c4501740c9663287f2298684e49",
+            "sentence_indexes": [
+              6
+            ],
+            "start": 1927,
+            "end": 2058,
+            "quote": "-   Including this in the stdlib helps steer users away from outdated tools like `profile`, and toward modern, efficient practices.",
+            "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/3",
+            "author": "pablogsal",
+            "source_check": "valid",
+            "support": "unchecked",
+            "evidence_type": "author_position"
+          },
+          {
+            "post_id": "dpo:100898:264212",
+            "post_version": 1,
+            "post_sha256": "4aee3fc1933a917db18a401b3b45988204f7bebe9e577f8513aac59806c105f0",
+            "sentence_indexes": [
+              2
+            ],
+            "start": 45,
+            "end": 111,
+            "quote": "I agree that `profiling` is a better module name than `profilers`.",
+            "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/4",
+            "author": "guido",
+            "source_check": "valid",
+            "support": "unchecked",
+            "evidence_type": "author_position"
+          },
+          {
+            "post_id": "dpo:100898:264214",
+            "post_version": 1,
+            "post_sha256": "7c7844580f02617301b514f64f0fcc0f9547154c4983e66257d28c1c14eabeaf",
+            "sentence_indexes": [
+              6
+            ],
+            "start": 143,
+            "end": 151,
+            "quote": "0 voters",
+            "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/6",
+            "author": "pablogsal",
+            "source_check": "valid",
+            "support": "unchecked",
+            "evidence_type": "author_position"
+          },
+          {
+            "post_id": "dpo:100898:264266",
+            "post_version": 1,
+            "post_sha256": "19344f6b764436ecd48fd265d1c5c174bd32570002ba8927802779faab704858",
+            "sentence_indexes": [
+              2
+            ],
+            "start": 131,
+            "end": 291,
+            "quote": "Aliases can make sense when we need compatibility, but if we’re introducing something new, I’d prefer having it under only one name so users don’t get confused.",
+            "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/7",
+            "author": "Jelle",
+            "source_check": "valid",
+            "support": "unchecked",
+            "evidence_type": "author_position"
+          },
+          {
+            "post_id": "dpo:100898:264267",
+            "post_version": 3,
+            "post_sha256": "7d4e225a77369d14f3a02b560871b644220cfad0dc3843d61eae66c9ee280670",
+            "sentence_indexes": [
+              2
+            ],
+            "start": 10,
+            "end": 216,
+            "quote": "The idea is that we would mostly advertise the `profilers.sampling` one but I wanted to have an alias for the name the same way you would have `cProfile` (which we are not removing) and `profilers.tracing`.",
+            "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/8",
+            "author": "pablogsal",
+            "source_check": "valid",
+            "support": "unchecked",
+            "evidence_type": "author_position"
+          }
+        ],
+        "confidence": "low"
+      },
+      {
+        "key": "A2",
+        "title": "profilers",
+        "summary": "The proposal maintains consistency with the `profile` module name, which is widely used and understood, and aligns with the goal",
+        "status": "unresolved",
+        "status_kind": "unresolved",
+        "status_basis": "none",
+        "status_post": null,
+        "decided_by": null,
+        "status_note": "",
+        "status_history": [
+          {
+            "post_id": "dpo:100898:264267",
+            "act": "accept",
+            "role": "author",
+            "author": "pablogsal",
+            "evidence_type": "author_position",
+            "evidence": [
+              {
+                "post_id": "dpo:100898:264174",
+                "post_version": 2,
+                "post_sha256": "a120dfd0f96b0c57c53619130376f7150df860ab973a288a181ca68ad1ca9a54",
+                "sentence_indexes": [
+                  2
+                ],
+                "start": 14,
+                "end": 194,
+                "quote": "This is a straightforward structural proposal: PEP 799 introduces a new `profilers` standard library module to house Python’s built-in profilers under a single, coherent namespace.",
+                "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/1",
+                "author": "pablogsal",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "author_position"
+              },
+              {
+                "post_id": "dpo:100898:264197",
+                "post_version": 3,
+                "post_sha256": "000f370f329a3fd213e0f2a2c2c11f2a6b8d4c4501740c9663287f2298684e49",
+                "sentence_indexes": [
+                  6
+                ],
+                "start": 1927,
+                "end": 2058,
+                "quote": "-   Including this in the stdlib helps steer users away from outdated tools like `profile`, and toward modern, efficient practices.",
+                "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/3",
+                "author": "pablogsal",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "author_position"
+              },
+              {
+                "post_id": "dpo:100898:264212",
+                "post_version": 1,
+                "post_sha256": "4aee3fc1933a917db18a401b3b45988204f7bebe9e577f8513aac59806c105f0",
+                "sentence_indexes": [
+                  2
+                ],
+                "start": 45,
+                "end": 111,
+                "quote": "I agree that `profiling` is a better module name than `profilers`.",
+                "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/4",
+                "author": "guido",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "author_position"
+              },
+              {
+                "post_id": "dpo:100898:264214",
+                "post_version": 1,
+                "post_sha256": "7c7844580f02617301b514f64f0fcc0f9547154c4983e66257d28c1c14eabeaf",
+                "sentence_indexes": [
+                  6
+                ],
+                "start": 143,
+                "end": 151,
+                "quote": "0 voters",
+                "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/6",
+                "author": "pablogsal",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "author_position"
+              },
+              {
+                "post_id": "dpo:100898:264266",
+                "post_version": 1,
+                "post_sha256": "19344f6b764436ecd48fd265d1c5c174bd32570002ba8927802779faab704858",
+                "sentence_indexes": [
+                  2
+                ],
+                "start": 131,
+                "end": 291,
+                "quote": "Aliases can make sense when we need compatibility, but if we’re introducing something new, I’d prefer having it under only one name so users don’t get confused.",
+                "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/7",
+                "author": "Jelle",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "author_position"
+              },
+              {
+                "post_id": "dpo:100898:264267",
+                "post_version": 3,
+                "post_sha256": "7d4e225a77369d14f3a02b560871b644220cfad0dc3843d61eae66c9ee280670",
+                "sentence_indexes": [
+                  2
+                ],
+                "start": 10,
+                "end": 216,
+                "quote": "The idea is that we would mostly advertise the `profilers.sampling` one but I wanted to have an alias for the name the same way you would have `cProfile` (which we are not removing) and `profilers.tracing`.",
+                "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/8",
+                "author": "pablogsal",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "author_position"
+              }
+            ],
+            "support": "unchecked",
+            "status_after": "unresolved"
+          }
+        ],
+        "reasons": [
+          {
+            "stance": "pro",
+            "text": "The proposal maintains consistency with the `profile` module name, which is widely used and understood, and aligns with the goal of providing a unified, high-performance profiler for Python.",
+            "evidence": [
+              {
+                "post_id": "dpo:100898:264174",
+                "post_version": 2,
+                "post_sha256": "a120dfd0f96b0c57c53619130376f7150df860ab973a288a181ca68ad1ca9a54",
+                "sentence_indexes": [
+                  2
+                ],
+                "start": 14,
+                "end": 194,
+                "quote": "This is a straightforward structural proposal: PEP 799 introduces a new `profilers` standard library module to house Python’s built-in profilers under a single, coherent namespace.",
+                "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/1",
+                "author": "pablogsal",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "author_position"
+              },
+              {
+                "post_id": "dpo:100898:264197",
+                "post_version": 3,
+                "post_sha256": "000f370f329a3fd213e0f2a2c2c11f2a6b8d4c4501740c9663287f2298684e49",
+                "sentence_indexes": [
+                  6
+                ],
+                "start": 1927,
+                "end": 2058,
+                "quote": "-   Including this in the stdlib helps steer users away from outdated tools like `profile`, and toward modern, efficient practices.",
+                "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/3",
+                "author": "pablogsal",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "author_position"
+              },
+              {
+                "post_id": "dpo:100898:264212",
+                "post_version": 1,
+                "post_sha256": "4aee3fc1933a917db18a401b3b45988204f7bebe9e577f8513aac59806c105f0",
+                "sentence_indexes": [
+                  2
+                ],
+                "start": 45,
+                "end": 111,
+                "quote": "I agree that `profiling` is a better module name than `profilers`.",
+                "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/4",
+                "author": "guido",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "author_position"
+              },
+              {
+                "post_id": "dpo:100898:264214",
+                "post_version": 1,
+                "post_sha256": "7c7844580f02617301b514f64f0fcc0f9547154c4983e66257d28c1c14eabeaf",
+                "sentence_indexes": [
+                  6
+                ],
+                "start": 143,
+                "end": 151,
+                "quote": "0 voters",
+                "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/6",
+                "author": "pablogsal",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "author_position"
+              },
+              {
+                "post_id": "dpo:100898:264266",
+                "post_version": 1,
+                "post_sha256": "19344f6b764436ecd48fd265d1c5c174bd32570002ba8927802779faab704858",
+                "sentence_indexes": [
+                  2
+                ],
+                "start": 131,
+                "end": 291,
+                "quote": "Aliases can make sense when we need compatibility, but if we’re introducing something new, I’d prefer having it under only one name so users don’t get confused.",
+                "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/7",
+                "author": "Jelle",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "author_position"
+              },
+              {
+                "post_id": "dpo:100898:264267",
+                "post_version": 3,
+                "post_sha256": "7d4e225a77369d14f3a02b560871b644220cfad0dc3843d61eae66c9ee280670",
+                "sentence_indexes": [
+                  2
+                ],
+                "start": 10,
+                "end": 216,
+                "quote": "The idea is that we would mostly advertise the `profilers.sampling` one but I wanted to have an alias for the name the same way you would have `cProfile` (which we are not removing) and `profilers.tracing`.",
+                "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/8",
+                "author": "pablogsal",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "author_position"
+              }
+            ],
+            "support": "unchecked"
+          }
+        ],
+        "evidence": [
+          {
+            "post_id": "dpo:100898:264174",
+            "post_version": 2,
+            "post_sha256": "a120dfd0f96b0c57c53619130376f7150df860ab973a288a181ca68ad1ca9a54",
+            "sentence_indexes": [
+              2
+            ],
+            "start": 14,
+            "end": 194,
+            "quote": "This is a straightforward structural proposal: PEP 799 introduces a new `profilers` standard library module to house Python’s built-in profilers under a single, coherent namespace.",
+            "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/1",
+            "author": "pablogsal",
+            "source_check": "valid",
+            "support": "unchecked",
+            "evidence_type": "author_position"
+          },
+          {
+            "post_id": "dpo:100898:264197",
+            "post_version": 3,
+            "post_sha256": "000f370f329a3fd213e0f2a2c2c11f2a6b8d4c4501740c9663287f2298684e49",
+            "sentence_indexes": [
+              6
+            ],
+            "start": 1927,
+            "end": 2058,
+            "quote": "-   Including this in the stdlib helps steer users away from outdated tools like `profile`, and toward modern, efficient practices.",
+            "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/3",
+            "author": "pablogsal",
+            "source_check": "valid",
+            "support": "unchecked",
+            "evidence_type": "author_position"
+          },
+          {
+            "post_id": "dpo:100898:264212",
+            "post_version": 1,
+            "post_sha256": "4aee3fc1933a917db18a401b3b45988204f7bebe9e577f8513aac59806c105f0",
+            "sentence_indexes": [
+              2
+            ],
+            "start": 45,
+            "end": 111,
+            "quote": "I agree that `profiling` is a better module name than `profilers`.",
+            "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/4",
+            "author": "guido",
+            "source_check": "valid",
+            "support": "unchecked",
+            "evidence_type": "author_position"
+          },
+          {
+            "post_id": "dpo:100898:264214",
+            "post_version": 1,
+            "post_sha256": "7c7844580f02617301b514f64f0fcc0f9547154c4983e66257d28c1c14eabeaf",
+            "sentence_indexes": [
+              6
+            ],
+            "start": 143,
+            "end": 151,
+            "quote": "0 voters",
+            "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/6",
+            "author": "pablogsal",
+            "source_check": "valid",
+            "support": "unchecked",
+            "evidence_type": "author_position"
+          },
+          {
+            "post_id": "dpo:100898:264266",
+            "post_version": 1,
+            "post_sha256": "19344f6b764436ecd48fd265d1c5c174bd32570002ba8927802779faab704858",
+            "sentence_indexes": [
+              2
+            ],
+            "start": 131,
+            "end": 291,
+            "quote": "Aliases can make sense when we need compatibility, but if we’re introducing something new, I’d prefer having it under only one name so users don’t get confused.",
+            "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/7",
+            "author": "Jelle",
+            "source_check": "valid",
+            "support": "unchecked",
+            "evidence_type": "author_position"
+          },
+          {
+            "post_id": "dpo:100898:264267",
+            "post_version": 3,
+            "post_sha256": "7d4e225a77369d14f3a02b560871b644220cfad0dc3843d61eae66c9ee280670",
+            "sentence_indexes": [
+              2
+            ],
+            "start": 10,
+            "end": 216,
+            "quote": "The idea is that we would mostly advertise the `profilers.sampling` one but I wanted to have an alias for the name the same way you would have `cProfile` (which we are not removing) and `profilers.tracing`.",
+            "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/8",
+            "author": "pablogsal",
+            "source_check": "valid",
+            "support": "unchecked",
+            "evidence_type": "author_position"
+          }
+        ],
+        "confidence": "low"
+      },
+      {
+        "key": "A3",
+        "title": "Use a dedicated profiling package",
+        "summary": "The proposal aims to provide a unified, high-performance profiler for Python, which is beneficial for observability and simplifies the implementation",
+        "status": "unresolved",
+        "status_kind": "unresolved",
+        "status_basis": "none",
+        "status_post": null,
+        "decided_by": null,
+        "status_note": "",
+        "status_history": [
+          {
+            "post_id": "dpo:100898:264174",
+            "act": "accept",
+            "role": "author",
+            "author": "pablogsal",
+            "evidence_type": "author_position",
+            "evidence": [
+              {
+                "post_id": "dpo:100898:264174",
+                "post_version": 2,
+                "post_sha256": "a120dfd0f96b0c57c53619130376f7150df860ab973a288a181ca68ad1ca9a54",
+                "sentence_indexes": [
+                  1,
+                  2,
+                  3
+                ],
+                "start": 0,
+                "end": 199,
+                "quote": "Hi everyone,\n\nThis is a straightforward structural proposal: PEP 799 introduces a new `profilers` standard library module to house Python’s built-in profilers under a single, coherent namespace.\n\nIt:",
+                "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/1",
+                "author": "pablogsal",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "author_position"
+              }
+            ],
+            "support": "unchecked",
+            "status_after": "unresolved"
+          }
+        ],
+        "reasons": [
+          {
+            "stance": "pro",
+            "text": "The proposal aims to provide a unified, high-performance profiler for Python, which is beneficial for observability and simplifies the implementation of a new profiler.",
+            "evidence": [
+              {
+                "post_id": "dpo:100898:264174",
+                "post_version": 2,
+                "post_sha256": "a120dfd0f96b0c57c53619130376f7150df860ab973a288a181ca68ad1ca9a54",
+                "sentence_indexes": [
+                  1,
+                  2,
+                  3
+                ],
+                "start": 0,
+                "end": 199,
+                "quote": "Hi everyone,\n\nThis is a straightforward structural proposal: PEP 799 introduces a new `profilers` standard library module to house Python’s built-in profilers under a single, coherent namespace.\n\nIt:",
+                "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/1",
+                "author": "pablogsal",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "author_position"
+              }
+            ],
+            "support": "unchecked"
+          }
+        ],
+        "evidence": [
+          {
+            "post_id": "dpo:100898:264174",
+            "post_version": 2,
+            "post_sha256": "a120dfd0f96b0c57c53619130376f7150df860ab973a288a181ca68ad1ca9a54",
+            "sentence_indexes": [
+              1,
+              2,
+              3
+            ],
+            "start": 0,
+            "end": 199,
+            "quote": "Hi everyone,\n\nThis is a straightforward structural proposal: PEP 799 introduces a new `profilers` standard library module to house Python’s built-in profilers under a single, coherent namespace.\n\nIt:",
+            "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/1",
+            "author": "pablogsal",
+            "source_check": "valid",
+            "support": "unchecked",
+            "evidence_type": "author_position"
+          }
+        ],
+        "confidence": "low"
+      },
+      {
+        "key": "A4",
+        "title": "Use the `profiling` module",
+        "summary": "The proposal aligns with the goal of providing a unified, high-performance profiler for Python, which is beneficial for observability and",
+        "status": "unresolved",
+        "status_kind": "unresolved",
+        "status_basis": "none",
+        "status_post": null,
+        "decided_by": null,
+        "status_note": "",
+        "status_history": [
+          {
+            "post_id": "dpo:100898:264174",
+            "act": "accept",
+            "role": "author",
+            "author": "pablogsal",
+            "evidence_type": "author_position",
+            "evidence": [
+              {
+                "post_id": "dpo:100898:264174",
+                "post_version": 2,
+                "post_sha256": "a120dfd0f96b0c57c53619130376f7150df860ab973a288a181ca68ad1ca9a54",
+                "sentence_indexes": [
+                  1,
+                  2,
+                  3
+                ],
+                "start": 0,
+                "end": 199,
+                "quote": "Hi everyone,\n\nThis is a straightforward structural proposal: PEP 799 introduces a new `profilers` standard library module to house Python’s built-in profilers under a single, coherent namespace.\n\nIt:",
+                "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/1",
+                "author": "pablogsal",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "author_position"
+              }
+            ],
+            "support": "unchecked",
+            "status_after": "unresolved"
+          }
+        ],
+        "reasons": [
+          {
+            "stance": "pro",
+            "text": "The proposal aligns with the goal of providing a unified, high-performance profiler for Python, which is beneficial for observability and simplifies the implementation of a new profiler.",
+            "evidence": [
+              {
+                "post_id": "dpo:100898:264174",
+                "post_version": 2,
+                "post_sha256": "a120dfd0f96b0c57c53619130376f7150df860ab973a288a181ca68ad1ca9a54",
+                "sentence_indexes": [
+                  1,
+                  2,
+                  3
+                ],
+                "start": 0,
+                "end": 199,
+                "quote": "Hi everyone,\n\nThis is a straightforward structural proposal: PEP 799 introduces a new `profilers` standard library module to house Python’s built-in profilers under a single, coherent namespace.\n\nIt:",
+                "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/1",
+                "author": "pablogsal",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "author_position"
+              }
+            ],
+            "support": "unchecked"
+          },
+          {
+            "stance": "pro",
+            "text": "The proposal maintains consistency with the `profile` module name, which is widely used and understood, and aligns with the goal.",
+            "evidence": [
+              {
+                "post_id": "dpo:100898:264174",
+                "post_version": 2,
+                "post_sha256": "a120dfd0f96b0c57c53619130376f7150df860ab973a288a181ca68ad1ca9a54",
+                "sentence_indexes": [
+                  1,
+                  2,
+                  3
+                ],
+                "start": 0,
+                "end": 199,
+                "quote": "Hi everyone,\n\nThis is a straightforward structural proposal: PEP 799 introduces a new `profilers` standard library module to house Python’s built-in profilers under a single, coherent namespace.\n\nIt:",
+                "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/1",
+                "author": "pablogsal",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "author_position"
+              }
+            ],
+            "support": "unchecked"
+          }
+        ],
+        "evidence": [
+          {
+            "post_id": "dpo:100898:264174",
+            "post_version": 2,
+            "post_sha256": "a120dfd0f96b0c57c53619130376f7150df860ab973a288a181ca68ad1ca9a54",
+            "sentence_indexes": [
+              1,
+              2,
+              3
+            ],
+            "start": 0,
+            "end": 199,
+            "quote": "Hi everyone,\n\nThis is a straightforward structural proposal: PEP 799 introduces a new `profilers` standard library module to house Python’s built-in profilers under a single, coherent namespace.\n\nIt:",
+            "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/1",
+            "author": "pablogsal",
+            "source_check": "valid",
+            "support": "unchecked",
+            "evidence_type": "author_position"
+          }
+        ],
+        "confidence": "low"
+      },
+      {
+        "key": "A5",
+        "title": "Use a decorator",
+        "summary": "Decorators cannot wrap imports.",
+        "status": "rejected",
+        "status_kind": "inferred",
+        "status_basis": "author_statement",
+        "status_post": "dpo:100898:264174",
+        "decided_by": {
+          "handle": "pablogsal",
+          "role": "author"
+        },
+        "status_note": "",
+        "status_history": [
+          {
+            "post_id": "dpo:100898:264174",
+            "act": "reject",
+            "role": "author",
+            "author": "pablogsal",
+            "evidence_type": "author_position",
+            "evidence": [
+              {
+                "post_id": "dpo:100898:264174",
+                "post_version": 2,
+                "post_sha256": "a120dfd0f96b0c57c53619130376f7150df860ab973a288a181ca68ad1ca9a54",
+                "sentence_indexes": [
+                  1,
+                  2,
+                  3
+                ],
+                "start": 0,
+                "end": 199,
+                "quote": "Hi everyone,\n\nThis is a straightforward structural proposal: PEP 799 introduces a new `profilers` standard library module to house Python’s built-in profilers under a single, coherent namespace.\n\nIt:",
+                "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/1",
+                "author": "pablogsal",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "author_position"
+              }
+            ],
+            "support": "unchecked",
+            "status_after": "rejected"
+          }
+        ],
+        "reasons": [
+          {
+            "stance": "con",
+            "text": "Decorators cannot wrap imports.",
+            "evidence": [
+              {
+                "post_id": "dpo:100898:264174",
+                "post_version": 2,
+                "post_sha256": "a120dfd0f96b0c57c53619130376f7150df860ab973a288a181ca68ad1ca9a54",
+                "sentence_indexes": [
+                  1,
+                  2,
+                  3
+                ],
+                "start": 0,
+                "end": 199,
+                "quote": "Hi everyone,\n\nThis is a straightforward structural proposal: PEP 799 introduces a new `profilers` standard library module to house Python’s built-in profilers under a single, coherent namespace.\n\nIt:",
+                "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/1",
+                "author": "pablogsal",
+                "source_check": "valid",
+                "support": "unchecked",
+                "evidence_type": "author_position"
+              }
+            ],
+            "support": "unchecked"
+          }
+        ],
+        "evidence": [
+          {
+            "post_id": "dpo:100898:264174",
+            "post_version": 2,
+            "post_sha256": "a120dfd0f96b0c57c53619130376f7150df860ab973a288a181ca68ad1ca9a54",
+            "sentence_indexes": [
+              1,
+              2,
+              3
+            ],
+            "start": 0,
+            "end": 199,
+            "quote": "Hi everyone,\n\nThis is a straightforward structural proposal: PEP 799 introduces a new `profilers` standard library module to house Python’s built-in profilers under a single, coherent namespace.\n\nIt:",
+            "url": "https://discuss.python.org/t/pep-799-a-dedicated-profilers-package-for-organizing-python-profiling-tool/100898/1",
+            "author": "pablogsal",
+            "source_check": "valid",
+            "support": "unchecked",
+            "evidence_type": "author_position"
+          }
+        ],
+        "confidence": "low"
+      }
+    ],
+    "decided_by": {
+      "handle": "pablogsal",
+      "role": "author"
+    },
+    "decided_in_post": "dpo:100898:264174",
+    "code_links": [
+      {
+        "repo": "",
+        "path": "profiling/tracing.py",
+        "commit": null,
+        "pr": null,
+        "method": "mentioned",
+        "strength": "direct"
+      }
+    ],
+    "verification": "unverified",
+    "run": {
+      "mode": "live",
+      "decrack_version": "0.1.0",
+      "model": "qwen2.5:1.5b",
+      "model_digest": "65ec06548149b04c096a120e4a6da9d4017ea809c91734ea5631e89f96ddc57b",
+      "ollama_version": "0.40.13",
+      "params": {
+        "num_ctx": 8192,
+        "temperature": 0,
+        "num_predict": 2048,
+        "think": false,
+        "window_max_tokens": 3000,
+        "window_overlap_tokens": 300,
+        "support_check": false
+      },
+      "prompt_version": "decrack-prompts-3",
+      "schema_version": "decrack-record/0.2",
+      "started_at": "2026-10-31T22:47:54.040977Z",
+      "seconds": 40.209,
+      "llm_calls": 2,
+      "cache_hits": 0,
+      "tokens_in": 8481,
+      "tokens_out": 2536,
+      "windows": 2,
+      "candidates_total": 6,
+      "candidates_verified": 6,
+      "support_checked": false,
+      "alias_map": {
+        "p1.s1": {
+          "post_id": "dpo:100898:264174",
+          "version": 2,
+          "index": 1
+        },
+        "p1.s2": {
+          "post_id": "dpo:100898:264174",
+          "version": 2,
+          "index": 2
+        },
+        "p1.s3": {
+          "post_id": "dpo:100898:264174",
+          "version": 2,
+          "index": 3
+        },
+        "p1.s4": {
+          "post_id": "dpo:100898:264174",
+          "version": 2,
+          "index": 4
+        },
+        "p1.s5": {
+          "post_id": "dpo:100898:264174",
+          "version": 2,
+          "index": 5
+        },
+        "p1.s6": {
+          "post_id": "dpo:100898:264174",
+          "version": 2,
+          "index": 6
+        },
+        "p1.s7": {
+          "post_id": "dpo:100898:264174",
+          "version": 2,
+          "index": 7
+        },
+        "p1.s8": {
+          "post_id": "dpo:100898:264174",
+          "version": 2,
+          "index": 8
+        },
+        "p1.s9": {
+          "post_id": "dpo:100898:264174",
+          "version": 2,
+          "index": 9
+        },
+        "p2.s1": {
+          "post_id": "dpo:100898:264182",
+          "version": 1,
+          "index": 1
+        },
+        "p2.s2": {
+          "post_id": "dpo:100898:264182",
+          "version": 1,
+          "index": 2
+        },
+        "p2.s3": {
+          "post_id": "dpo:100898:264182",
+          "version": 1,
+          "index": 3
+        },
+        "p3.s1": {
+          "post_id": "dpo:100898:264197",
+          "version": 3,
+          "index": 1
+        },
+        "p3.s2": {
+          "post_id": "dpo:100898:264197",
+          "version": 3,
+          "index": 2
+        },
+        "p3.s3": {
+          "post_id": "dpo:100898:264197",
+          "version": 3,
+          "index": 3
+        },
+        "p3.s4": {
+          "post_id": "dpo:100898:264197",
+          "version": 3,
+          "index": 4
+        },
+        "p3.s5": {
+          "post_id": "dpo:100898:264197",
+          "version": 3,
+          "index": 5
+        },
+        "p3.s6": {
+          "post_id": "dpo:100898:264197",
+          "version": 3,
+          "index": 6
+        },
+        "p3.s7": {
+          "post_id": "dpo:100898:264197",
+          "version": 3,
+          "index": 7
+        },
+        "p3.s8": {
+          "post_id": "dpo:100898:264197",
+          "version": 3,
+          "index": 8
+        },
+        "p3.s9": {
+          "post_id": "dpo:100898:264197",
+          "version": 3,
+          "index": 9
+        },
+        "p3.s10": {
+          "post_id": "dpo:100898:264197",
+          "version": 3,
+          "index": 10
+        },
+        "p3.s11": {
+          "post_id": "dpo:100898:264197",
+          "version": 3,
+          "index": 11
+        },
+        "p4.s1": {
+          "post_id": "dpo:100898:264212",
+          "version": 1,
+          "index": 1
+        },
+        "p4.s2": {
+          "post_id": "dpo:100898:264212",
+          "version": 1,
+          "index": 2
+        },
+        "p4.s3": {
+          "post_id": "dpo:100898:264212",
+          "version": 1,
+          "index": 3
+        },
+        "p5.s1": {
+          "post_id": "dpo:100898:264214",
+          "version": 1,
+          "index": 1
+        },
+        "p5.s2": {
+          "post_id": "dpo:100898:264214",
+          "version": 1,
+          "index": 2
+        },
+        "p5.s3": {
+          "post_id": "dpo:100898:264214",
+          "version": 1,
+          "index": 3
+        },
+        "p5.s4": {
+          "post_id": "dpo:100898:264214",
+          "version": 1,
+          "index": 4
+        },
+        "p5.s5": {
+          "post_id": "dpo:100898:264214",
+          "version": 1,
+          "index": 5
+        },
+        "p5.s6": {
+          "post_id": "dpo:100898:264214",
+          "version": 1,
+          "index": 6
+        },
+        "p6.s1": {
+          "post_id": "dpo:100898:264266",
+          "version": 1,
+          "index": 1
+        },
+        "p6.s2": {
+          "post_id": "dpo:100898:264266",
+          "version": 1,
+          "index": 2
+        },
+        "p7.s1": {
+          "post_id": "dpo:100898:264267",
+          "version": 3,
+          "index": 1
+        },
+        "p7.s2": {
+          "post_id": "dpo:100898:264267",
+          "version": 3,
+          "index": 2
+        },
+        "p7.s3": {
+          "post_id": "dpo:100898:264267",
+          "version": 3,
+          "index": 3
+        },
+        "p8.s1": {
+          "post_id": "dpo:100898:264275",
+          "version": 1,
+          "index": 1
+        },
+        "p8.s2": {
+          "post_id": "dpo:100898:264275",
+          "version": 1,
+          "index": 2
+        },
+        "p8.s3": {
+          "post_id": "dpo:100898:264275",
+          "version": 1,
+          "index": 3
+        },
+        "p8.s4": {
+          "post_id": "dpo:100898:264275",
+          "version": 1,
+          "index": 4
+        },
+        "p8.s5": {
+          "post_id": "dpo:100898:264275",
+          "version": 1,
+          "index": 5
+        },
+        "p9.s1": {
+          "post_id": "dpo:100898:264276",
+          "version": 1,
+          "index": 1
+        },
+        "p9.s2": {
+          "post_id": "dpo:100898:264276",
+          "version": 1,
+          "index": 2
+        },
+        "p9.s3": {
+          "post_id": "dpo:100898:264276",
+          "version": 1,
+          "index": 3
+        },
+        "p9.s4": {
+          "post_id": "dpo:100898:264276",
+          "version": 1,
+          "index": 4
+        },
+        "p10.s1": {
+          "post_id": "dpo:100898:264285",
+          "version": 1,
+          "index": 1
+        },
+        "p10.s2": {
+          "post_id": "dpo:100898:264285",
+          "version": 1,
+          "index": 2
+        },
+        "p11.s1": {
+          "post_id": "dpo:100898:264310",
+          "version": 1,
+          "index": 1
+        },
+        "p11.s2": {
+          "post_id": "dpo:100898:264310",
+          "version": 1,
+          "index": 2
+        },
+        "p11.s3": {
+          "post_id": "dpo:100898:264310",
+          "version": 1,
+          "index": 3
+        },
+        "p11.s4": {
+          "post_id": "dpo:100898:264310",
+          "version": 1,
+          "index": 4
+        },
+        "p11.s5": {
+          "post_id": "dpo:100898:264310",
+          "version": 1,
+          "index": 5
+        },
+        "p11.s6": {
+          "post_id": "dpo:100898:264310",
+          "version": 1,
+          "index": 6
+        },
+        "p11.s7": {
+          "post_id": "dpo:100898:264310",
+          "version": 1,
+          "index": 7
+        },
+        "p11.s8": {
+          "post_id": "dpo:100898:264310",
+          "version": 1,
+          "index": 8
+        },
+        "p11.s9": {
+          "post_id": "dpo:100898:264310",
+          "version": 1,
+          "index": 9
+        },
+        "p12.s1": {
+          "post_id": "dpo:100898:264326",
+          "version": 1,
+          "index": 1
+        },
+        "p12.s2": {
+          "post_id": "dpo:100898:264326",
+          "version": 1,
+          "index": 2
+        },
+        "p12.s3": {
+          "post_id": "dpo:100898:264326",
+          "version": 1,
+          "index": 3
+        },
+        "p12.s4": {
+          "post_id": "dpo:100898:264326",
+          "version": 1,
+          "index": 4
+        },
+        "p13.s1": {
+          "post_id": "dpo:100898:264402",
+          "version": 1,
+          "index": 1
+        },
+        "p13.s2": {
+          "post_id": "dpo:100898:264402",
+          "version": 1,
+          "index": 2
+        },
+        "p13.s3": {
+          "post_id": "dpo:100898:264402",
+          "version": 1,
+          "index": 3
+        },
+        "p14.s1": {
+          "post_id": "dpo:100898:264436",
+          "version": 1,
+          "index": 1
+        },
+        "p15.s1": {
+          "post_id": "dpo:100898:264470",
+          "version": 1,
+          "index": 1
+        },
+        "p15.s2": {
+          "post_id": "dpo:100898:264470",
+          "version": 1,
+          "index": 2
+        },
+        "p15.s3": {
+          "post_id": "dpo:100898:264470",
+          "version": 1,
+          "index": 3
+        },
+        "p15.s4": {
+          "post_id": "dpo:100898:264470",
+          "version": 1,
+          "index": 4
+        },
+        "p15.s5": {
+          "post_id": "dpo:100898:264470",
+          "version": 1,
+          "index": 5
+        },
+        "p16.s1": {
+          "post_id": "dpo:100898:264509",
+          "version": 1,
+          "index": 1
+        },
+        "p16.s2": {
+          "post_id": "dpo:100898:264509",
+          "version": 1,
+          "index": 2
+        },
+        "p17.s1": {
+          "post_id": "dpo:100898:264541",
+          "version": 1,
+          "index": 1
+        },
+        "p17.s2": {
+          "post_id": "dpo:100898:264541",
+          "version": 1,
+          "index": 2
+        },
+        "p17.s3": {
+          "post_id": "dpo:100898:264541",
+          "version": 1,
+          "index": 3
+        },
+        "p17.s4": {
+          "post_id": "dpo:100898:264541",
+          "version": 1,
+          "index": 4
+        },
+        "p17.s5": {
+          "post_id": "dpo:100898:264541",
+          "version": 1,
+          "index": 5
+        },
+        "p17.s6": {
+          "post_id": "dpo:100898:264541",
+          "version": 1,
+          "index": 6
+        },
+        "p17.s7": {
+          "post_id": "dpo:100898:264541",
+          "version": 1,
+          "index": 7
+        },
+        "p17.s8": {
+          "post_id": "dpo:100898:264541",
+          "version": 1,
+          "index": 8
+        },
+        "p17.s9": {
+          "post_id": "dpo:100898:264541",
+          "version": 1,
+          "index": 9
+        },
+        "p18.s1": {
+          "post_id": "dpo:100898:264542",
+          "version": 1,
+          "index": 1
+        },
+        "p18.s2": {
+          "post_id": "dpo:100898:264542",
+          "version": 1,
+          "index": 2
+        },
+        "p18.s3": {
+          "post_id": "dpo:100898:264542",
+          "version": 1,
+          "index": 3
+        },
+        "p18.s4": {
+          "post_id": "dpo:100898:264542",
+          "version": 1,
+          "index": 4
+        },
+        "p18.s5": {
+          "post_id": "dpo:100898:264542",
+          "version": 1,
+          "index": 5
+        },
+        "p18.s6": {
+          "post_id": "dpo:100898:264542",
+          "version": 1,
+          "index": 6
+        },
+        "p18.s7": {
+          "post_id": "dpo:100898:264542",
+          "version": 1,
+          "index": 7
+        },
+        "p19.s1": {
+          "post_id": "dpo:100898:264543",
+          "version": 1,
+          "index": 1
+        },
+        "p19.s2": {
+          "post_id": "dpo:100898:264543",
+          "version": 1,
+          "index": 2
+        },
+        "p19.s3": {
+          "post_id": "dpo:100898:264543",
+          "version": 1,
+          "index": 3
+        },
+        "p19.s4": {
+          "post_id": "dpo:100898:264543",
+          "version": 1,
+          "index": 4
+        },
+        "p19.s5": {
+          "post_id": "dpo:100898:264543",
+          "version": 1,
+          "index": 5
+        },
+        "p19.s6": {
+          "post_id": "dpo:100898:264543",
+          "version": 1,
+          "index": 6
+        },
+        "p20.s1": {
+          "post_id": "dpo:100898:268573",
+          "version": 1,
+          "index": 1
+        },
+        "p20.s2": {
+          "post_id": "dpo:100898:268573",
+          "version": 1,
+          "index": 2
+        },
+        "p21.s1": {
+          "post_id": "dpo:100898:280915",
+          "version": 1,
+          "index": 1
+        },
+        "p21.s2": {
+          "post_id": "dpo:100898:280915",
+          "version": 1,
+          "index": 2
+        },
+        "p21.s3": {
+          "post_id": "dpo:100898:280915",
+          "version": 1,
+          "index": 3
+        },
+        "p22.s1": {
+          "post_id": "dpo:100898:280918",
+          "version": 1,
+          "index": 1
+        }
+      },
+      "source_allowlist": [
+        {
+          "post_id": "dpo:100898:264174",
+          "version": 2,
+          "sha256": "a120dfd0f96b0c57c53619130376f7150df860ab973a288a181ca68ad1ca9a54"
+        },
+        {
+          "post_id": "dpo:100898:264182",
+          "version": 1,
+          "sha256": "22e0bc6dacd3ab6189d8e617dfc3435696d983512b0a2e5b499b59d9ea9a3fa8"
+        },
+        {
+          "post_id": "dpo:100898:264197",
+          "version": 3,
+          "sha256": "000f370f329a3fd213e0f2a2c2c11f2a6b8d4c4501740c9663287f2298684e49"
+        },
+        {
+          "post_id": "dpo:100898:264212",
+          "version": 1,
+          "sha256": "4aee3fc1933a917db18a401b3b45988204f7bebe9e577f8513aac59806c105f0"
+        },
+        {
+          "post_id": "dpo:100898:264214",
+          "version": 1,
+          "sha256": "7c7844580f02617301b514f64f0fcc0f9547154c4983e66257d28c1c14eabeaf"
+        },
+        {
+          "post_id": "dpo:100898:264266",
+          "version": 1,
+          "sha256": "19344f6b764436ecd48fd265d1c5c174bd32570002ba8927802779faab704858"
+        },
+        {
+          "post_id": "dpo:100898:264267",
+          "version": 3,
+          "sha256": "7d4e225a77369d14f3a02b560871b644220cfad0dc3843d61eae66c9ee280670"
+        },
+        {
+          "post_id": "dpo:100898:264275",
+          "version": 1,
+          "sha256": "6c90a94afca15f0679a9d11d10a2f5fd0c5f6158cb3edf2d452ea85508c8bd91"
+        },
+        {
+          "post_id": "dpo:100898:264276",
+          "version": 1,
+          "sha256": "681dc4ff0ca16187c8ae1f64dc3eb9b9151f48abcb56c433720bae10e2eb9602"
+        },
+        {
+          "post_id": "dpo:100898:264285",
+          "version": 1,
+          "sha256": "572f1d37e779a891340f78426cec59e5049154d7f3fc922302dba977472ce57c"
+        },
+        {
+          "post_id": "dpo:100898:264310",
+          "version": 1,
+          "sha256": "fbf87b05738fbcbb266de3566136de778d192f1340f3206e84c9c63a457e5a65"
+        },
+        {
+          "post_id": "dpo:100898:264326",
+          "version": 1,
+          "sha256": "4ac61aac012b7e964d725bb947010d9b589742f05ff5f245792ae2e8c2935b27"
+        },
+        {
+          "post_id": "dpo:100898:264402",
+          "version": 1,
+          "sha256": "d017928e12a7cef15bbccae48c57e1f24fc0e7da967fe7faa0a392e1a3da7ffa"
+        },
+        {
+          "post_id": "dpo:100898:264436",
+          "version": 1,
+          "sha256": "0629b588ceaccd9342bea1cad11f0bdde25b8365955d9d8b35870fafb1861227"
+        },
+        {
+          "post_id": "dpo:100898:264470",
+          "version": 1,
+          "sha256": "f6a21cb4b266783d24f69d8178787e7772e1475c20861386f3a5065eaf04d47b"
+        },
+        {
+          "post_id": "dpo:100898:264509",
+          "version": 1,
+          "sha256": "11577a5b84746b0194d739f00931481904c9e1675ab8c4b5971065188bc36e66"
+        },
+        {
+          "post_id": "dpo:100898:264541",
+          "version": 1,
+          "sha256": "a59394473817b454ec99a24725cd72be420e787c69d258bfbd4f1ea0aa5285ab"
+        },
+        {
+          "post_id": "dpo:100898:264542",
+          "version": 1,
+          "sha256": "0c33f6d2284e5e6342eb61d4286ee0a521790f55b2541f2373c25c7e3ae94e2a"
+        },
+        {
+          "post_id": "dpo:100898:264543",
+          "version": 1,
+          "sha256": "b6aa4196b576de3c705f06400ed77b5389de5cdfa1d122916ab7101ef14616c3"
+        },
+        {
+          "post_id": "dpo:100898:268573",
+          "version": 1,
+          "sha256": "30e9fcc26917a0eea1800a092388efa7776d93c260497069eab8a9a046253c52"
+        },
+        {
+          "post_id": "dpo:100898:280915",
+          "version": 1,
+          "sha256": "1fbb88029e3e10c502c58cf62dea286f1dbd06eeca330e0a3d0da521f2a23c14"
+        },
+        {
+          "post_id": "dpo:100898:280918",
+          "version": 1,
+          "sha256": "04412eb805c585b97c3f7504b68ef9f36b1b2afc414ae17bf5e901f2b5f42391"
+        }
+      ]
+    }
+  }
+]
