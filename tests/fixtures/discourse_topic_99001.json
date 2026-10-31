@@ -1,0 +1,75 @@
+{
+  "id": 99001,
+  "title": "PEP 9001: Frozen widgets",
+  "fancy_title": "PEP 9001: Frozen widgets",
+  "slug": "pep-9001-frozen-widgets",
+  "posts_count": 4,
+  "details": {"created_by": {"id": 11, "username": "alice", "name": "Alice Example"}},
+  "post_stream": {
+    "posts": [
+      {
+        "id": 5001,
+        "post_number": 1,
+        "version": 1,
+        "username": "alice",
+        "name": "Alice Example",
+        "created_at": "2026-01-10T09:00:00.000Z",
+        "reply_to_post_number": null,
+        "user_title": null,
+        "flair_name": null,
+        "primary_group_name": null,
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "cooked": "<p>This PEP proposes frozen widgets. Widgets would become immutable.</p>\n<aside class=\"onebox allowlistedgeneric\" data-onebox-src=\"https://peps.python.org/pep-9001/\">\n<header class=\"source\"><a href=\"https://peps.python.org/pep-9001/\">peps.python.org</a></header>\n<article class=\"onebox-body\"><h3>PEP 9001 – Frozen widgets</h3>\n<p>Abstract text copied from the PEP page.</p></article>\n</aside>\n<h2><a name=\"motivation-1\" class=\"anchor\" href=\"#motivation-1\"></a>Motivation</h2>\n<p>Mutable widgets cause bugs.</p>"
+      },
+      {
+        "id": 5003,
+        "post_number": 3,
+        "version": 3,
+        "username": "carol",
+        "name": "Carol Core",
+        "created_at": "2026-01-10T11:00:00.000Z",
+        "reply_to_post_number": 2,
+        "user_title": "CPython core developer",
+        "flair_name": "committers",
+        "primary_group_name": "committers",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "cooked": "<aside class=\"quote no-group\" data-username=\"bob\" data-post=\"2\" data-topic=\"99001\">\n<div class=\"title\">\n<div class=\"quote-controls\"></div>\n<img alt=\"\" width=\"24\" height=\"24\" src=\"/avatar.png\" class=\"avatar\"> bob:</div>\n<blockquote>\n<p>Why not a decorator?</p>\n</blockquote>\n</aside>\n<p>A decorator cannot freeze instances. <img src=\"/images/emoji/twitter/slight_smile.png?v=12\" title=\":slight_smile:\" class=\"emoji\" alt=\":slight_smile:\" loading=\"lazy\" width=\"20\" height=\"20\"></p>\n<pre><code class=\"lang-python\">@frozen\nclass W: ...\n</code></pre>"
+      },
+      {
+        "id": 5002,
+        "post_number": 2,
+        "username": "bob",
+        "name": "Bob",
+        "created_at": "2026-01-10T10:00:00.000Z",
+        "reply_to_post_number": 1,
+        "user_title": null,
+        "flair_name": null,
+        "primary_group_name": null,
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "cooked": "<p>Why not a decorator? It would avoid new <code>syntax</code>.</p>"
+      },
+      {
+        "id": 5004,
+        "post_number": 4,
+        "version": 1,
+        "username": "sam",
+        "name": "Sam Council",
+        "created_at": "2026-01-11T09:00:00.000Z",
+        "reply_to_post_number": null,
+        "user_title": "Steering Council member",
+        "flair_name": "steering-council",
+        "primary_group_name": "steering-council",
+        "moderator": false,
+        "admin": false,
+        "staff": false,
+        "cooked": "<p>The Steering Council accepts PEP 9001.</p>\n<ul>\n<li>Frozen by default.</li>\n<li>No decorator.</li>\n</ul>"
+      }
+    ]
+  }
+}

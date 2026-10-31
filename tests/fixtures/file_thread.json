@@ -1,0 +1,17 @@
+{
+  "title": "Pick a default line length",
+  "url": "https://example.org/threads/line-length",
+  "created_by": "erin",
+  "posts": [
+    {"author": "frank", "text": "Before we start, the current limit is 79 characters.", "role": "participant"},
+    {
+      "author": "erin",
+      "text": "I propose 88 characters as the default line length.",
+      "role": "author",
+      "url": "https://example.org/threads/line-length#2"
+    },
+    {"author": "grace", "text": "79 characters matches PEP 8, so I prefer it.", "role": "chair"},
+    {"author": "heidi", "text": "The maintainers accept 88 characters.", "role": "Decider"},
+    {"text": "Someone also suggested 100 characters."}
+  ]
+}

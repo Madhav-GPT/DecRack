@@ -1,0 +1,21 @@
+{
+  "9001": {
+    "number": 9001,
+    "title": "Immutable widget classes",
+    "authors": "Alice Example <alice@example.org>, Zed Other",
+    "discussions_to": "https://discuss.python.org/t/pep-9001-frozen-widgets/99001",
+    "status": "Withdrawn",
+    "resolution": "https://discuss.python.org/t/pep-9001-is-withdrawn/99099",
+    "type": "Standards Track",
+    "post_history": "`10-Jan-2026 <https://discuss.python.org/t/99001>`__, `10-Jan-2026 <https://discuss.python.org/t/pep-9001-round-2/99002/5>`__, `01-Jan-2026 <https://mail.python.org/archives/list/python-dev@python.org/thread/ABC/>`__"
+  },
+  "9002": {
+    "number": 9002,
+    "title": "No discussion yet",
+    "authors": "Zed Other",
+    "discussions_to": null,
+    "status": "Draft",
+    "type": "Informational",
+    "post_history": ""
+  }
+}

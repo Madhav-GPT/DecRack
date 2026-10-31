@@ -1,0 +1,21 @@
+alice | 2025-01-05 10:00:00 UTC | #1
+
+I propose adding a --json flag to the report command. Scripts could then parse the output.
+
+-------------------------
+
+bob | 2025-01-05 11:30:00 UTC | #2
+
+[quote="alice, post:1, topic:123"]
+I propose adding a --json flag to the report command.
+[/quote]
+
+A separate export subcommand would be cleaner than a flag.
+
+-------------------------
+
+carol | 2025-01-06 09:15:00 UTC | #3
+
+We will go with the flag. The subcommand was rejected because it duplicates every option.
+
+-------------------------
