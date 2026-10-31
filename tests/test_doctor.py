@@ -30,7 +30,7 @@ def settings(tmp_path, monkeypatch) -> Settings:
 
 
 def test_model_installed(settings):
-    lines, code = run_doctor(settings, client=tags_client([DEFAULT_MODEL, "gemma4:e4b"]))
+    lines, code = run_doctor(settings, client=tags_client([DEFAULT_MODEL, "test-model:b"]))
     assert code == 0
     assert f"[ok] model {DEFAULT_MODEL} is installed" in lines
     assert any(line.startswith("[ok] Ollama is running") for line in lines)
@@ -39,7 +39,7 @@ def test_model_installed(settings):
 
 
 def test_model_missing(settings):
-    lines, code = run_doctor(settings, client=tags_client(["gemma4:e4b"]))
+    lines, code = run_doctor(settings, client=tags_client(["test-model:b"]))
     assert code == 1
     assert any(f"ollama pull {DEFAULT_MODEL}" in line for line in lines)
     assert any(line.startswith(f"[missing] model {DEFAULT_MODEL}") for line in lines)
@@ -49,9 +49,9 @@ def test_untagged_model_means_latest(settings):
     lines, code = run_doctor(settings.model_copy(update={"model": "mymodel"}), client=tags_client(["mymodel:latest"]))
     assert code == 0
     assert "[ok] model mymodel is installed" in lines
-    assert has_model("qwen3.5:4b", ["qwen3.5:4b"])
-    assert not has_model("qwen3.5:4b", ["qwen3.5:9b"])
-    assert not has_model("qwen3.5:4b", ["qwen3.5:latest"])
+    assert has_model("qwen2.5:1.5b", ["qwen2.5:1.5b"])
+    assert not has_model("qwen2.5:1.5b", ["test-model:b"])
+    assert not has_model("qwen2.5:1.5b", ["qwen2.5:latest"])
 
 
 def test_ollama_unreachable(settings):
@@ -108,20 +108,20 @@ def test_opencode_snippet(tmp_path, monkeypatch):
 
 def test_opencode_snippet_with_other_model(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    command = json.loads(opencode_snippet(Settings(db_path="t.db", model="gemma4:e4b")))["mcp"]["decrack"]["command"]
-    assert command[-3:] == ["--model", "gemma4:e4b", "mcp"]
+    command = json.loads(opencode_snippet(Settings(db_path="t.db", model="test-model:b")))["mcp"]["decrack"]["command"]
+    assert command[-3:] == ["--model", "test-model:b", "mcp"]
 
 
 def test_uvx_command_carries_the_same_options(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    settings = Settings(db_path="t.db", model="gemma4:e4b", ollama_host="http://10.0.0.5:11434")
+    settings = Settings(db_path="t.db", model="test-model:b", ollama_host="http://10.0.0.5:11434")
     command = uvx_command(settings)
     assert command[:4] == ["uvx", "--from", GIT_SOURCE, "decrack"]
     assert command[4:] == [
         "--db",
         str((tmp_path / "t.db").resolve()),
         "--model",
-        "gemma4:e4b",
+        "test-model:b",
         "--ollama-host",
         "http://10.0.0.5:11434",
         "mcp",

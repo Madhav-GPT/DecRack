@@ -298,7 +298,7 @@ def test_summary_names_the_model_and_digest():
         "precision_strict": 0.667,
     }
     summary = {
-        "model": "qwen3.5:4b",
+        "model": "qwen2.5:1.5b",
         "model_digest": "sha256:abc123",
         "ollama_version": "0.12.6",
         "mode": "live",
@@ -309,7 +309,7 @@ def test_summary_names_the_model_and_digest():
         "macro": macro_average([row]),
     }
     text = render_summary(summary)
-    assert "`qwen3.5:4b` (digest `sha256:abc123`) in local Ollama 0.12.6" in text
+    assert "`qwen2.5:1.5b` (digest `sha256:abc123`) in local Ollama 0.12.6" in text
     assert f"deterministic fuzzy matching (difflib + word overlap), threshold {MATCH_THRESHOLD}" in text
     assert "`pep-NNNN/matches.json`" in text
     assert "run mode `live`" in text
