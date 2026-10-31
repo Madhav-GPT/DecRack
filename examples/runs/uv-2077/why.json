@@ -14,8 +14,8 @@
           "key": "A1",
           "title": "Documenting how to get an equivalent by creating ~/.local venv",
           "status": "accepted",
-          "status_kind": "confirmed",
-          "confidence": "high",
+          "status_kind": "contested",
+          "confidence": "low",
           "reason": "The proposal to document the equivalent of `--user` flag by creating a `~/.local` venv is a good solution that addresses the side effects of `--user` and simplifies the user experience.",
           "link": "https://github.com/astral-sh/uv/issues/2077"
         },
@@ -23,8 +23,8 @@
           "key": "A2",
           "title": "Support `--user` flag from pip",
           "status": "accepted",
-          "status_kind": "confirmed",
-          "confidence": "high",
+          "status_kind": "contested",
+          "confidence": "low",
           "reason": "The proposal to support `--user` flag from pip is a good solution that addresses the side effects of `--user` flag in `pip`.",
           "link": "https://github.com/astral-sh/uv/issues/2077"
         },

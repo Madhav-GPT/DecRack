@@ -11,14 +11,14 @@
         "title": "Documenting how to get an equivalent by creating ~/.local venv",
         "summary": "The proposal to document the equivalent of `--user` flag by creating a `~/.local` venv is a good solution that addresses",
         "status": "accepted",
-        "status_kind": "confirmed",
+        "status_kind": "contested",
         "status_basis": "author_statement",
         "status_post": "gh:astral-sh/uv#2077:c1994014387",
         "decided_by": {
           "handle": "potiuk",
           "role": "author"
         },
-        "status_note": "",
+        "status_note": "Accepted in the discussion, but the thread was closed as not planned.",
         "status_history": [
           {
             "post_id": "gh:astral-sh/uv#2077",
@@ -1088,21 +1088,21 @@
             "evidence_type": "decision_statement"
           }
         ],
-        "confidence": "high"
+        "confidence": "low"
       },
       {
         "key": "A2",
         "title": "Support `--user` flag from pip",
         "summary": "The proposal to support `--user` flag from pip is a good solution that addresses the side effects of `--user` flag",
         "status": "accepted",
-        "status_kind": "confirmed",
+        "status_kind": "contested",
         "status_basis": "author_statement",
         "status_post": "gh:astral-sh/uv#2077:c1994014387",
         "decided_by": {
           "handle": "potiuk",
           "role": "author"
         },
-        "status_note": "",
+        "status_note": "Accepted in the discussion, but the thread was closed as not planned.",
         "status_history": [
           {
             "post_id": "gh:astral-sh/uv#2077:c1992501848",
@@ -2224,7 +2224,7 @@
             "evidence_type": "decision_statement"
           }
         ],
-        "confidence": "high"
+        "confidence": "low"
       },
       {
         "key": "A3",
@@ -2788,11 +2788,8 @@
         "confidence": "low"
       }
     ],
-    "decided_by": {
-      "handle": "potiuk",
-      "role": "author"
-    },
-    "decided_in_post": "gh:astral-sh/uv#2077:c1994014387",
+    "decided_by": null,
+    "decided_in_post": null,
     "code_links": [
       {
         "repo": "astral-sh/uv",
@@ -2829,12 +2826,12 @@
       },
       "prompt_version": "decrack-prompts-3",
       "schema_version": "decrack-record/0.2",
-      "started_at": "2026-10-31T22:49:49.608276Z",
-      "seconds": 146.369,
+      "started_at": "2026-10-31T23:00:17.757125Z",
+      "seconds": 0.04,
       "llm_calls": 8,
-      "cache_hits": 0,
-      "tokens_in": 35640,
-      "tokens_out": 8566,
+      "cache_hits": 8,
+      "tokens_in": 0,
+      "tokens_out": 0,
       "windows": 8,
       "candidates_total": 54,
       "candidates_verified": 54,
