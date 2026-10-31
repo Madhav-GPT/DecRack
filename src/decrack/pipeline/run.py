@@ -1,8 +1,10 @@
 """compile_thread: the whole Compile stage for one thread.
 
 roles -> windows -> per window: MAP, gate (against that prompt's aliases) and
-keys -> consolidate (events, reasons, evidence, a preliminary status) ->
-refined reasons -> support check -> status rules -> code links -> DecisionRecord.
+keys -> consolidate (deterministic merge, events, reasons, evidence, a
+preliminary status) -> support check (only when ``support_check`` is on) ->
+status rules -> code links -> DecisionRecord. By default MAP is the only model
+step.
 """
 
 from __future__ import annotations
@@ -28,14 +30,7 @@ from decrack.models import (
     Thread,
     make_record_id,
 )
-from decrack.pipeline.consolidate import (
-    DECIDED_STATUSES,
-    AltRegistry,
-    consolidate,
-    decide,
-    refine_reasons,
-    summarize_outcome,
-)
+from decrack.pipeline.consolidate import AltRegistry, consolidate, decide, summarize_outcome
 from decrack.pipeline.extract import map_window, prepare_map
 from decrack.pipeline.gate import GatedCandidate, build_aliases, gate_candidates
 from decrack.pipeline.llm import LLM, LLMOutputError
@@ -53,9 +48,9 @@ def compile_thread(
 ) -> DecisionRecord:
     """Compile ``thread`` into a DecisionRecord.
 
-    Only ``LLMOutputError`` is caught (per window here; per merge, refine and
-    support batch in their own steps), so one bad answer costs one window; any
-    other model error stops the run.
+    Only ``LLMOutputError`` is caught (per window here; per support batch in
+    ``check_support``), so one bad answer costs one window; any other model
+    error stops the run.
     """
     started_at = datetime.now(timezone.utc)
     clock = time.monotonic()
@@ -99,12 +94,7 @@ def compile_thread(
         gated.extend(result.kept)
         report(f"{label}: {len(result.kept)} of {result.total} items have valid citations")
 
-    options = consolidate(thread, gated, llm if settings.merge_with_llm else None)
-    if settings.refine_reasons:
-        decided = sum(option.status in DECIDED_STATUSES for option in options)
-        if decided:
-            report(f"Writing reasons for {decided} decided options")
-        refine_reasons(llm, thread, options, max_tokens=settings.reasons_max_tokens)
+    options = consolidate(thread, gated)
     if settings.support_check:
         report("Checking that the cited sentences support each claim")
         check_support(llm, options, batch_size=settings.support_batch_size)

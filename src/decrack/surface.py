@@ -1,9 +1,9 @@
 """PR-time surfacing: related history and possible conflicts for a change.
 
 ``check_change`` collects the paths and PR numbers a change touches (from a
-GitHub PR, a list of paths, or a local ``BASE..HEAD`` diff whose changed lines
-are blamed), finds the decision records linked to them, and renders a markdown
-report. The report is history to weigh, never a verdict on the change: a
+GitHub PR, a list of paths, or a local ``BASE..HEAD`` diff, whose changed lines
+are blamed only when ``blame`` is on), finds the decision records linked to
+them, and renders a markdown report. The report is history to weigh, never a verdict on the change: a
 rejected option it lists is a possible conflict for a person to check. It only
 returns data and text; it never posts anywhere.
 
@@ -61,12 +61,14 @@ def check_change(
     repo_dir: str | Path | None = None,
     client: httpx.Client | None = None,
     budget_tokens: int = 10000,
+    blame: bool = False,
 ) -> dict[str, Any]:
     """Decision records related to a change: a dict with ``paths``, ``prs``, ``matches`` and ``markdown``.
 
     The inputs add up. A PR URL brings its files, number, title and body. A
     ``diff`` ("BASE..HEAD" in the clone at ``repo_dir``) brings the changed
-    files, their earlier names, and the PRs that last touched the changed lines.
+    files and their earlier names; with ``blame`` it also blames the changed
+    lines and brings the PRs that last touched them (slower, so off by default).
     """
     base_head = _split_range(diff, repo_dir) if diff else None
     checked: list[str] = []
@@ -101,7 +103,10 @@ def check_change(
     if base_head is not None:
         base, head = base_head
         try:
-            changed, blamed = linking.prs_for_change(repo_dir, base, head)
+            if blame:
+                changed, blamed = linking.prs_for_change(repo_dir, base, head)
+            else:
+                changed, blamed = linking.changed_files(repo_dir, base, head), []
             history = {path: linking.follow_renames(repo_dir, path)[1:] for path in changed}
         except RuntimeError as exc:
             raise ValueError(f"cannot read the change {diff} in {repo_dir}: {exc}") from exc

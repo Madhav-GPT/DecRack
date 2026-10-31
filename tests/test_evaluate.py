@@ -1,4 +1,4 @@
-"""Withheld-PEP evaluation: gold files, matching, status kinds, the judge, the closed-book baseline and a full run."""
+"""Withheld-PEP evaluation: gold files, fuzzy matching, status kinds, the closed-book baseline and a full run."""
 
 from __future__ import annotations
 
@@ -155,8 +155,8 @@ def test_score_record_matches_rejected_options(sample_record):
     assert scores["recall_any_status"] == 1.0
     assert scores["matching"] == "similarity"
 
-    pairs = {pair["gold_id"]: pair for pair in scores["pairs"]}
-    assert [pair["gold_id"] for pair in scores["pairs"]] == ["pep9999-r1", "pep9999-r2", "pep9999-r3"]
+    pairs = {pair["gold_id"]: pair for pair in scores["matches"]}
+    assert [pair["gold_id"] for pair in scores["matches"]] == ["pep9999-r1", "pep9999-r2", "pep9999-r3"]
     assert (pairs["pep9999-r1"]["option_key"], pairs["pep9999-r1"]["matched"]) == ("A1", True)
     assert (pairs["pep9999-r2"]["option_key"], pairs["pep9999-r2"]["matched"]) == ("A2", True)
     assert pairs["pep9999-r1"]["status_kind"] == "confirmed"
@@ -236,29 +236,6 @@ def test_recall_any_status_counts_other_statuses():
     assert scores["matched_outside_post1"] is None  # no thread and no run to say which post opened it
 
 
-def test_judge_confirms_or_refuses_pairs(sample_record):
-    def judge(messages: list[dict]) -> dict:
-        text = messages[-1]["content"]
-        if "Using a decorator instead of a keyword" in text and "Use a decorator instead of a new keyword" in text:
-            return {"verdict": "yes", "note": "Same idea."}
-        if "A global laziness flag" in text and "Global flag to enable laziness everywhere" in text:
-            return {"verdict": "partial", "note": "Overlapping idea."}
-        return {"verdict": "no", "note": "Different ideas."}
-
-    llm = ScriptedLLM({"judge": judge})
-    scores = score_record(make_gold(), sample_record, llm=llm)
-    assert scores["matching"] == "judge"
-    assert scores["matched"] == 2
-    verdicts = {pair["gold_id"]: pair["verdict"] for pair in scores["pairs"] if pair["matched"]}
-    assert verdicts == {"pep9999-r1": "yes", "pep9999-r2": "partial"}
-    assert scores["reason_agreement"] == 1.0
-    assert llm.requests and {step for step, _ in llm.requests} == {"judge"}
-
-    refusing = ScriptedLLM({"judge": lambda messages: {"verdict": "no", "note": "Different."}})
-    refused = score_record(make_gold(), sample_record, llm=refusing)
-    assert (refused["matched"], refused["recall_recoverable"]) == (0, 0.0)
-
-
 def test_closed_book_sees_only_the_number_and_title():
     ideas = [
         {"idea": "Decorator instead of a keyword", "reason": "Decorators cannot apply to import statements."},
@@ -333,6 +310,8 @@ def test_summary_names_the_model_and_digest():
     }
     text = render_summary(summary)
     assert "`qwen3.5:4b` (digest `sha256:abc123`) in local Ollama 0.12.6" in text
+    assert f"deterministic fuzzy matching (difflib + word overlap), threshold {MATCH_THRESHOLD}" in text
+    assert "`pep-NNNN/matches.json`" in text
     assert "run mode `live`" in text
     assert "Not a live model run" not in text
     assert "| 830 | 29 | 5 | 3 (2 / 1) | 13 (13) | 2 | 0.154 | 0.667 | 1.000 | 0.000 |" in text
@@ -360,8 +339,8 @@ def test_run_eval_writes_the_runs_layout(tmp_path, synthetic_thread, store):
         [9999],
         gold_dir,
         out_dir,
-        # Only "map" and "closed_book" are scripted, so the optional model steps are off.
-        Settings(merge_with_llm=False, refine_reasons=False, support_check=False),
+        # Only "map" and "closed_book" are scripted: the optional support check is off.
+        Settings(support_check=False),
         llm,
         store,
         closed_book_baseline=True,
@@ -370,11 +349,12 @@ def test_run_eval_writes_the_runs_layout(tmp_path, synthetic_thread, store):
     )
 
     assert loaded == [("pep:9999", True)]  # the leak guard is on while loading
+    assert {step for step, _ in llm.requests} == {"map", "closed_book"}  # matching never calls the model
     [closed_request] = [request for step, request in llm.requests if step == "closed_book"]
     assert closed_request[-1]["content"] == "PEP 9999: Lazy widgets"
 
     folder = out_dir / "pep-9999"
-    for name in ("thread.json", "records.json", "run.json", "scores.json"):
+    for name in ("thread.json", "records.json", "run.json", "scores.json", "matches.json"):
         assert (folder / name).is_file()
     records = json.loads((folder / "records.json").read_text(encoding="utf-8"))
     assert isinstance(records, list) and records[0]["thread_id"] == "pep:9999"
@@ -385,19 +365,25 @@ def test_run_eval_writes_the_runs_layout(tmp_path, synthetic_thread, store):
     scores = json.loads((folder / "scores.json").read_text(encoding="utf-8"))
     assert scores["pep"] == 9999
     assert (scores["gold_total"], scores["gold_recoverable"], scores["posts"]) == (3, 2, 8)
-    # Without the support check, the author's decision statements give inferred rejections.
+    # With the support check off, the author's rejections cite sentences with a decision cue: confirmed.
     assert scores["predicted_rejected"] == 2
-    assert scores["predicted_by_kind"] == {"confirmed": 0, "inferred": 2}
-    assert scores["precision_by_kind"] == {"confirmed": None, "inferred": 1.0}
+    assert scores["predicted_by_kind"] == {"confirmed": 2, "inferred": 0}
+    assert scores["precision_by_kind"] == {"confirmed": 1.0, "inferred": None}
     assert scores["matched_outside_post1"] == 2
     assert (scores["model"], scores["mode"]) == ("scripted", "scripted")
     assert scores["closed_book_recall"] == 0.5
     assert (scores["search_recall_at_5"], scores["search_hits"], scores["search_misses"]) == (1.0, 2, [])
-    assert [pair["gold_id"] for pair in scores["pairs"]] == ["pep9999-r1", "pep9999-r2", "pep9999-r3"]
+    assert "pairs" not in scores and "matches" not in scores  # the review rows are in matches.json
+    matches = json.loads((folder / "matches.json").read_text(encoding="utf-8"))
+    assert [row["gold_id"] for row in matches] == ["pep9999-r1", "pep9999-r2", "pep9999-r3"]
+    assert [row["matched"] for row in matches] == [True, True, False]
+    assert set(matches[0]) == {
+        "gold_id", "idea", "recoverable", "matched", "option_key", "title", "status", "status_kind", "score"
+    }
     assert store.record_for_thread("pep:9999") is not None
 
     assert summary["peps"][0]["pep"] == 9999
-    assert "pairs" not in summary["peps"][0]
+    assert "pairs" not in summary["peps"][0] and "matches" not in summary["peps"][0]
     assert (summary["model"], summary["mode"]) == ("scripted", "scripted")
     assert not (out_dir / "summary.md").exists() and not (out_dir / "summary.json").exists()
     assert json.loads((out_dir / "eval-summary.json").read_text(encoding="utf-8"))["peps"][0]["pep"] == 9999
@@ -405,7 +391,7 @@ def test_run_eval_writes_the_runs_layout(tmp_path, synthetic_thread, store):
     assert "with `scripted`" in text
     assert "Not a live model run" in text
     table = text.splitlines()
-    assert any(line.startswith("| 9999 |") and "| 2 (0 / 2) |" in line for line in table)
+    assert any(line.startswith("| 9999 |") and "| 2 (2 / 0) |" in line for line in table)
     assert any(line.startswith("| 9999 |") and line.endswith("| 1.000 |") for line in table)  # search@5
     assert "| Closed-book recall | search@5 |" in text
     assert any(line.startswith("| **Macro average** |") for line in table)
@@ -513,7 +499,7 @@ def test_search_recall_with_nothing_matched_is_undefined():
 def test_matched_entries_follow_the_gold_matching(sample_record):
     gold = make_gold()
     scores = score_record(gold, sample_record)
-    entries = matched_entries(gold, sample_record, scores["pairs"])
+    entries = matched_entries(gold, sample_record, scores["matches"])
     assert [(item.id, row_id) for item, row_id, _ in entries] == [
         ("pep9999-r1", f"{sample_record.id}:A1"),
         ("pep9999-r2", f"{sample_record.id}:A2"),

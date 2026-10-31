@@ -1,4 +1,4 @@
-"""check_change: related history found by path, PR number, description, PR URL and local diff."""
+"""check_change: related history found by path, PR number, description, PR URL and local diff (blame opt-in)."""
 
 from __future__ import annotations
 
@@ -142,7 +142,7 @@ def test_unsupported_quotes_and_reasons_are_left_out(store, saved, sample_record
 
 @requires_git
 def test_pr_numbers_from_a_local_diff(tmp_path, store, saved):
-    """No path matches here: the record is found because blame leads to PR 42."""
+    """No path matches here: the record is found only when the opt-in blame leads to PR 42."""
     root = tmp_path / "clone"
     root.mkdir()
 
@@ -164,7 +164,13 @@ def test_pr_numbers_from_a_local_diff(tmp_path, store, saved):
     git("commit", "-q", "--no-verify", "-a", "-m", "Build in two steps")
     head = git("rev-parse", "HEAD").strip()
 
-    result = check_change(store, diff=f"{base}..{head}", repo_dir=root)
+    # By default the diff brings only its changed paths: no blame, so no PR numbers.
+    plain = check_change(store, diff=f"{base}..{head}", repo_dir=root)
+    assert plain["paths"] == ["Tools/build.py"]
+    assert plain["prs"] == []
+    assert plain["matches"] == []
+
+    result = check_change(store, diff=f"{base}..{head}", repo_dir=root, blame=True)
     assert result["paths"] == ["Tools/build.py"]
     assert result["prs"] == [42]
     [match] = result["matches"]

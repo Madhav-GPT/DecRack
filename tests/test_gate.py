@@ -6,7 +6,9 @@ import pytest
 
 from decrack.models import Candidate, Evidence, Post, Thread, sentence_alias
 from decrack.pipeline.gate import (
+    DECISION_CUES,
     build_aliases,
+    derive_evidence_type,
     evidence_for,
     gate_candidates,
     make_evidence,
@@ -16,11 +18,11 @@ from decrack.pipeline.gate import (
 from decrack.pipeline.prompts import opening_part
 from decrack.text import finalize_post
 
+STATEMENT = "decision_statement"
 
-def cand(*cites: str, act: str = "propose", evidence_type: str = "proposal") -> Candidate:
-    return Candidate(
-        alt_ref="new", alternative="Decorator", act=act, evidence_type=evidence_type, reason="", cites=list(cites)
-    )
+
+def cand(*cites: str, act: str = "propose") -> Candidate:
+    return Candidate(alt_ref="new", alternative="Decorator", act=act, reason="", cites=list(cites))
 
 
 def every_alias(thread: Thread) -> dict:
@@ -176,13 +178,43 @@ def test_non_contiguous_cites_become_separate_evidence(synthetic_thread):
 
 
 def test_the_evidence_type_is_copied_onto_every_evidence_item(synthetic_thread):
-    candidate = cand("p8.s2", "p5.s1", "p8.s1", act="reject", evidence_type="decision_statement")
+    candidate = cand("p8.s2", "p5.s1", "p8.s1", act="reject")  # post 8 says "rejected": a decision cue
     [kept] = gate_candidates(synthetic_thread, [candidate], every_alias(synthetic_thread)).kept
     assert kept.evidence_type == "decision_statement"
     assert [(item.post_id, item.sentence_indexes, item.evidence_type) for item in kept.evidence] == [
         (synthetic_thread.posts[4].id, [1], "decision_statement"),
         (synthetic_thread.posts[7].id, [1, 2], "decision_statement"),
     ]
+
+
+def test_a_decision_cue_makes_a_decision_statement():
+    assert derive_evidence_type("reject", "participant", ["We rejected the decorator approach."]) == STATEMENT
+    assert derive_evidence_type("accept", "decider", ["The Steering Council ACCEPTS PEP 9999."]) == STATEMENT
+    assert derive_evidence_type("defer", "author", ["No.", "It is added to the Rejected Ideas."]) == STATEMENT
+    assert derive_evidence_type("withdraw", "participant", ["We won’t do that."]) == STATEMENT
+    assert DECISION_CUES.search("we are not going to") and not DECISION_CUES.search("unaccepted")
+
+
+def test_without_a_cue_the_evidence_type_follows_the_role_and_act():
+    plain = ["I do not like it."]
+    assert derive_evidence_type("reject", "author", plain) == "author_position"
+    assert derive_evidence_type("accept", "author", plain) == "author_position"
+    assert derive_evidence_type("reject", "participant", plain) == "objection"
+    assert derive_evidence_type("defer", "decider", plain) == "objection"
+    assert derive_evidence_type("accept", "maintainer", plain) == "support"
+    # The other acts ignore cues and roles.
+    assert derive_evidence_type("propose", "author", ["It was rejected before."]) == "proposal"
+    assert derive_evidence_type("object", "decider", ["Rejected."]) == "objection"
+    assert derive_evidence_type("support", "participant", plain) == "support"
+
+
+def test_the_gate_derives_the_evidence_type_from_the_latest_posts_role(synthetic_thread):
+    aliases = every_alias(synthetic_thread)
+    [author_no_cue] = gate_candidates(synthetic_thread, [cand("p1.s3", act="reject")], aliases).kept
+    assert (author_no_cue.role, author_no_cue.evidence_type) == ("author", "author_position")
+    [participant_no_cue] = gate_candidates(synthetic_thread, [cand("p3.s1", act="reject")], aliases).kept
+    assert participant_no_cue.evidence_type == "objection"
+    assert {item.evidence_type for item in participant_no_cue.evidence} == {"objection"}
 
 
 def test_only_resolved_cites_survive_and_the_model_candidate_is_unchanged(synthetic_thread):

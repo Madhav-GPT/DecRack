@@ -1,7 +1,8 @@
 """Settings for DecRack.
 
-Precedence, lowest first: built-in defaults, an optional ``decrack.toml``,
-the environment variables ``DECRACK_LLM`` and ``DECRACK_DB``, then CLI flags.
+Precedence, lowest first: built-in defaults, the environment variables
+``DECRACK_LLM`` (``replay`` makes CI answer from recorded model calls) and
+``DECRACK_DB``, then CLI flags. There is no settings file.
 
 The model runtime is always a local Ollama server. Its address is the
 constant below and can only be changed with the ``--ollama-host`` CLI flag.
@@ -10,35 +11,15 @@ constant below and can only be changed with the ``--ollama-host`` CLI flag.
 from __future__ import annotations
 
 import os
-import tomllib
-from pathlib import Path
 from typing import Literal
 
 from pydantic import BaseModel
 
 DEFAULT_OLLAMA_HOST = "http://127.0.0.1:11434"
-DEFAULT_MODEL = "qwen3.5:4b"
-ALTERNATIVE_MODELS = ("gemma4:e4b", "qwen3.5:9b")
+DEFAULT_MODEL = "qwen2.5:1.5b"
+ALTERNATIVE_MODELS = ("qwen3.5:4b", "gemma4:e4b")
 DEFAULT_DB = "decrack.db"
 DEFAULT_REPLAY_FILE = "tests/fixtures/llm_calls.jsonl"
-DEFAULT_CONFIG_FILE = "decrack.toml"
-
-# Keys a decrack.toml may set. The Ollama host is deliberately not one of them.
-TOML_KEYS = (
-    "db_path",
-    "model",
-    "num_ctx",
-    "window_max_tokens",
-    "window_overlap_tokens",
-    "merge_with_llm",
-    "refine_reasons",
-    "reasons_max_tokens",
-    "support_check",
-    "support_batch_size",
-    "request_timeout",
-    "replay_file",
-    "budget_tokens",
-)
 
 
 class Settings(BaseModel):
@@ -47,13 +28,10 @@ class Settings(BaseModel):
     ollama_host: str = DEFAULT_OLLAMA_HOST
     llm_mode: Literal["ollama", "replay"] = "ollama"
     replay_file: str = DEFAULT_REPLAY_FILE
-    num_ctx: int = 32768  # set explicitly: Ollama truncates to 4K on small GPUs otherwise
-    window_max_tokens: int = 6000  # per MAP window; tokens ~ chars / 4
-    window_overlap_tokens: int = 800  # rounded to whole posts, at least one post
-    merge_with_llm: bool = True  # one extra "merge" call per thread
-    refine_reasons: bool = True  # "refine_reasons" calls for decided options
-    reasons_max_tokens: int = 12000
-    support_check: bool = True  # batched "support" calls; off means every claim stays "unchecked"
+    num_ctx: int = 8192  # set explicitly: Ollama's own default is smaller and silently truncates
+    window_max_tokens: int = 3000  # per MAP window; tokens ~ chars / 4
+    window_overlap_tokens: int = 300  # rounded to whole posts, at least one post
+    support_check: bool = False  # optional batched "support" calls (--support-check); off: claims stay "unchecked"
     support_batch_size: int = 8
     request_timeout: float = 600.0
     eval_mode: bool = False  # turns on the PEP leak guard
@@ -64,19 +42,10 @@ def load_settings(
     db: str | None = None,
     model: str | None = None,
     ollama_host: str | None = None,
-    config_path: str | Path | None = None,
+    support_check: bool | None = None,
 ) -> Settings:
-    """Build Settings from defaults, decrack.toml, environment and CLI flags."""
+    """Build Settings from defaults, the environment and CLI flags."""
     values: dict[str, object] = {}
-
-    path = Path(config_path) if config_path else Path(DEFAULT_CONFIG_FILE)
-    if path.is_file():
-        with path.open("rb") as handle:
-            data = tomllib.load(handle)
-        section = data.get("decrack", data)
-        for key in TOML_KEYS:
-            if key in section:
-                values[key] = section[key]
 
     llm_mode = os.environ.get("DECRACK_LLM", "").strip().lower()
     if llm_mode in ("ollama", "replay"):
@@ -91,5 +60,7 @@ def load_settings(
         values["model"] = model
     if ollama_host:
         values["ollama_host"] = ollama_host.rstrip("/")
+    if support_check is not None:
+        values["support_check"] = support_check
 
     return Settings(**values)

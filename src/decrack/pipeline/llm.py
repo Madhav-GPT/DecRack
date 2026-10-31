@@ -311,13 +311,15 @@ class OllamaLLM:
             "messages": messages,
             "format": schema,
             "stream": False,
-            "think": think,
             "options": options,
         }
+        # Non-thinking models (such as qwen2.5) can reject a "think" key, so it is sent only when asked for.
+        if think:
+            payload["think"] = True
         try:
             response = self.client.post(url, json=payload, timeout=self.timeout)
-            if response.status_code == 400 and "think" in response.text.lower():
-                # Older Ollama versions and some models refuse the think flag; ask again without it.
+            if think and response.status_code == 400 and "think" in response.text.lower():
+                # This model refuses thinking; ask again without it.
                 payload.pop("think")
                 response = self.client.post(url, json=payload, timeout=self.timeout)
         except httpx.TimeoutException as exc:

@@ -39,7 +39,6 @@ def gated_item(
         alt_ref="new",
         alternative="Use a decorator",
         act=act,
-        evidence_type=evidence_type,
         reason=reason_text,
         cites=[],
     )
@@ -121,7 +120,8 @@ def test_verdicts_land_on_events_reasons_and_their_evidence(synthetic_thread):
             gated_item(t, 5, "reject", "decision_statement", "Decorators cannot apply to import statements.", (2,)),
         ],
     )
-    assert (option.status, option.status_kind) == ("rejected", "inferred")  # nothing is checked yet
+    # Not checked yet (as with the support check off): the author's decision statement is confirmed.
+    assert (option.status, option.status_kind, option.confidence) == ("rejected", "confirmed", "high")
 
     llm = ScriptedLLM({"support": [verdicts("partial", "supported", "unsupported")]})
     assert check_support(llm, [option]) == 1
@@ -157,6 +157,21 @@ def test_verdicts_land_on_events_reasons_and_their_evidence(synthetic_thread):
         "author_statement",
         "high",
     )
+
+
+def test_an_unsupported_verdict_leaves_the_statement_only_inferred(synthetic_thread):
+    t = synthetic_thread
+    [option] = consolidate(t, [gated_item(t, 5, "reject", "decision_statement", sentences=(2,))])
+    assert (option.status_kind, option.confidence) == ("confirmed", "high")
+
+    check_support(ScriptedLLM({"support": [verdicts("unsupported")]}), [option])
+    decide(option)
+    assert (option.status, option.status_kind, option.status_basis) == ("rejected", "inferred", "author_statement")
+    assert option.confidence == "low"
+
+    check_support(ScriptedLLM({"support": [verdicts("supported")]}), [option])
+    decide(option)
+    assert (option.status, option.status_kind, option.confidence) == ("rejected", "confirmed", "high")
 
 
 def test_bad_output_or_a_missing_id_leaves_claims_unchecked(synthetic_thread):

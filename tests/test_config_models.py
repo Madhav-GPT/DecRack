@@ -56,37 +56,38 @@ def test_default_settings(monkeypatch, tmp_path):
     monkeypatch.delenv("DECRACK_LLM", raising=False)
     monkeypatch.delenv("DECRACK_DB", raising=False)
     settings = load_settings()
-    assert settings.model == DEFAULT_MODEL
+    assert settings.model == DEFAULT_MODEL == "qwen2.5:1.5b"
     assert settings.ollama_host == DEFAULT_OLLAMA_HOST == "http://127.0.0.1:11434"
     assert settings.llm_mode == "ollama"
-    assert settings.num_ctx == 32768
-    assert settings.window_max_tokens == 6000 and settings.window_overlap_tokens == 800
-    assert settings.support_check is True and settings.support_batch_size == 8
+    assert settings.num_ctx == 8192
+    assert settings.window_max_tokens == 3000 and settings.window_overlap_tokens == 300
+    # The model does one job by default (MAP); the support check is opt-in.
+    assert settings.support_check is False and settings.support_batch_size == 8
+    for removed in ("merge_with_llm", "refine_reasons", "reasons_max_tokens"):
+        assert not hasattr(settings, removed)
 
 
-def test_precedence_toml_then_env_then_flags(monkeypatch, tmp_path):
+def test_precedence_env_then_flags(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
-    (tmp_path / "decrack.toml").write_text(
-        '[decrack]\nmodel = "gemma4:e4b"\ndb_path = "from-toml.db"\nwindow_max_tokens = 4000\n'
-        'support_check = false\nollama_host = "http://10.0.0.5:11434"\n',
-        encoding="utf-8",
-    )
+    # A decrack.toml in the working directory is ignored: there is no settings file.
+    (tmp_path / "decrack.toml").write_text('[decrack]\nmodel = "gemma4:e4b"\n', encoding="utf-8")
     monkeypatch.setenv("DECRACK_DB", "from-env.db")
     monkeypatch.setenv("DECRACK_LLM", "replay")
 
     settings = load_settings()
-    assert settings.model == "gemma4:e4b"
-    assert settings.window_max_tokens == 4000
-    assert settings.support_check is False
+    assert settings.model == DEFAULT_MODEL
     assert settings.db_path == "from-env.db"
     assert settings.llm_mode == "replay"
     # The Ollama host can only change through the CLI flag.
     assert settings.ollama_host == DEFAULT_OLLAMA_HOST
 
-    flagged = load_settings(db="flag.db", model="qwen3.5:9b", ollama_host="http://192.168.1.20:11434/")
-    assert flagged.db_path == "flag.db"
-    assert flagged.model == "qwen3.5:9b"
+    flagged = load_settings(
+        db="flag.db", model="qwen3.5:4b", ollama_host="http://192.168.1.20:11434/", support_check=True
+    )
+    assert flagged.db_path == "flag.db"  # the flag wins over DECRACK_DB
+    assert flagged.model == "qwen3.5:4b"
     assert flagged.ollama_host == "http://192.168.1.20:11434"
+    assert flagged.support_check is True
 
 
 def test_unknown_llm_mode_is_ignored(monkeypatch, tmp_path):
@@ -99,3 +100,10 @@ def test_settings_copy_for_eval_mode():
     settings = Settings()
     eval_settings = settings.model_copy(update={"eval_mode": True})
     assert eval_settings.eval_mode and not settings.eval_mode
+
+
+def test_support_check_flag_turns_it_on(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    assert load_settings().support_check is False
+    assert load_settings(support_check=True).support_check is True
+    assert load_settings(support_check=None).support_check is False  # None leaves the default alone

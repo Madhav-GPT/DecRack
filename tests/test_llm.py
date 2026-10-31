@@ -9,7 +9,7 @@ import httpx
 import pytest
 
 from decrack.config import DEFAULT_MODEL, DEFAULT_OLLAMA_HOST, Settings
-from decrack.models import ACTS, EVIDENCE_TYPES, MapOutput
+from decrack.models import ACTS, MapOutput
 from decrack.pipeline.llm import (
     LLMError,
     LLMOutputError,
@@ -24,7 +24,7 @@ from decrack.pipeline.llm import (
     loose_key,
     make_llm,
 )
-from decrack.pipeline.prompts import MergeOutput
+from decrack.pipeline.support import SupportOutput
 
 MESSAGES = [{"role": "system", "content": "Label the posts."}, {"role": "user", "content": "Posts go here."}]
 GOOD = {
@@ -33,7 +33,6 @@ GOOD = {
             "alt_ref": "new",
             "alternative": "Soft keyword",
             "act": "propose",
-            "evidence_type": "proposal",
             "reason": "",
             "cites": ["p7.s1"],
         }
@@ -113,18 +112,18 @@ def test_ollama_request_shape_and_think_stripping():
 
     [(url, body)] = sent
     assert url == f"{DEFAULT_OLLAMA_HOST}/api/chat"
-    assert set(body) == {"model", "messages", "format", "stream", "think", "options"}  # key_extra stays local
+    assert set(body) == {"model", "messages", "format", "stream", "options"}  # key_extra stays local
     assert body["model"] == "qwen3.5:4b"
     assert body["messages"] == MESSAGES
     assert body["stream"] is False
-    assert body["think"] is False
+    assert "think" not in body  # sent only when think=True
     assert body["options"] == {"num_ctx": 8192, "temperature": 0}
     assert isinstance(body["format"], dict)
     assert "$ref" not in json.dumps(body["format"])
     assert "$defs" not in body["format"]
     item = body["format"]["properties"]["items"]["items"]["properties"]
     assert item["act"]["enum"] == list(ACTS)
-    assert item["evidence_type"]["enum"] == list(EVIDENCE_TYPES)
+    assert "evidence_type" not in item  # code derives it; the model is not asked
 
 
 def test_ollama_retries_once_with_the_error():
@@ -178,15 +177,25 @@ def test_a_repeated_call_is_served_from_the_store():
     assert (llm.calls, llm.cache_hits) == (3, 1)
 
 
+def test_think_is_sent_only_when_asked_for():
+    client, sent = mock_client(reply(json.dumps(GOOD)), reply(json.dumps(OTHER)))
+    llm = OllamaLLM(model="tiny", client=client)
+    assert llm.complete_json("map", MESSAGES, MapOutput) == GOOD
+    assert llm.complete_json("map", MESSAGES, MapOutput, think=True) == OTHER
+    assert "think" not in sent[0][1]
+    assert sent[1][1]["think"] is True
+    assert '"think": true' in json.dumps(sent[1][1])
+
+
 def test_the_think_flag_is_dropped_when_ollama_refuses_it():
     client, sent = mock_client(
         httpx.Response(400, json={"error": '"tiny" does not support thinking'}),
         reply(json.dumps(GOOD)),
     )
     llm = OllamaLLM(model="tiny", client=client)
-    assert llm.complete_json("map", MESSAGES, MapOutput) == GOOD
+    assert llm.complete_json("map", MESSAGES, MapOutput, think=True) == GOOD
     assert len(sent) == 2
-    assert sent[0][1]["think"] is False
+    assert sent[0][1]["think"] is True
     assert "think" not in sent[1][1]
 
 
@@ -434,19 +443,19 @@ def test_make_llm_picks_the_runtime(tmp_path):
 
 
 def test_scripted_llm_queues_callables_and_errors():
-    llm = ScriptedLLM({"map": [GOOD], "merge": lambda messages: {"groups": []}})
+    llm = ScriptedLLM({"map": [GOOD], "support": lambda messages: {"results": []}})
     assert llm.complete_json("map", MESSAGES, MapOutput, key_extra=EXTRA) == GOOD
     with pytest.raises(LLMError) as info:
         llm.complete_json("map", MESSAGES, MapOutput)
     assert not isinstance(info.value, LLMOutputError)
 
     # A callable answers every call for its step.
-    assert llm.complete_json("merge", MESSAGES, MergeOutput) == {"groups": []}
-    assert llm.complete_json("merge", MESSAGES, MergeOutput) == {"groups": []}
+    assert llm.complete_json("support", MESSAGES, SupportOutput) == {"results": []}
+    assert llm.complete_json("support", MESSAGES, SupportOutput) == {"results": []}
 
     llm.add("map", {"items": "bad"})
     with pytest.raises(LLMOutputError):
         llm.complete_json("map", MESSAGES, MapOutput)
-    assert [step for step, _ in llm.requests] == ["map", "map", "merge", "merge", "map"]
+    assert [step for step, _ in llm.requests] == ["map", "map", "support", "support", "map"]
     assert llm.key_extras == [EXTRA, None, None, None, None]
     assert llm.calls == 5

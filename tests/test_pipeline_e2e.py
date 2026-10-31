@@ -14,10 +14,12 @@ from decrack.pipeline.extract import map_request_key
 from decrack.pipeline.llm import LLMError, ScriptedLLM
 from decrack.pipeline.prompts import MAP_SYSTEM, PROMPT_VERSION, render_post
 from decrack.pipeline.run import compile_thread
+from decrack.pipeline.support import claims_for
 from decrack.pipeline.windows import make_windows, part_ref
 from decrack.text import estimate_tokens, finalize_post
 
 # (post the item is about, alternative, act, evidence_type, reason, cites) as a model would label the thread.
+# The model is no longer asked for evidence_type; the extra key is ignored, and the gate derives its own.
 ITEMS = [
     (1, "Hard lazy keyword", "propose", "proposal", "", ["p1.s2"]),
     (
@@ -69,18 +71,6 @@ ITEMS = [
     (8, "Make widgets eager by default", "propose", "proposal", "", ["p42.s1", "s3"]),
 ]
 
-# One refined reason per decided option, picked by the "Option:" line of its refine prompt.
-REFINED = {
-    "Hard lazy keyword": ("con", "It breaks existing code that uses lazy as a name.", ["p3.s2", "p8.s2"]),
-    "Use a decorator instead of a new keyword": ("con", "Decorators cannot apply to import statements.", ["p5.s2"]),
-    "Global flag to enable laziness everywhere": (
-        "con",
-        "It changes behaviour for every library at once.",
-        ["p5.s3", "p6.s1"],
-    ),
-    "Soft keyword": ("pro", "It keeps lazy usable as a normal name.", ["p7.s2"]),
-}
-
 # key, title, status, status_kind, basis, seq of the status post, decided_by (handle, role)
 SAM, ALICE = ("sam", "decider"), ("alice", "author")
 EXPECTED = [
@@ -115,23 +105,15 @@ def windowed_map(messages: list[dict]) -> dict:
     return {"items": [map_item(*row[1:], alt_ref=known.get(row[1], "new")) for row in ITEMS if row[0] in present]}
 
 
-def refine_reply(messages: list[dict]) -> dict:
-    title = re.search(r"^Option: (.+)$", messages[1]["content"], flags=re.MULTILINE).group(1)
-    if title not in REFINED:
-        return {"reasons": []}
-    stance, text, cites = REFINED[title]
-    return {"reasons": [{"stance": stance, "text": text, "cites": cites}]}
-
-
 def support_reply(messages: list[dict]) -> dict:
     """Every claim of the batch is supported."""
     numbers = re.findall(r"^Claim (\d+): ", messages[1]["content"], flags=re.MULTILINE)
     return {"results": [{"id": int(number), "verdict": "supported"} for number in numbers]}
 
 
-def scripted(map_answer, support: bool = True) -> ScriptedLLM:
-    """MAP answers from ``map_answer``, no merges, refined reasons from REFINED and, optionally, support for all."""
-    responses = {"map": map_answer, "merge": lambda messages: {"groups": []}, "refine_reasons": refine_reply}
+def scripted(map_answer, support: bool = False) -> ScriptedLLM:
+    """MAP answers from ``map_answer`` and, optionally, "supported" for every claim."""
+    responses = {"map": map_answer}
     if support:
         responses["support"] = support_reply
     return ScriptedLLM(responses)
@@ -194,8 +176,8 @@ def test_compile_thread_end_to_end(synthetic_thread, links):
     notes: list[str] = []
     record = compile_thread(synthetic_thread, llm, Settings(), progress=notes.append)
 
-    # Run order: one MAP window, merge, refined reasons for the 4 decided options, then 14 claims in 2 batches.
-    assert [step for step, _ in llm.requests] == ["map", "merge"] + ["refine_reasons"] * 4 + ["support"] * 2
+    # With the defaults the model does one job: one MAP call for the one window.
+    assert [step for step, _ in llm.requests] == ["map"]
     assert llm.requests[0][1][0] == {"role": "system", "content": MAP_SYSTEM}
     assert llm.key_extras[0] == {
         "digest": "",
@@ -205,11 +187,6 @@ def test_compile_thread_end_to_end(synthetic_thread, links):
         "known": [],
         "chain": "",
     }
-    merge_lines = llm.requests[1][1][1]["content"].splitlines()
-    assert merge_lines[0] == "Alternatives:"
-    for line, (key, title, *_) in zip(merge_lines[1:], EXPECTED, strict=True):
-        assert line.startswith(f"{key}: {title}")
-
     assert [
         (
             option.key,
@@ -224,7 +201,7 @@ def test_compile_thread_end_to_end(synthetic_thread, links):
     ] == EXPECTED
     assert [option.confidence for option in record.options] == ["high"] * 4
 
-    # The MAP evidence types reach the events and their evidence; post 5 and post 8 hold the decision statements.
+    # Evidence types are derived in code: posts 5 and 8 say "rejected"/"accepts", so they are decision statements.
     hard, decorator, flag, soft = record.options
     assert history(synthetic_thread, hard) == [
         (1, "propose", "author", "proposal", "proposed"),
@@ -251,22 +228,34 @@ def test_compile_thread_end_to_end(synthetic_thread, links):
     # "P5.S2" resolved and "p9.s1" was dropped.
     assert [item.sentence_indexes for item in decorator.status_history[1].evidence] == [[2]]
 
-    # Refined reasons replaced the MAP reasons, citing their options' own posts.
+    # Reasons are the MAP reasons; the accept without one falls back to its quote.
     def cited(reason) -> list[tuple]:
         return [(seq_of(synthetic_thread, item.post_id), item.sentence_indexes) for item in reason.evidence]
 
     reasons = [[(reason.stance, reason.text, cited(reason)) for reason in option.reasons] for option in record.options]
     assert reasons == [
-        [("con", "It breaks existing code that uses lazy as a name.", [(3, [2]), (8, [2])])],
-        [("con", "Decorators cannot apply to import statements.", [(5, [2])])],
-        [("con", "It changes behaviour for every library at once.", [(5, [3]), (6, [1])])],
-        [("pro", "It keeps lazy usable as a normal name.", [(7, [2])])],
+        [
+            ("con", "It breaks existing code that uses lazy as a name.", [(3, [1, 2])]),
+            ("con", "It breaks existing code.", [(8, [2])]),
+        ],
+        [
+            ("pro", "A decorator would avoid adding new syntax.", [(2, [1, 2])]),
+            ("con", "Decorators cannot apply to import statements.", [(5, [2])]),
+        ],
+        [
+            ("con", "It changes behaviour for every library at once.", [(5, [3])]),
+            ("con", "It would break libraries that rely on import side effects.", [(6, [1, 2])]),
+        ],
+        [
+            ("pro", "It keeps lazy usable as a normal name.", [(7, [1, 2])]),
+            ("pro", "The Steering Council accepts PEP 9999 with the soft keyword.", [(8, [1])]),
+        ],
     ]
 
-    # Every claim was judged "supported", and so was every evidence item behind it.
-    assert all(event.support == "supported" for option in record.options for event in option.status_history)
-    assert all(reason.support == "supported" for option in record.options for reason in option.reasons)
-    assert all(item.support == "supported" for item in all_evidence(record))
+    # The support check is off by default: every claim and evidence item stays "unchecked".
+    assert all(event.support == "unchecked" for option in record.options for event in option.status_history)
+    assert all(reason.support == "unchecked" for option in record.options for reason in option.reasons)
+    assert all(item.support == "unchecked" for item in all_evidence(record))
     check_quotes(synthetic_thread, record)
 
     assert record.id == make_record_id("pep:9999")
@@ -275,7 +264,7 @@ def test_compile_thread_end_to_end(synthetic_thread, links):
     assert record.outcome == "4 options: 1 accepted, 3 rejected"
     assert record.decided_by == DecidedBy(handle="sam", role="decider")
     assert record.decided_in_post == posts[7].id
-    assert record.verification == "machine_checked"
+    assert record.verification == "unverified"  # support did not run
     assert record.code_links == links
 
     run = record.run
@@ -283,15 +272,15 @@ def test_compile_thread_end_to_end(synthetic_thread, links):
     assert (run.prompt_version, run.schema_version) == (PROMPT_VERSION, SCHEMA_VERSION)
     assert run.decrack_version == __version__
     assert run.params == {
-        "num_ctx": 32768,
+        "num_ctx": 8192,
         "temperature": 0,
         "think": False,
-        "window_max_tokens": 6000,
-        "window_overlap_tokens": 800,
-        "support_check": True,
+        "window_max_tokens": 3000,
+        "window_overlap_tokens": 300,
+        "support_check": False,
     }
-    assert (run.windows, run.candidates_total, run.candidates_verified, run.llm_calls) == (1, 11, 10, 8)
-    assert (run.cache_hits, run.tokens_in, run.tokens_out, run.support_checked) == (0, 0, 0, True)
+    assert (run.windows, run.candidates_total, run.candidates_verified, run.llm_calls) == (1, 11, 10, 1)
+    assert (run.cache_hits, run.tokens_in, run.tokens_out, run.support_checked) == (0, 0, 0, False)
     assert run.started_at.tzinfo is not None
     assert run.seconds >= 0
     # Every alias shown maps to a stable (post id, version, sentence index); every post shown is allowlisted.
@@ -304,22 +293,24 @@ def test_compile_thread_end_to_end(synthetic_thread, links):
     assert notes  # progress was reported
 
 
-def test_without_the_support_check_statuses_stay_inferred(synthetic_thread, links):
-    llm = scripted([ALL_ITEMS], support=False)
-    record = compile_thread(synthetic_thread, llm, Settings(support_check=False))
+def test_with_the_support_check_every_supported_claim_stays_confirmed(synthetic_thread, links):
+    settings = Settings(support_check=True)
+    llm = scripted([ALL_ITEMS], support=True)
+    record = compile_thread(synthetic_thread, llm, settings)
 
-    assert [step for step, _ in llm.requests] == ["map", "merge"] + ["refine_reasons"] * 4
+    batches = -(-len(claims_for(record.options)) // settings.support_batch_size)
+    assert [step for step, _ in llm.requests] == ["map"] + ["support"] * batches
     assert [
         (option.key, option.title, option.status, option.status_kind, option.status_basis, option.confidence)
         for option in record.options
-    ] == [(key, title, status, "inferred", basis, "low") for key, title, status, _, basis, _, _ in EXPECTED]
-    assert all(event.support == "unchecked" for option in record.options for event in option.status_history)
-    assert all(reason.support == "unchecked" for option in record.options for reason in option.reasons)
-    assert all(item.support == "unchecked" for item in all_evidence(record))
+    ] == [(key, title, status, kind, basis, "high") for key, title, status, kind, basis, _, _ in EXPECTED]
+    assert all(event.support == "supported" for option in record.options for event in option.status_history)
+    assert all(reason.support == "supported" for option in record.options for reason in option.reasons)
+    assert all(item.support == "supported" for item in all_evidence(record))
     check_quotes(synthetic_thread, record)
-    assert record.verification == "unverified"  # support did not run
+    assert record.verification == "machine_checked"
     assert record.decided_by == DecidedBy(handle="sam", role="decider")
-    assert (record.run.support_checked, record.run.params["support_check"]) == (False, False)
+    assert (record.run.support_checked, record.run.params["support_check"]) == (True, True)
 
 
 def test_compile_thread_over_several_windows(synthetic_thread, links):
@@ -328,9 +319,6 @@ def test_compile_thread_over_several_windows(synthetic_thread, links):
     settings = Settings(
         window_max_tokens=2 * max(costs),
         window_overlap_tokens=0,
-        merge_with_llm=False,
-        refine_reasons=False,
-        support_check=False,
     )
     windows = make_windows(synthetic_thread, settings.window_max_tokens, settings.window_overlap_tokens)
     assert len(windows) >= 3
@@ -359,7 +347,7 @@ def test_compile_thread_over_several_windows(synthetic_thread, links):
 
     assert [
         (option.key, option.title, option.status, option.status_kind, option.status_basis) for option in record.options
-    ] == [(key, title, status, "inferred", basis) for key, title, status, _, basis, _, _ in EXPECTED]
+    ] == [(key, title, status, kind, basis) for key, title, status, kind, basis, _, _ in EXPECTED]
     # Posts read by two windows give their acts once.
     acts = [[(seq_of(synthetic_thread, e.post_id), e.act) for e in option.status_history] for option in record.options]
     assert acts == [
@@ -391,8 +379,7 @@ def test_compile_thread_over_several_windows(synthetic_thread, links):
 def test_an_invalid_map_answer_skips_the_window(synthetic_thread, links):
     llm = ScriptedLLM({"map": [{"items": "garbage"}]})
     notes: list[str] = []
-    settings = Settings(merge_with_llm=False, refine_reasons=False, support_check=False)
-    record = compile_thread(synthetic_thread, llm, settings, progress=notes.append)
+    record = compile_thread(synthetic_thread, llm, Settings(), progress=notes.append)
     assert record.options == []
     assert record.outcome == "No options with verified evidence were found."
     assert record.verification == "unverified"
@@ -403,9 +390,8 @@ def test_an_invalid_map_answer_skips_the_window(synthetic_thread, links):
 
 
 def test_other_model_errors_stop_the_run(synthetic_thread, links):
-    settings = Settings(merge_with_llm=False, refine_reasons=False, support_check=False)
     with pytest.raises(LLMError):
-        compile_thread(synthetic_thread, ScriptedLLM(), settings)
+        compile_thread(synthetic_thread, ScriptedLLM(), Settings())
 
 
 # MAP cache keys across runs
@@ -435,14 +421,11 @@ def keyed_thread(count: int) -> Thread:
 
 
 def key_settings(thread: Thread) -> Settings:
-    """Windows of three posts with one post of overlap; no merge, refine or support calls."""
+    """Windows of three posts with one post of overlap; MAP is the only model step."""
     cost = estimate_tokens(render_post(thread.posts[0], thread))
     return Settings(
         window_max_tokens=3 * cost,
         window_overlap_tokens=cost,
-        merge_with_llm=False,
-        refine_reasons=False,
-        support_check=False,
     )
 
 

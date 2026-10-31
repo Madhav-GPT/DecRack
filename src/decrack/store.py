@@ -1,9 +1,9 @@
-"""SQLite store for threads, posts, post versions, model calls, decision records and jobs.
+"""SQLite store for threads, posts, post versions, model calls and decision records.
 
 One database file in WAL mode, the stdlib ``sqlite3`` module and plain SQL.
 FTS5 indexes back the text searches when this SQLite build has FTS5; a LIKE
 fallback answers the same queries without it. Open one ``Store`` per thread:
-background jobs and MCP tool calls each open their own.
+every MCP tool call opens its own.
 
 Posts are keyed by their stable, source-native ids. ``posts`` holds the current
 posts of each thread. ``post_versions`` keeps one row per (post id, version,
@@ -19,13 +19,12 @@ import json
 import logging
 import re
 import sqlite3
-import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, get_args
+from typing import Any
 
 from decrack.config import DEFAULT_DB
-from decrack.models import CodeLink, DecisionRecord, Job, JobStatus, Post, Thread
+from decrack.models import CodeLink, DecisionRecord, Post, Thread
 
 log = logging.getLogger(__name__)
 
@@ -101,16 +100,6 @@ CREATE TABLE IF NOT EXISTS code_links (
 );
 CREATE INDEX IF NOT EXISTS code_links_by_decision ON code_links (decision_id);
 CREATE INDEX IF NOT EXISTS code_links_by_pr ON code_links (pr);
-CREATE TABLE IF NOT EXISTS jobs (
-    id TEXT PRIMARY KEY,
-    source TEXT NOT NULL,
-    status TEXT NOT NULL,
-    progress REAL NOT NULL DEFAULT 0,
-    message TEXT NOT NULL DEFAULT '',
-    record_id TEXT,
-    started_at TEXT,
-    finished_at TEXT
-);
 """
 
 FTS_SCHEMA = """
@@ -124,7 +113,6 @@ MAX_QUERY_TOKENS = 12
 SNIPPET_CHARS = 80  # LIKE fallback: characters kept on each side of the first hit
 SNIPPET_TOKENS = 24  # FTS5 snippet() length
 IDS_PER_QUERY = 500  # ids bound per "IN (...)" query, well under SQLite's variable limit
-JOB_STATUSES = get_args(JobStatus)
 
 
 def _now() -> str:
@@ -235,17 +223,6 @@ def _link_key(row: sqlite3.Row) -> tuple:
     return (row["decision_id"], row["repo"], row["path"], row["commit_sha"], row["pr"], row["method"], row["strength"])
 
 
-def _job_from_row(row: sqlite3.Row) -> Job:
-    return Job(
-        id=row["id"],
-        source=row["source"],
-        status=row["status"],
-        progress=row["progress"],
-        message=row["message"],
-        record_id=row["record_id"],
-        started_at=row["started_at"],
-        finished_at=row["finished_at"],
-    )
 
 
 class Store:
@@ -666,64 +643,3 @@ class Store:
                 }
             )
         return results
-
-    # Jobs -----------------------------------------------------------------------
-
-    def create_job(self, source: str) -> Job:
-        """A new queued job for ``source`` with a 12-character id."""
-        job = Job(id=uuid.uuid4().hex[:12], source=source, status="queued", started_at=datetime.now(timezone.utc))
-        with self._conn:
-            self._conn.execute(
-                "INSERT INTO jobs (id, source, status, progress, message, record_id, started_at, finished_at)"
-                " VALUES (?, ?, ?, ?, ?, NULL, ?, NULL)",
-                (
-                    job.id,
-                    job.source,
-                    job.status,
-                    job.progress,
-                    job.message,
-                    job.started_at.isoformat(timespec="microseconds"),
-                ),
-            )
-        return job
-
-    def update_job(
-        self,
-        job_id: str,
-        *,
-        status: str | None = None,
-        progress: float | None = None,
-        message: str | None = None,
-        record_id: str | None = None,
-        finished: bool = False,
-    ) -> None:
-        """Change the given fields of a job; ``finished=True`` stamps finished_at."""
-        fields: dict[str, Any] = {}
-        if status is not None:
-            if status not in JOB_STATUSES:
-                raise ValueError(f"unknown job status {status!r}")
-            fields["status"] = status
-        if progress is not None:
-            fields["progress"] = max(0.0, min(1.0, float(progress)))
-        if message is not None:
-            fields["message"] = message
-        if record_id is not None:
-            fields["record_id"] = record_id
-        if finished:
-            fields["finished_at"] = _now()
-        if not fields:
-            return
-        assignments = ", ".join(f"{name} = ?" for name in fields)
-        with self._conn:
-            self._conn.execute(f"UPDATE jobs SET {assignments} WHERE id = ?", [*fields.values(), job_id])
-
-    def get_job(self, job_id: str) -> Job | None:
-        row = self._conn.execute("SELECT * FROM jobs WHERE id = ?", (job_id,)).fetchone()
-        return _job_from_row(row) if row else None
-
-    def list_jobs(self, limit: int = 20) -> list[Job]:
-        """The most recently started jobs first."""
-        rows = self._conn.execute(
-            "SELECT * FROM jobs ORDER BY started_at DESC, rowid DESC LIMIT ?", (max(0, int(limit)),)
-        ).fetchall()
-        return [_job_from_row(row) for row in rows]

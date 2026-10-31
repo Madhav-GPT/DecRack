@@ -1,4 +1,4 @@
-"""Tests for decrack.store: threads, post versions, model calls, records, search, code links and jobs."""
+"""Tests for decrack.store: threads, post versions, model calls, records, search and code links."""
 
 from __future__ import annotations
 
@@ -401,36 +401,3 @@ def test_records_for_prs(store, sample_record):
     assert found("example/widgets", [42, 7]) == [(sample_record.id, "Lib/lazy.py"), (other.id, None)]
     assert found("example/widgets", [999]) == []
     assert found(None, []) == []
-
-
-# Jobs -------------------------------------------------------------------------
-
-
-def test_jobs(store):
-    job = store.create_job("pep:9999")
-    assert len(job.id) == 12
-    assert job.source == "pep:9999"
-    assert job.status == "queued"
-    assert job.progress == 0.0
-    assert job.started_at is not None
-    assert job.finished_at is None
-    assert store.get_job(job.id) == job
-
-    store.update_job(job.id, status="running", progress=0.5, message="map 1/2")
-    running = store.get_job(job.id)
-    assert (running.status, running.progress, running.message) == ("running", 0.5, "map 1/2")
-    assert running.finished_at is None
-
-    store.update_job(job.id, status="done", progress=1.0, record_id="dr-1234abcd", finished=True)
-    done = store.get_job(job.id)
-    assert done.status == "done"
-    assert done.record_id == "dr-1234abcd"
-    assert done.message == "map 1/2"
-    assert done.finished_at is not None
-
-    second = store.create_job("gh:example/widgets#7")
-    assert {item.id for item in store.list_jobs()} == {job.id, second.id}
-    assert len(store.list_jobs(limit=1)) == 1
-    assert store.get_job("missing") is None
-    with pytest.raises(ValueError):
-        store.update_job(job.id, status="paused")
