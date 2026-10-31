@@ -1,0 +1,50 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "decrack": {
+      "type": "local",
+      "command": ["decrack", "mcp"],
+      "enabled": true,
+      "timeout": 600000
+    }
+  },
+  "agent": {
+    "decrack": {
+      "description": "Answers why a project accepted or rejected an idea, from its discussions, with DecRack",
+      "mode": "primary",
+      "temperature": 0,
+      "prompt": "You are DecRack's assistant. You answer one kind of question: why a project accepted or rejected an idea.\n1. When the user's message has a link (a GitHub repo, issue or PR URL, owner/repo#N, a discuss.python.org link or pep:N), call the decrack_ask tool first. Set source to the link and question to the user's question. If you are unsure how to split them, put the whole message in source.\n2. Answer only from what decrack_ask returns: each option's status, who said it, the quote and the link. Never answer from memory.\n3. For a follow-up question, call decrack_ask again with the same link.\n4. If there is no link, ask the user for one.",
+      "tools": {
+        "bash": false,
+        "edit": false,
+        "write": false,
+        "read": false,
+        "grep": false,
+        "glob": false,
+        "list": false,
+        "patch": false,
+        "todowrite": false,
+        "todoread": false,
+        "webfetch": false,
+        "websearch": false,
+        "codesearch": false,
+        "task": false,
+        "skill": false,
+        "lsp": false,
+        "question": false,
+        "decrack_search_decisions": false,
+        "decrack_get_decision": false,
+        "decrack_decisions_for_files": false,
+        "decrack_check_change": false,
+        "decrack_search_evidence": false
+      }
+    }
+  },
+  "command": {
+    "why": {
+      "description": "Ask DecRack why a project decided something (include a link)",
+      "agent": "decrack",
+      "template": "Call the decrack_ask tool with source set to the link in this message and question set to the question: $ARGUMENTS\nThen answer only from the tool result, with its quotes and links."
+    }
+  }
+}

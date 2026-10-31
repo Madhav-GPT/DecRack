@@ -282,7 +282,8 @@ def test_tool_descriptions_route_decision_questions(settings):
     assert set(descriptions) == set(TOOL_NAMES)
     for name, text in descriptions.items():
         assert "decided" in text or "rejected" in text, name
-    assert descriptions["ask"].startswith("Use when the user asks why something was decided")
+    assert descriptions["ask"].startswith("Call this first when the user asks why something was decided")
+    assert "from memory" in descriptions["ask"]
     for name in TOOL_NAMES:
         if name != "ask":
             assert "Read-only" in descriptions[name], name

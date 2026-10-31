@@ -2,6 +2,10 @@
 
 DecRack recovers a project's past decisions and rejected ideas from public discussions. Every claim it returns cites the exact sentences it came from. Use it before you change code or propose a design. If your harness supports MCP, the `decrack mcp` server offers the same steps as tools (see `docs/OPENCODE.md`). Otherwise, follow this file and use the CLI.
 
+## Answering a user's question (chat harnesses such as OpenCode)
+
+When the user asks why a project accepted or rejected something and gives a link (a GitHub repo, issue or PR URL, `owner/repo#N`, a discuss.python.org link or `pep:NNN`), call DecRack first: the MCP tool `ask` (`decrack_ask` in OpenCode) or `decrack ask <link> "<question>"`. Answer only from what it returns, with its quotes and links. Never answer from memory. With a small local model, use the `decrack` agent or the `/why` command from this repo's `opencode.json` (see `docs/OPENCODE.md`).
+
 ## Install (once)
 
 ```bash
