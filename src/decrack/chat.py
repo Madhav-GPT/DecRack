@@ -81,6 +81,7 @@ class Card:
     reason: str
     quote: str
     link: str
+    note: str = ""
 
 
 class AnswerOutput(BaseModel):
@@ -116,8 +117,49 @@ DECISION_WORDS = ("don't think", "do not think", "won't", "will not", "not going
                   "rejected", "instead", "recommend", "we allow", "not planned", "prefer")
 
 
-def build_cards(ranked: list[tuple[DecisionRecord, str]], limit: int = MAX_CARDS) -> list[Card]:
-    """Numbered cards, one per option: rejected-like options first, each with a quote no other card shows."""
+CONFIRM_WORDS = ("rejected", "decided", "won't", "will not", "not going to", "not planned", "accepted",
+                 "we will", "closing")
+NEGATIVE_WORDS = ("not going to support", "won't support", "will not support", "not going to add", "won't add",
+                  "will not add", "not going to implement", "won't implement", "not planned", "decided not",
+                  "don't think", "do not think")
+STOP_TERMS = {"from", "with", "that", "this", "into", "than", "then", "have", "will", "would", "should"}
+DeciderSentence = tuple[str, str, str, str]  # author, role, sentence, post url
+
+
+def terms(text: str) -> set[str]:
+    """Words worth matching on: "virtual environment", "venv" and "virtualenv" count as one word."""
+    text = re.sub(r"virtual environments?", "virtualenv", text.lower())
+    text = re.sub(r"\bvenvs?\b|\bvirtualenvs\b", "virtualenv", text)
+    words = {word.strip("`'\".,;:()!?") for word in text.split()}
+    return {word for word in words if len(word) >= 4 and word not in STOP_TERMS}
+
+
+def own_words(quote: str) -> str:
+    """The quote without lines quoted from someone else (they start with ">")."""
+    return " ".join(line for line in quote.splitlines() if not line.lstrip().startswith(">")).lower()
+
+
+def decider_confirmed(option: Any) -> bool:
+    """A decision counts as confirmed only when the decider wrote decision words in their own cited sentence."""
+    for event in option.status_history:
+        if event.role != "decider" or event.act not in ("accept", "reject", "defer", "withdraw"):
+            continue
+        for evidence in event.evidence:
+            if evidence.author == event.author and any(w in own_words(evidence.quote) for w in CONFIRM_WORDS):
+                return True
+    return False
+
+
+def build_cards(
+    ranked: list[tuple[DecisionRecord, str]],
+    limit: int = MAX_CARDS,
+    deciders: list[DeciderSentence] | None = None,
+) -> list[Card]:
+    """Numbered cards, one per option: rejected-like options first, each with a quote no other card shows.
+
+    Two checks keep the labels honest on GitHub threads: "confirmed" needs the decider's own decision
+    words, and an option a maintainer said they won't support reads as rejected, citing that maintainer.
+    """
     cards: list[Card] = []
     shown: set[str] = set()
     for record, _ in ranked:
@@ -125,6 +167,14 @@ def build_cards(ranked: list[tuple[DecisionRecord, str]], limit: int = MAX_CARDS
         for option in options:
             if len(cards) >= limit:
                 return cards
+            status, kind, note = option.status, option.status_kind, ""
+            if record.thread_id.startswith("gh:") and kind == "confirmed" and not decider_confirmed(option):
+                kind = "inferred"
+            for author, role, sentence, url in deciders or []:
+                lowered = sentence.lower()
+                if any(word in lowered for word in NEGATIVE_WORDS) and len(terms(option.title) & terms(sentence)) >= 2:
+                    status, kind, note = "rejected", "inferred", f"@{author} ({role}) {url}"
+                    break
             reason = " ".join(option.reasons[0].text.split()) if option.reasons else ""
             if TEMPLATE_REASON in reason.lower():
                 reason = ""
@@ -135,20 +185,13 @@ def build_cards(ranked: list[tuple[DecisionRecord, str]], limit: int = MAX_CARDS
             quote = " ".join(evidence.quote.split())[:200] if evidence else ""
             shown.add(quote)
             link = (evidence.url if evidence and evidence.url else "") or record.thread_url
-            cards.append(
-                Card(len(cards) + 1, option.title, option.status, option.status_kind, reason, quote, link)
-            )
+            cards.append(Card(len(cards) + 1, option.title, status, kind, reason, quote, link, note))
     return cards
 
 
-def maintainer_statements(store: Store, records: list[DecisionRecord], question: str, limit: int = 3) -> list[str]:
-    """What the people who decide wrote, ranked by overlap with the question. Plain code, no model.
-
-    Sentences come from posts whose author is the decider (who closed or merged) or a maintainer; quoted
-    lines (starting with ">") are someone else's words and are skipped.
-    """
-    words = {word.lower() for word in question_keywords(question)}
-    scored: list[tuple[float, str]] = []
+def decider_sentences(store: Store, records: list[DecisionRecord]) -> list[DeciderSentence]:
+    """Every sentence written by the decider (who closed or merged) or a maintainer, minus quoted lines."""
+    found: list[DeciderSentence] = []
     for record in records:
         thread = store.load_thread(record.thread_id)
         if thread is None:
@@ -158,14 +201,22 @@ def maintainer_statements(store: Store, records: list[DecisionRecord], question:
                 continue
             for sentence in post.sentences:
                 text = " ".join(sentence.split())
-                if len(text) < 25 or text.startswith(">"):
-                    continue
-                lowered = text.lower()
-                overlap = sum(1 for word in words if word in lowered)
-                cue = 1.0 if any(cue in lowered for cue in DECISION_WORDS) else 0.0
-                if overlap + cue == 0:
-                    continue
-                scored.append((overlap + cue, f'@{post.author} ({post.role}): "{text[:240]}" {post.url}'))
+                if len(text) >= 25 and not text.startswith(">"):
+                    found.append((post.author, post.role, text, post.url))
+    return found
+
+
+def maintainer_statements(store: Store, records: list[DecisionRecord], question: str, limit: int = 3) -> list[str]:
+    """What the people who decide wrote, ranked by overlap with the question. Plain code, no model."""
+    words = {word.lower() for word in question_keywords(question)}
+    scored: list[tuple[float, str]] = []
+    for author, role, text, url in decider_sentences(store, records):
+        lowered = text.lower()
+        overlap = sum(1 for word in words if word in lowered)
+        cue = 1.0 if any(cue in lowered for cue in DECISION_WORDS) else 0.0
+        if overlap + cue == 0:
+            continue
+        scored.append((overlap + cue, f'@{author} ({role}): "{text[:240]}" {url}'))
     scored.sort(key=lambda item: -item[0])
     seen: list[str] = []
     for _, line in scored:
@@ -190,6 +241,8 @@ def display_cards(cards: list[Card]) -> list[str]:
     for card in cards:
         lines.append(f"[{card.number}] {card.title}")
         lines.append(f"    status: {card.status} ({card.status_kind})")
+        if card.note:
+            lines.append(f"    said by: {card.note}")
         if card.reason:
             lines.append(f"    why: {card.reason}")
         if card.quote:
@@ -294,7 +347,7 @@ class ChatSession:
         if not question:
             return lines + summary(result.records) + ([tip] if tip else [])
         matched = [(record, why) for record, why in result.ranked if why]
-        cards = build_cards(matched)
+        cards = build_cards(matched, deciders=decider_sentences(self.store, result.records))
         if not cards:
             return lines + [NO_MATCH, NO_MATCH_HINT]
         lines += display_cards(cards)
