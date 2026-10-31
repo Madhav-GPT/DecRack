@@ -86,6 +86,7 @@ DecRack reads the token from the environment only, sends it only to the GitHub A
 uv run decrack run pep:830            # 29 posts: a handful of model calls, under a minute (estimate)
 uv run decrack why "exception notes"
 uv run decrack why "excepthook"
+uv run decrack ask pep:830 "was attaching timestamps through exception notes rejected?"
 ```
 
 You should see a compact decision card for PEP 830. Each option shows its status, its status kind (`confirmed`, `inferred`, `contested` or `unresolved`) and its confidence, and the quotes carry sentence aliases such as `[p4.s2]`. Run `uv run decrack run pep:830` a second time: it should finish almost at once, because every model call is now cached in `decrack.db`.

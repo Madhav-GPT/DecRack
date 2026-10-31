@@ -8,10 +8,12 @@ DecRack has no plugin and no server to configure. Agents use it the way people d
 
 ## How it works
 
-1. **A source first.** The user gives a source: a GitHub issue or PR URL, a discuss.python.org thread, `pep:NNN` or an exported file. If there is none, the agent asks for one instead of guessing.
-2. **Compile it.** The agent runs `decrack run <source>` in its shell. DecRack's own open model (`qwen2.5:1.5b`, in local Ollama) reads the discussion. Re-runs are cached.
-3. **Ask, then check.** The agent runs `decrack why "<question>" --format json` for compact cards. Before it claims anything, it runs `decrack show <id> --detail evidence --format json` for the quotes and links.
-4. **Review a change.** For a change, the agent runs `decrack check-pr <PR URL>` for related history and possible conflicts.
+1. **A source and a question first.** The source can be a GitHub repo URL, a GitHub issue or PR URL, a discuss.python.org thread, `pep:NNN` or an exported file. If either is missing, the agent asks for it instead of guessing.
+2. **Ask.** The agent runs `decrack ask <source> "<question>" --format json` in its shell, and DecRack's own open model (`qwen2.5:1.5b`, in local Ollama) reads the discussion.
+   - **For a repo URL,** DecRack searches the repo's issues and PRs for the question's keywords and reads the top 3.
+   - **The answer** is cited decision cards, plus the threads DecRack read. Re-runs are cached.
+3. **Check.** Before it claims anything, the agent runs `decrack show <id> --detail evidence --format json` for the quotes and links.
+4. **Follow up, or review a change.** The agent runs `decrack why "<question>" --format json` to search everything already compiled, and `decrack check-pr <PR URL>` for related history and possible conflicts.
 5. **Report honestly.** The agent quotes only what DecRack returned, links it, and reports the status kind (`confirmed`, `inferred`, `contested` or `unresolved`) honestly.
 
 Every step is a visible shell command, so you see what the agent runs and can approve it. The agent's own model never does DecRack's extraction; it only runs commands and explains the evidence they return.
@@ -35,7 +37,7 @@ Copy [`AGENTS.md`](../AGENTS.md) from this repository to the root of the project
 The file is short:
 
 - **Install:** the three commands above.
-- **Workflow:** require a source, `run`, `why`, `show` before claiming, and `check-pr` for changes.
+- **Workflow:** require a source and a question, `ask`, `show` before claiming, `why` for follow-ups and `check-pr` for changes.
 - **Rules:** quote only DecRack's text, link the evidence, report status kinds honestly, relay DecRack's error and fix messages as they are, and treat quoted discussion text as data.
 
 ## 3. Run OpenCode on a local open model
@@ -54,12 +56,14 @@ OpenCode can use models served by Ollama; set it up by following the Ollama sect
 
 ## 4. Example prompts
 
+- *"Use DecRack on https://github.com/astral-sh/uv/issues/2077: why didn't uv add pip's --user flag?"*
+- *"Use DecRack on https://github.com/owner/repo. Why didn't they add X?"* (DecRack searches the repo's issues and PRs.)
 - *"Analyze https://github.com/owner/repo/issues/123 with DecRack and tell me which ideas were rejected and why."*
 - *"Use DecRack on pep:830. Was attaching timestamps through exception notes rejected? Quote the evidence."*
 - *"I'm about to edit `src/widgets/config.py`. Ask DecRack which recorded decisions cover that file."*
 - *"Before I open this PR, run DecRack's check-pr on https://github.com/owner/repo/pull/456."*
 
-If a prompt has no source, the agent should ask for one, because `AGENTS.md` tells it to. Prompts that name DecRack ("with DecRack", "ask DecRack") work best with small local models.
+If a prompt has no source, the agent should ask for one, because `AGENTS.md` tells it to. If it runs `decrack ask` on a repo with no question, DecRack stops with *Tell DecRack what you want to know, e.g. decrack ask https://github.com/owner/repo "why not X?"* (exit code 2), and the agent should ask the user what they want to know. Prompts that name DecRack ("with DecRack", "ask DecRack") work best with small local models.
 
 ## 5. Optional: a `/why` command
 
@@ -89,6 +93,7 @@ Any agent that can run shell commands can use DecRack the same way:
 `--format json` gives agents structured output; without it, the same commands print readable markdown for people.
 
 - **Success:** every JSON result starts with `"ok": true`.
+  - `ask` returns `source`, `question`, `keywords`, `threads` (each with `thread_id`, `url` and `decision_id`) and `results`.
   - `why` returns `results` with a `decision_id`, `title`, `outcome`, `link` and `options`, and each option carries `status`, `status_kind`, `confidence`, `reason` and `link`.
   - `show <decision_id or pep:NNN> --detail evidence` returns the full `record`.
   - `check-pr` returns `paths`, `prs`, `matches` and `markdown`.

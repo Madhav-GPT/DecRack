@@ -156,10 +156,10 @@ flowchart TD
     end
     DB --> CLI & AGT & OKF & PRC
     GIT["local git<br/>diff, renames, opt-in blame"] --> PRC
-    RUN["decrack run REF<br/>from a terminal or an agent's shell"] --> ACQ
+    RUN["decrack ask or decrack run<br/>from a terminal or an agent's shell"] --> ACQ
 ```
 
-**New discussions enter through one command, `decrack run REF`,** which runs Acquire and Compile. A person runs it in a terminal; a coding agent runs it through its shell tool, as `AGENTS.md` tells it to.
+**New discussions enter through `decrack ask SOURCE "QUESTION"` or `decrack run SOURCE`,** which run Acquire and Compile. `ask` also answers the question, and for a repo URL it finds the matching issues and PRs itself. A person runs it in a terminal; a coding agent runs it through its shell tool, as `AGENTS.md` tells it to.
 
 **Core and adapters.** The engine is separate from its frontend. The CLI is a small adapter, and the same core produces every output. That boundary is also what keeps a future UI cheap (section 17).
 
@@ -175,7 +175,7 @@ Every connector returns the same contract: a `Thread` holding `Post`s (`src/decr
 |---|---|---|---|
 | `files` | a path to an exported file | Reads the file from disk | The safety net for the organizers' test, whose input format is not known in advance. |
 | `discourse` | a topic URL such as `https://discuss.python.org/t/106942` | `GET /t/{id}.json?print=true` returns the whole topic, up to 1,000 posts, with metadata, in **one request**. The rendered HTML is converted to text. | Quote blocks are removed from a post's own text, but kept as reply and quote edges. Post metadata includes `username`, `user_title`, `flair_name`, `primary_group_name`, `reply_to_post_number` and `version`. |
-| `github` | an issue or PR URL, or `owner/repo#n` | GitHub REST: the issue or PR and its comments; for a PR also its reviews, review comments and changed files | Decision signals come from metadata: `state_reason`, `merged`, `merged_by`, `closed_by`, review states and `author_association`. Needs a read-only `GITHUB_TOKEN`. |
+| `github` | an issue or PR URL, or `owner/repo#n`; with `decrack ask`, also a bare repo URL | GitHub REST: the issue or PR and its comments; for a PR also its reviews, review comments and changed files. For a repo URL, `ask` calls GitHub's search API (`/search/issues?q=repo:owner/repo …`, which covers issues and PRs) with the question's keywords (stopwords removed, at most 6). It reads the top N matches (default 3, at most 5), skipping threads with nothing to analyze. | Decision signals come from metadata: `state_reason`, `merged`, `merged_by`, `closed_by`, review states and `author_association`. Needs a read-only `GITHUB_TOKEN`. |
 | `peps` | `pep:830` or `PEP 830` | Uses `peps.python.org/api/peps.json` **only to find the discussion URLs**, then loads those Discourse topics and merges them into one thread in posting order | **The leak guard** (section 13). It never fetches the PEP text, and the PEP's status, resolution and title suffix never reach a prompt; the run uses the topic titles. |
 | local git | a clone, via `--repo DIR` | `git diff`, `git log --follow` and `git blame`, through subprocess | Used by `check-pr` to find changed files and follow renames. With `--blame`, it also maps changed lines back to the pull requests that last touched them. |
 
@@ -498,10 +498,11 @@ Nothing in this stage calls a model. New discussions come in through `decrack ru
 
 ### 9.1 CLI
 
-`decrack [--db PATH] [--model TAG] [--ollama-host URL] [--support-check] COMMAND`, built with Typer: nine commands. The full table is in the [README](../README.md#cli-reference).
+`decrack [--db PATH] [--model TAG] [--ollama-host URL] [--support-check] COMMAND`, built with Typer: ten commands. The full table is in the [README](../README.md#cli-reference).
 
 | Command | Purpose |
 |---|---|
+| `ask SOURCE ["QUESTION"] [--max-threads N] [--format json]` | The default path: answer a question with cited cards. SOURCE is anything `run` accepts, or a GitHub repo URL, whose matching issues and PRs DecRack finds and runs itself. It reports which threads it read. |
 | `ingest REF` | Acquire only: fetch and store a discussion |
 | `run REF [--out DIR]` | Acquire and compile. This is the one way new discussions get in, from a terminal or an agent's shell. `--out` writes a run folder. |
 | `why QUERY [--raw] [--format json]` | Search the records (or, for a file path, list the linked records) and print compact cards. `--raw` searches the raw stored posts instead, labeled uncompiled and unchecked. |
@@ -518,9 +519,9 @@ Nothing in this stage calls a model. New discussions come in through `decrack ru
 
 DecRack has no plugin and no server. Coding agents use the same CLI as people, guided by [`AGENTS.md`](../AGENTS.md), an instruction file that OpenCode and many other harnesses read automatically. It tells the agent to:
 
-1. **Require a source.** The source is a GitHub issue or PR, a discuss.python.org thread, `pep:NNN` or a file. If there is none, ask for one instead of guessing.
-2. **Run `decrack run <source>`.**
-3. **Run `decrack why "<question>" --format json`** for compact cards.
+1. **Require a source and a question.** The source can be a GitHub repo URL, a GitHub issue or PR, a discuss.python.org thread, `pep:NNN` or a file. If either is missing, ask for it instead of guessing.
+2. **Run `decrack ask <source> "<question>" --format json`.** For a repo URL, DecRack searches the repo's issues and PRs and reads the top matches. It answers with cited cards and the threads it read.
+3. **Use `decrack why "<question>" --format json`** for follow-ups across everything already compiled.
 4. **Run `decrack show <id> --detail evidence --format json`** before claiming anything.
 5. **Run `decrack check-pr <PR URL>`** for changes.
 
@@ -545,6 +546,7 @@ Retrieval follows one rule: **return compact cards first, and expand evidence on
 **No age decay.** DecRack never down-ranks a decision for being old: a ten-year-old rejected idea can be the most relevant record there is. Age is metadata. Whether a record still applies comes from its code links (does the linked path still exist at HEAD?) and from later decisions (has one superseded it?).
 
 **JSON shapes.** Every JSON result has `"ok": true`.
+- `ask` returns `source`, `question`, `keywords`, `threads` (each with `thread_id`, `url` and `decision_id`) and `results` in the same shape as `why`.
 - `why` returns `results`, each with `decision_id`, `title`, `outcome`, `link`, `matched` and `options`. Each option has `key`, `title`, `status`, `status_kind`, `confidence`, `reason` and `link`.
 - `why --raw` returns posts: `post_id`, `thread_id`, `seq`, `author`, `url` and `snippet`.
 - `show` returns `decision_id`, `detail`, `text`, and a `card` or the full `record`.
@@ -555,6 +557,9 @@ Retrieval follows one rule: **return compact cards first, and expand evidence on
 | Case | Exit code |
 |---|---|
 | No source | 2 |
+| No question for `ask` | 2 |
+| A repo search with no hits | 1 |
+| A failed fetch or repo search | 4 |
 | Empty query | 2 |
 | Model not ready | 3 |
 | Fetch error | 4 |
@@ -567,7 +572,7 @@ Retrieval follows one rule: **return compact cards first, and expand evidence on
 
 ### 9.3 An agent session, end to end
 
-OpenCode (or any agent harness) runs its own open model through Ollama. The agent drives DecRack's CLI through its shell tool. Only `decrack run` uses DecRack's own model; lookups read the database.
+OpenCode (or any agent harness) runs its own open model through Ollama. The agent drives DecRack's CLI through its shell tool. Only `decrack ask` and `decrack run` use DecRack's own model; `why` and `show` only read the database.
 
 ```mermaid
 sequenceDiagram
@@ -577,20 +582,18 @@ sequenceDiagram
     participant SH as decrack CLI in the agent's shell
     participant OL as Ollama
     participant DB as decrack.db
-    Dev->>OC: Analyze this GitHub issue with DecRack. Which ideas were rejected?
-    OC->>SH: decrack run with the issue URL
-    SH->>OL: map calls, plus support calls if turned on
+    Dev->>OC: Use DecRack on this repo. Why didn't they add a user-install flag?
+    OC->>SH: decrack ask with the repo URL and the question, format json
+    SH->>SH: search the repo's issues and PRs for the question's keywords
+    SH->>OL: map calls for the top threads, cached when seen before
     OL-->>SH: JSON that cites sentence aliases
-    SH->>DB: gated decision record
-    SH-->>OC: done, with the record ID
-    OC->>SH: decrack why with the question, format json
-    SH->>DB: FTS5 search over decision records
-    SH-->>OC: compact cards with status kind and link
+    SH->>DB: gated decision records
+    SH-->>OC: cards ordered by match, and the threads it read
     OC->>SH: decrack show with the ID, detail evidence, format json
     SH->>DB: cited posts, reply parents and next replies
     SH-->>OC: evidence packet within the output budget
     OC-->>Dev: These ideas were rejected. Here is why, with quotes and links.
-    Note over OC,SH: AGENTS.md makes the agent ask for a source first and quote only what DecRack returned.
+    Note over OC,SH: AGENTS.md makes the agent ask for a source and a question first, and quote only what DecRack returned.
 ```
 
 ### 9.4 Code links and PR-time surfacing
