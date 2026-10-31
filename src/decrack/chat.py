@@ -32,15 +32,23 @@ SCOPE = (
     "or accepted, and why. Give me a link (a GitHub repo, issue or PR, a discuss.python.org thread, or "
     "pep:NNN) and a question."
 )
+EXAMPLE = "Example: Why didn't uv add pip's --user flag? https://github.com/astral-sh/uv/issues/2077"
+NO_LINK = (
+    "I couldn't find a link in that message. Add one to your question: a GitHub repo, issue or PR "
+    "(full URL or owner/repo#123), a discuss.python.org thread, or pep:NNN."
+)
 NO_MATCH = "No recorded decision about that in these threads."
+NO_MATCH_HINT = 'Try other words, or ask "what was rejected and why?"'
 HELP = [
     SCOPE,
     "Commands: /show <decision id>  /check-pr <PR URL>  /help  /quit",
     "A follow-up question without a link reuses the last link.",
+    EXAMPLE,
 ]
 SOURCE_RE = re.compile(
-    r"https?://github\.com/[\w.-]+/[\w.-]+(?:/(?:issues|pull)/\d+)?"
-    r"|https?://discuss\.python\.org/t/\S+"
+    r"(?:https?://)?(?:www\.)?github\.com/[\w.-]+/[\w.-]+(?:/(?:issues|pull)/\d+)?"
+    r"|(?:https?://)?discuss\.python\.org/t/\S+"
+    r"|\b[\w.-]+/[\w.-]+#\d+"
     r"|\bpep:\s*\d+",
     re.IGNORECASE,
 )
@@ -88,8 +96,12 @@ def parse_line(line: str) -> ChatInput:
     if match is None:
         return ChatInput(None, "", None, " ".join(text.split()).strip(" .,;:"))
     source = match.group(0).rstrip(".,;:)!?")
-    if source.lower().startswith("pep"):
+    lowered = source.lower()
+    if lowered.startswith("pep"):
         source = "pep:" + re.sub(r"\D", "", source)
+    elif "github.com/" in lowered or "discuss.python.org/" in lowered:
+        # Links typed without https:// or with www. still count.
+        source = "https://" + re.sub(r"^(?:https?://)?(?:www\.)?", "", source, flags=re.IGNORECASE)
     rest = text[: match.start()] + " " + text[match.end() :]
     # Punctuation that followed the link is not part of the question.
     return ChatInput(None, "", source, " ".join(rest.split()).strip(" .,;:"))
@@ -120,6 +132,20 @@ def render_cards(cards: list[Card]) -> list[str]:
     ]
 
 
+def display_cards(cards: list[Card]) -> list[str]:
+    """The cards as the user sees them: one block per option, easy to scan."""
+    lines: list[str] = []
+    for card in cards:
+        lines.append(f"[{card.number}] {card.title}")
+        lines.append(f"    status: {card.status} ({card.status_kind})")
+        if card.reason:
+            lines.append(f"    why: {card.reason}")
+        if card.quote:
+            lines.append(f'    quote: "{card.quote}"')
+        lines.append(f"    link: {card.link}")
+    return lines
+
+
 def answer_question(llm: Any, question: str, cards: list[Card]) -> tuple[str, list[int]]:
     """One "answer" call from the numbered cards only; returns the answer and the valid cited numbers."""
     messages = [
@@ -148,9 +174,11 @@ class ChatSession:
         loader: Callable[..., Any] = load_source,
         compiler: Callable[..., DecisionRecord] = compile_thread,
         client_factory: Callable[[], httpx.Client] = make_client,
+        notify: Callable[[str], None] | None = None,
     ) -> None:
         self.settings, self.store, self.llm, self.model = settings, store, llm, model
         self.loader, self.compiler, self.client_factory = loader, compiler, client_factory
+        self.notify = notify
         self.last_source: str | None = None
 
     def handle(self, line: str) -> list[str] | None:
@@ -161,12 +189,12 @@ class ChatSession:
                 return self.command(parsed)
             source = parsed.source or self.last_source
             if source is None:
-                return [SCOPE]
+                return [NO_LINK, EXAMPLE]
             return self.answer(source, parsed.question)
         except preflight.GateError as gate:
             return [gate.text()]
         except (LLMError, ValueError, RuntimeError, httpx.HTTPError, OSError) as exc:
-            return [f"error: {type(exc).__name__}: {exc}"]
+            return [f"Couldn't finish that: {exc}", "Check the link and try again, or type /help for examples."]
 
     def command(self, parsed: ChatInput) -> list[str] | None:
         if parsed.command in ("/quit", "/exit"):
@@ -182,6 +210,11 @@ class ChatSession:
         return list(HELP)
 
     def answer(self, source: str, question: str) -> list[str]:
+        if self.notify is not None:
+            self.notify(
+                f"Reading {source} with {self.model}... the first time takes a minute or two; "
+                "follow-up questions are instant."
+            )
         result = run_ask(
             source,
             question,
@@ -193,22 +226,27 @@ class ChatSession:
             client_factory=self.client_factory,
         )
         self.last_source = source
-        read = ", ".join(record.thread_url or record.thread_id for record in result.records)
+        read = ", ".join(
+            f"{record.thread_url or record.thread_id} (id {record.id})" for record in result.records
+        )
         lines = [f"Read {len(result.records)} thread(s): {read}"]
+        tip = f"Tip: /show {result.records[0].id} shows every quote behind this." if result.records else ""
         if not question:
-            return lines + summary(result.records)
+            return lines + summary(result.records) + ([tip] if tip else [])
         matched = [(record, why) for record, why in result.ranked if why]
         cards = build_cards(matched)
         if not cards:
-            return lines + [NO_MATCH, SCOPE]
-        lines += render_cards(cards)
+            return lines + [NO_MATCH, NO_MATCH_HINT]
+        lines += display_cards(cards)
         try:
             text, cites = answer_question(self.llm, question, cards)
         except LLMOutputError:
             return lines + ["(The model's answer was unusable; the cards above are the evidence.)"]
         links = {card.number: card.link for card in cards}
         lines += [f"Answer ({self.model}, from cited evidence):", text, "Sources:"]
-        lines += [f"[{number}] {links[number]}" for number in cites]
+        lines += [f"[{number}] {links[number]}" for number in cites] or ["(none: the cards above are the evidence)"]
+        if tip:
+            lines.append(tip)
         return lines
 
 
@@ -245,7 +283,9 @@ def run_chat(
                 settings = settings.model_copy(update={"model": model})
                 llm = make_llm(settings, store)
         print_fn(SCOPE)
-        session = ChatSession(settings, store, llm, model)
+        print_fn(EXAMPLE)
+        print_fn("Type /help for commands, /quit to exit.")
+        session = ChatSession(settings, store, llm, model, notify=print_fn)
         while True:
             try:
                 line = input_fn("decrack> ")

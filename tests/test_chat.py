@@ -6,7 +6,17 @@ import httpx
 import pytest
 
 from decrack import chat, preflight
-from decrack.chat import NO_MATCH, SCOPE, ChatSession, build_cards, parse_line, run_chat
+from decrack.chat import (
+    EXAMPLE,
+    NO_LINK,
+    NO_MATCH,
+    NO_MATCH_HINT,
+    SCOPE,
+    ChatSession,
+    build_cards,
+    parse_line,
+    run_chat,
+)
 from decrack.config import DEFAULT_MODEL, Settings
 from decrack.pipeline.llm import ScriptedLLM
 
@@ -54,6 +64,17 @@ def test_parse_line():
     assert (plain.command, plain.source, plain.question) == (None, None, "what is the weather?")
 
 
+def test_parse_line_accepts_shorthand_and_links_without_https():
+    short = parse_line("Why didn’t uv add pip’s --user flag? astral-sh/uv#2077")
+    assert (short.source, short.question) == ("astral-sh/uv#2077", "Why didn’t uv add pip’s --user flag?")
+    bare = parse_line("github.com/astral-sh/uv/issues/2077 why not --user?")
+    assert bare.source == "https://github.com/astral-sh/uv/issues/2077"
+    assert parse_line("www.github.com/psf/black why no isort?").source == "https://github.com/psf/black"
+    assert parse_line("discuss.python.org/t/105519 what about d-strings?").source == (
+        "https://discuss.python.org/t/105519"
+    )
+
+
 def test_pick_model_prefers_the_configured_then_the_default_then_any_local():
     assert preflight.pick_model(Settings(model="test-model:b"), tags_client([DEFAULT_MODEL, "test-model:b"])) == (
         "test-model:b"
@@ -76,18 +97,20 @@ def test_pick_model_gates():
     assert info.value.error == preflight.OLLAMA_DOWN
 
 
-def test_no_link_gives_the_scope(session):
-    assert session.handle("what is the weather like?") == [SCOPE]
+def test_no_link_asks_for_one(session):
+    assert session.handle("what is the weather like?") == [NO_LINK, EXAMPLE]
     assert SCOPE in session.handle("/help")
 
 
 def test_answer_cites_card_numbers(session):
     lines = session.handle("pep:9999 why not a decorator?")
     assert lines[0].startswith("Read 1 thread(s):")
-    assert lines[1].startswith("[1] Use a decorator instead of a new keyword | rejected (confirmed)")
+    assert lines[1] == "[1] Use a decorator instead of a new keyword"
+    assert lines[2] == "    status: rejected (confirmed)"
     assert "Answer (scripted, from cited evidence):" in lines
-    sources = lines[lines.index("Sources:") + 1 :]
+    sources = [line for line in lines[lines.index("Sources:") + 1 :] if line.startswith("[")]
     assert sources == [f"[2] {THREAD_URL}/4"]  # 9 is not a card; the repeated 2 counts once
+    assert lines[-1].startswith("Tip: /show ")
     assert session.last_source == "pep:9999"
 
     follow_up = session.handle("and the global flag?")  # reuses the remembered link
@@ -96,7 +119,7 @@ def test_answer_cites_card_numbers(session):
 
 def test_no_matching_record_makes_no_model_call(session):
     lines = session.handle("pep:9999 zebra quantum")
-    assert lines[-2:] == [NO_MATCH, SCOPE]
+    assert lines[-2:] == [NO_MATCH, NO_MATCH_HINT]
     assert [step for step, _ in session.llm.requests if step == "answer"] == []
 
 
@@ -114,4 +137,5 @@ def test_run_chat_greets_with_the_scope(tmp_path, monkeypatch):
     code = run_chat(settings, input_fn=lambda prompt: next(inputs), print_fn=lines.append)
     assert code == 0
     assert lines[0] == SCOPE
+    assert lines[1] == EXAMPLE
     assert any(line.startswith("Commands:") for line in lines)
