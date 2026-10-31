@@ -70,3 +70,11 @@ def test_doctor_ends_with_the_agent_hint(settings):
     assert "decrack why" in AGENT_HINT and "--format json" in AGENT_HINT
     # DecRack is used through its CLI: no MCP config, and no package index.
     assert not any("mcp" in line.lower() or "pypi" in line.lower() for line in lines)
+
+
+def test_doctor_shows_the_model_it_would_use(settings):
+    lines, _ = run_doctor(settings, client=tags_client(["test-model:b", "big-model:cloud"]))
+    # The default model is missing, so the first local model would be used; cloud names never are.
+    assert "[ok] Using test-model:b (local, open-weight via Ollama)" in lines
+    only_cloud, _ = run_doctor(settings, client=tags_client(["big-model:cloud"]))
+    assert any(line.startswith("[missing] No open model installed.") for line in only_cloud)

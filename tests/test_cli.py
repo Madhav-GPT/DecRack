@@ -381,5 +381,9 @@ def test_why_json_returns_compact_cards(saved_sample, workdir):
     assert raw["ok"] is True and raw["raw"] is True and raw["results"]
 
 
-def test_the_cli_has_no_mcp_command(workdir):
-    assert invoke(workdir, "mcp").exit_code == 2  # unknown command
+def test_the_command_list(workdir):
+    result = invoke(workdir, "--help")
+    assert result.exit_code == 0, result.output
+    for command in ("ingest", "run", "ask", "why", "show", "check-pr", "export", "eval", "verify", "doctor"):
+        assert command in result.output
+    assert "chat" in result.output and "mcp" in result.output

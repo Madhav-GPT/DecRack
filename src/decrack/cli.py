@@ -10,6 +10,7 @@ import json
 import re
 import sqlite3
 import subprocess
+import sys
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
@@ -19,6 +20,7 @@ import httpx
 import typer
 from pydantic import BaseModel
 
+from decrack import ask as ask_core
 from decrack import export_okf, preflight, search, surface, verify
 from decrack.config import DEFAULT_MODEL, Settings, load_settings
 from decrack.doctor import run_doctor
@@ -26,7 +28,6 @@ from decrack.models import DecisionRecord, Thread
 from decrack.pipeline.llm import LLMError, make_llm
 from decrack.pipeline.roles import assign_roles
 from decrack.pipeline.run import compile_thread
-from decrack.sources import github as github_source
 from decrack.sources import load as load_source
 from decrack.sources import make_client
 from decrack.store import Store
@@ -48,14 +49,6 @@ EXPECTED_ERRORS = (
     sqlite3.Error,
     subprocess.SubprocessError,
 )
-ASK_HELP = 'Tell DecRack what you want to know, e.g. decrack ask https://github.com/owner/repo "why not X?"'
-# Words that carry no meaning in a GitHub search for a question.
-QUESTION_STOPWORDS = frozenset(
-    "a an and are as at be been but by can could did do does for from had has have how i if in into is it its "
-    "may might no not of on or our should so than that the their them then there these they this those to us "
-    "was we were what when where which who why will with would you your".split()
-)
-MAX_KEYWORDS = 6
 PEP_REF = re.compile(r"^(?:pep[\s:_-]*)?0*(\d{1,5})$", re.IGNORECASE)
 
 
@@ -80,6 +73,18 @@ def gates(as_json: bool = False) -> Iterator[None]:
         else:
             typer.echo(gate.text(), err=gate.code != 0)
         raise typer.Exit(gate.code) from None
+
+
+def ready_llm(settings: Settings, store: Store) -> tuple[Any, Settings]:
+    """The model client. A live Ollama client first picks an installed open model (gate 2)."""
+    llm = make_llm(settings, store)
+    if preflight.needs_model_check(llm):
+        model = preflight.pick_model(settings)
+        progress(preflight.using_line(model))
+        if model != settings.model:
+            settings = settings.model_copy(update={"model": model})
+            llm = make_llm(settings, store)
+    return llm, settings
 
 
 def progress(message: str) -> None:
@@ -242,9 +247,7 @@ def run_cmd(
     with gates():
         preflight.check_source(ref)
     with gates(), expected_errors(), Store(settings.db_path) as store:
-        llm = make_llm(settings, store)
-        if preflight.needs_model_check(llm):
-            preflight.check_model(settings)
+        llm, settings = ready_llm(settings, store)
         thread = assign_roles(preflight.fetch(ref, settings, load_source))
         preflight.check_content(thread)
         store.save_thread(thread)
@@ -347,15 +350,6 @@ def show_cmd(
     typer.echo(text)
 
 
-def question_keywords(question: str) -> list[str]:
-    """The question's words minus stopwords, at most MAX_KEYWORDS, for the GitHub search API."""
-    words: list[str] = []
-    for word in re.findall(r"\w+", question.lower()):
-        if len(word) > 1 and word not in QUESTION_STOPWORDS and word not in words:
-            words.append(word)
-    return words[:MAX_KEYWORDS]
-
-
 @app.command("ask")
 def ask_cmd(
     ctx: typer.Context,
@@ -378,51 +372,23 @@ def ask_cmd(
     settings = settings_of(ctx)
     as_json = check_format(fmt)
     question = (question or "").strip()
-    repo = github_source.parse_repo_url(source)
     with gates(as_json):
-        if repo is not None and not question:
-            raise preflight.GateError(ASK_HELP, code=2)
-        if repo is None:
-            preflight.check_source(source)
-    keywords = question_keywords(question) if repo is not None else []
+        ask_core.check_input(source, question)
     with gates(as_json), expected_errors(), Store(settings.db_path) as store:
-        llm = make_llm(settings, store)
-        if preflight.needs_model_check(llm):
-            preflight.check_model(settings)
-        refs = [source]
-        if repo is not None:
-            owner, name = repo
-
-            def search_repo(ref: str, _settings: Settings) -> list[str]:
-                with make_client() as client:
-                    return github_source.search_threads(owner, name, keywords, client, max_threads)
-
-            # The search goes through the fetch gate too: 404, rate limit and network errors read plainly.
-            refs = preflight.fetch(source, settings, search_repo)
-            if not refs:
-                raise preflight.GateError(
-                    f"No issues or PRs in {owner}/{name} match: {' '.join(keywords)}.",
-                    "Try other words, or give an issue URL.",
-                    1,
-                )
-        records: list[DecisionRecord] = []
-        for ref in refs:
-            thread = assign_roles(preflight.fetch(ref, settings, load_source))
-            if not any(post.sentences for post in thread.posts):
-                progress(f"{thread.id}: nothing to analyze, skipped")
-                continue
-            store.save_thread(thread)
-            progress(f"Stored {thread.id}: {len(thread.posts)} posts — {thread.title}")
-            record = compile_thread(thread, llm, settings, progress=progress)
-            store.save_record(record)
-            records.append(record)
-        if not records:
-            raise preflight.GateError(preflight.NOTHING_TO_ANALYZE, code=0)
-        # Records the question matches come first; every record read is part of the answer.
-        ranked = search.why(store, question, limit=50) if question else []
-    ids = [record.id for record in records]
-    why_of = {hit.record.id: hit.why for hit in ranked if hit.record.id in ids}
-    ordered = sorted(records, key=lambda record: (record.id not in why_of, ids.index(record.id)))
+        llm, settings = ready_llm(settings, store)
+        result = ask_core.run_ask(
+            source,
+            question,
+            settings,
+            store,
+            llm,
+            loader=load_source,
+            compiler=compile_thread,
+            client_factory=make_client,
+            max_threads=max_threads,
+            progress=progress,
+        )
+    records, keywords = result.records, result.keywords
     if as_json:
         echo_json(
             {
@@ -431,7 +397,7 @@ def ask_cmd(
                 "question": question,
                 "keywords": keywords,
                 "threads": [{"thread_id": r.thread_id, "url": r.thread_url, "decision_id": r.id} for r in records],
-                "results": [card_json(record, why_of.get(record.id, "")) for record in ordered],
+                "results": [card_json(record, why) for record, why in result.ranked],
             }
         )
         return
@@ -439,7 +405,7 @@ def ask_cmd(
     typer.echo(f"Read {len(records)} thread(s): {read}")
     typer.echo(search.NOTICE)
     typer.echo("")
-    blocks = [hit_block(record, why_of.get(record.id, "")) for record in ordered]
+    blocks = [hit_block(record, why) for record, why in result.ranked]
     typer.echo(search.pack(blocks, settings.budget_tokens))
 
 
@@ -558,9 +524,7 @@ def eval_cmd(
     # The evaluation must never read the PEP text it scores against, so the leak guard is always on.
     settings = settings.model_copy(update={"eval_mode": True})
     with gates(), expected_errors(), Store(settings.db_path) as store:
-        llm = make_llm(settings, store)
-        if preflight.needs_model_check(llm):
-            preflight.check_model(settings)
+        llm, settings = ready_llm(settings, store)
         evaluate.run_eval(
             peps,
             gold,
@@ -599,8 +563,28 @@ def doctor_cmd(ctx: typer.Context) -> None:
     raise typer.Exit(code)
 
 
+@app.command("chat")
+def chat_cmd(ctx: typer.Context) -> None:
+    """Talk to DecRack: paste a repo, issue, PR or thread URL (or pep:N) with a question. /help lists commands."""
+    # Imported here: only this command needs the chat loop.
+    from decrack.chat import run_chat
+
+    raise typer.Exit(run_chat(settings_of(ctx)))
+
+
+@app.command("mcp")
+def mcp_cmd(ctx: typer.Context) -> None:
+    """Serve DecRack's tools over MCP stdio (for OpenCode or any MCP client)."""
+    # Imported here: only this command needs the mcp package.
+    from decrack import mcp_server
+
+    mcp_server.serve(settings_of(ctx))
+
+
 def main() -> None:
-    """Entry point of the ``decrack`` script."""
+    """Entry point of the ``decrack`` script: plain ``decrack`` on a terminal starts the chat."""
+    if len(sys.argv) == 1 and sys.stdin.isatty():
+        sys.argv.append("chat")
     app()
 
 

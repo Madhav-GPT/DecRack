@@ -80,6 +80,13 @@ def run_doctor(settings: Settings, client: httpx.Client | None = None) -> tuple[
         else:
             code = 1
             lines.append(f"[missing] model {model} is not installed. Run: ollama pull {model}")
+        # The model run, ask, eval and chat would use (the same auto-detect they run).
+        from decrack import preflight  # imported here: preflight imports this module
+
+        try:
+            lines.append(f"[ok] {preflight.using_line(preflight.pick_model(settings, client))}")
+        except preflight.GateError as gate:
+            lines.append(f"[missing] {gate.text()}")
 
     opencode = shutil.which("opencode")
     if opencode:

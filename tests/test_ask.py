@@ -14,6 +14,7 @@ from typer.testing import CliRunner
 
 import decrack.cli as cli
 from decrack import preflight
+from decrack.ask import ASK_HELP
 from decrack.models import make_record_id
 from decrack.pipeline.llm import ScriptedLLM
 
@@ -110,9 +111,9 @@ def test_a_repo_url_needs_a_question(workdir, monkeypatch):
     no_search(monkeypatch)
     result = invoke(workdir, "ask", REPO)
     assert result.exit_code == 2
-    assert cli.ASK_HELP in result.output
+    assert ASK_HELP in result.output
     as_json = invoke(workdir, "ask", REPO, "--format", "json")
-    assert json.loads(as_json.stdout) == {"ok": False, "error": cli.ASK_HELP, "fix": ""}
+    assert json.loads(as_json.stdout) == {"ok": False, "error": ASK_HELP, "fix": ""}
 
 
 def test_asking_about_one_discussion_skips_the_search(workdir, monkeypatch):
@@ -129,11 +130,11 @@ def test_the_model_gate_runs_before_the_search(workdir, monkeypatch):
     class Live:
         mode = "live"
 
-    def down(settings, client=None):
+    def down(settings, client=None):  # pick_model: Ollama does not answer
         raise preflight.GateError("Ollama is not reachable.", "Start it with `ollama serve`.", 3)
 
     monkeypatch.setattr(cli, "make_llm", lambda settings, store=None: Live())
-    monkeypatch.setattr(preflight, "check_model", down)
+    monkeypatch.setattr(preflight, "pick_model", down)
     result = invoke(workdir, "ask", REPO, QUESTION)
     assert result.exit_code == 3
     assert "ollama serve" in result.output

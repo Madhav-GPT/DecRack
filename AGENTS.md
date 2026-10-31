@@ -1,6 +1,6 @@
 # DecRack for coding agents
 
-DecRack recovers a project's past decisions and rejected ideas from public discussions. Every claim it returns cites the exact sentences it came from. Use it through its CLI before you change code or propose a design.
+DecRack recovers a project's past decisions and rejected ideas from public discussions. Every claim it returns cites the exact sentences it came from. Use it before you change code or propose a design. If your harness supports MCP, the `decrack mcp` server offers the same steps as tools (see `docs/OPENCODE.md`). Otherwise, follow this file and use the CLI.
 
 ## Install (once)
 

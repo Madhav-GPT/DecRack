@@ -89,6 +89,8 @@ uv run decrack why "excepthook"
 uv run decrack ask pep:830 "was attaching timestamps through exception notes rejected?"
 ```
 
+Then try the interactive terminal: run `uv run decrack chat`, type `pep:830 was attaching timestamps through exception notes rejected?`, then `/show pep:830`, then `/quit`. The second time, the answer should come from the cache almost at once.
+
 You should see a compact decision card for PEP 830. Each option shows its status, its status kind (`confirmed`, `inferred`, `contested` or `unresolved`) and its confidence, and the quotes carry sentence aliases such as `[p4.s2]`. Run `uv run decrack run pep:830` a second time: it should finish almost at once, because every model call is now cached in `decrack.db`.
 
 To try a bigger open model, pass its Ollama tag with the global `--model` option, which goes before the command (`uv run decrack --model TAG run pep:830`). To turn on the optional support check, add the global `--support-check` flag, also before the command (`uv run decrack --support-check run pep:830`). Records then carry `supported`, `partial` or `unsupported` verdicts instead of `support: unchecked`, and a claim judged unsupported is downgraded from `confirmed` to `inferred`.
@@ -172,6 +174,7 @@ uv run python -m compileall -q src                               # compile
 uv run pytest -q                                                 # tests
 uv run decrack verify examples                                   # example evidence
 uv run python scripts/compliance_check.py                        # compliance scan
+uv run python -m decrack.mcp_server --self-check                 # MCP self-check
 uv build                                                         # build
 ```
 
@@ -233,7 +236,7 @@ The very first call also loads the model into memory, which adds a few seconds.
 - Check that it answers with `curl http://127.0.0.1:11434/api/tags`.
 - If Ollama runs on another machine, start it there with `OLLAMA_HOST=0.0.0.0 ollama serve` and pass `--ollama-host http://THAT-MACHINE:11434` before the command. The flag is the only way to change the host.
 
-**"model not found".** Run `ollama pull qwen2.5:1.5b` and confirm the tag with `ollama list`. The tag must match `--model` exactly.
+**"model not found", or no model installed.** DecRack uses `qwen2.5:1.5b` if it's installed, and otherwise any model in your local Ollama. If none is installed, it stops and prints the fix: run `ollama pull qwen2.5:1.5b`, and confirm with `ollama list`. A `--model` tag you pass must match exactly.
 
 **Runs are slow.**
 - **Close heavy apps.** The model needs the memory.
