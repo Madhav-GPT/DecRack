@@ -6,7 +6,8 @@ parts plus the header sentences), so it resolves at once to a stable (post,
 sentence index) and nothing downstream keeps an alias. An alias outside the
 table is invalid, even when the thread has such a post. Candidates with no
 valid alias are dropped and counted. Evidence is cut from the post's own text
-at sentence boundaries, so ``quote == post.text[start:end]``.
+at sentence boundaries, so ``quote == post.text[start:end]``. The evidence type
+is derived here in code (``derive_evidence_type``), never asked of the model.
 """
 
 from __future__ import annotations
@@ -20,6 +21,13 @@ from decrack.text import quote_range
 
 CITE_NOISE_RE = re.compile(r"[\s\[\](){}<>\"'`]")
 CITE_SPLIT_RE = re.compile(r"[,;]")
+# Words that mark an explicit decision ("added to rejected ideas", "we won't", "the SC accepts").
+DECISION_CUES = re.compile(
+    r"\b(rejected|added to (the )?rejected ideas|we (will not|won['’]t|are not going to)|decided|decision"
+    r"|accept(ed|s)?|withdr(aw|awn|ew)|pronounce(d|ment)?|not pursue|deferred|postponed)\b",
+    re.IGNORECASE,
+)
+DECISION_ACTS = ("accept", "reject", "defer", "withdraw")
 
 Aliases = dict[str, tuple[Post, int]]
 
@@ -83,6 +91,23 @@ def resolve_aliases(aliases: Aliases, cites: Iterable[str]) -> list[tuple[Post, 
     return [aliases[cite] for cite in split_cites(cites) if cite in aliases]
 
 
+def derive_evidence_type(act: str, role: str, quotes: Iterable[str]) -> str:
+    """The kind of statement a candidate's quotes make, from its act, the poster's role and decision cues.
+
+    accept/reject/defer/withdraw: "decision_statement" when a quote has a
+    decision cue; otherwise "author_position" for the author, else "support"
+    (accept) or "objection" (reject, defer, withdraw). object -> "objection",
+    support -> "support", propose -> "proposal".
+    """
+    if act in DECISION_ACTS:
+        if any(DECISION_CUES.search(quote or "") for quote in quotes):
+            return "decision_statement"
+        if role == "author":
+            return "author_position"
+        return "support" if act == "accept" else "objection"
+    return {"object": "objection", "support": "support", "propose": "proposal"}.get(act, "other")
+
+
 def make_evidence(post: Post, indexes: list[int], evidence_type: str = "other") -> Evidence:
     """Evidence for one contiguous run of sentences of ``post`` (ValueError otherwise).
 
@@ -129,8 +154,9 @@ def gate_candidates(thread: Thread, candidates: list[Candidate], aliases: Aliase
     """Keep candidates with at least one alias that resolves to a post of ``thread``; drop and count the rest.
 
     ``aliases`` is the table of the call that produced ``candidates`` (see
-    ``build_aliases``). Every evidence item of a kept candidate gets the
-    candidate's ``evidence_type``.
+    ``build_aliases``). The evidence type comes from ``derive_evidence_type``
+    (act, the latest cited post's role, the candidate's quotes) and is set on
+    every evidence item of the kept candidate.
     """
     in_thread = {post.id for post in thread.posts}
     kept: list[GatedCandidate] = []
@@ -139,14 +165,18 @@ def gate_candidates(thread: Thread, candidates: list[Candidate], aliases: Aliase
         if not pairs:
             continue
         latest = max((post for post, _ in pairs), key=lambda post: post.seq)
+        evidence = evidence_for(pairs)
+        evidence_type = derive_evidence_type(candidate.act, latest.role, [item.quote for item in evidence])
+        for item in evidence:
+            item.evidence_type = evidence_type
         kept.append(
             GatedCandidate(
                 candidate=candidate.model_copy(update={"cites": []}),
-                evidence=evidence_for(pairs, candidate.evidence_type),
+                evidence=evidence,
                 post=latest,
                 role=latest.role,
                 author=latest.author,
-                evidence_type=candidate.evidence_type,
+                evidence_type=evidence_type,
             )
         )
     return GateResult(kept=kept, total=len(candidates), dropped=len(candidates) - len(kept))

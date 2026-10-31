@@ -1,36 +1,28 @@
 """Consolidate: stable keys for alternatives, merging, status rules, reasons and confidence.
 
-Everything here is code except two optional model calls: one ``merge`` call
-per thread ("which of these name the same idea?") and one ``refine_reasons``
-call per decided option. Status, status kind and confidence never come from
-the model: ``decide`` derives them from the option's status events, their
-evidence type, the writer's role and the semantic support verdicts that
-``support.check_support`` adds (the conservative status model, R2.4).
+Everything here is code; no model call. Two names are the same alternative
+when their normalised titles are close (difflib ratio >= 0.85) or share most
+words (token-set Jaccard >= 0.6). A reason is the MAP item's own reason, or,
+when it gave none, the first sentence it cites. Status, status kind and
+confidence never come from the model: ``decide`` derives them from the
+option's status events, their evidence type (derived in the gate), the
+writer's role and, when the optional support check ran, its verdicts (the
+conservative status model, R2.4).
 """
 
 from __future__ import annotations
 
-import logging
 import re
 from collections import Counter
 from dataclasses import dataclass, field
 from difflib import SequenceMatcher
-from typing import TYPE_CHECKING
 
-from pydantic import ValidationError
+from decrack.models import STATUSES, DecidedBy, Evidence, Option, Reason, StatusEvent, Thread
+from decrack.pipeline.gate import GatedCandidate
 
-from decrack.models import STATUSES, DecidedBy, Evidence, Option, Post, Reason, StatusEvent, Thread
-from decrack.pipeline.gate import GatedCandidate, build_aliases, evidence_for, resolve_aliases, split_cites
-from decrack.pipeline.llm import LLMOutputError
-from decrack.pipeline.prompts import MergeOutput, RefineOutput, merge_messages, refine_messages, render_post
-from decrack.text import estimate_tokens
-
-if TYPE_CHECKING:  # only a type hint here
-    from decrack.pipeline.llm import LLM
-
-log = logging.getLogger(__name__)
-
-TITLE_SIMILARITY = 0.85
+TITLE_SIMILARITY = 0.85  # difflib ratio of normalised titles
+TITLE_OVERLAP = 0.6  # token-set Jaccard of normalised titles
+MAX_QUOTE_REASON_CHARS = 300  # a reason taken from a quote is clipped to this
 REASON_SIMILARITY = 0.9
 MAX_TITLE_WORDS = 12
 MAX_SUMMARY_WORDS = 20
@@ -77,6 +69,17 @@ def similarity(first: str, second: str) -> float:
     return SequenceMatcher(None, a, b).ratio()
 
 
+def jaccard(first: str, second: str) -> float:
+    """Token-set Jaccard of two normalised strings: shared words / all words."""
+    a, b = set(first.split()), set(second.split())
+    return len(a & b) / len(a | b) if a or b else 0.0
+
+
+def same_title(first: str, second: str) -> bool:
+    """Two normalised titles name the same alternative: difflib ratio >= 0.85 or Jaccard >= 0.6."""
+    return similarity(first, second) >= TITLE_SIMILARITY or jaccard(first, second) >= TITLE_OVERLAP
+
+
 def short_title(text: str) -> str:
     return " ".join(text.split()[:MAX_TITLE_WORDS])
 
@@ -94,9 +97,9 @@ class AltRegistry:
     """Assigns keys A1, A2, ... to alternatives while windows are processed in order.
 
     A valid known key from the model keeps its key. A "new" or unknown key joins
-    the existing alternative whose normalised title is at least 85% similar
-    (difflib), or gets the next key with the alternative's name, cut to 12
-    words, as its title. Each key keeps a one-line summary: the first non-empty
+    the most similar existing alternative whose normalised title is the same
+    by ``same_title`` (difflib >= 0.85 or Jaccard >= 0.6), or gets the next key
+    with the alternative's name, cut to 12 words, as its title. Each key keeps a one-line summary: the first non-empty
     reason filed under it, cut to 20 words.
     """
 
@@ -129,28 +132,28 @@ class AltRegistry:
                 self.normalized[key] = normalized
                 self.members[key] = []
         if not self.summaries[key]:
-            self.summaries[key] = short_summary(item.candidate.reason)
+            self.summaries[key] = short_summary(item.candidate.reason or "")
         self.members[key].append((self._count, item))
         self._count += 1
         return key
 
     def find(self, normalized: str) -> str | None:
-        """The key whose title is most similar to ``normalized``, when at least TITLE_SIMILARITY."""
+        """The key whose title is the same as ``normalized`` (``same_title``), the most similar first."""
         best_key, best_score = None, 0.0
         for key, title in self.normalized.items():
-            score = similarity(normalized, title)
-            if score >= TITLE_SIMILARITY and score > best_score:
+            score = max(similarity(normalized, title), jaccard(normalized, title))
+            if same_title(normalized, title) and score > best_score:
                 best_key, best_score = key, score
         return best_key
 
 
-def consolidate(thread: Thread, gated: list[GatedCandidate], llm: LLM | None = None) -> list[Option]:
+def consolidate(thread: Thread, gated: list[GatedCandidate]) -> list[Option]:
     """Turn the gated candidates of ``thread`` (in window order) into options with a preliminary status.
 
     Keys come from replaying AltRegistry over ``gated`` in order, which gives
-    the same keys ``run`` showed the model window by window. With an ``llm``,
-    one ``merge`` call joins alternatives that name the same idea. Options are
-    numbered A1, A2, ... again after merging. Every option goes through
+    the same keys ``run`` showed the model window by window. Alternatives whose
+    titles are the same by ``same_title`` are merged into the lowest key, and
+    options are numbered A1, A2, ... again. Every option goes through
     ``decide``; its events and reasons are still "unchecked" at this point.
     """
     registry = AltRegistry()
@@ -159,34 +162,12 @@ def consolidate(thread: Thread, gated: list[GatedCandidate], llm: LLM | None = N
     order = {post.id: post.seq for post in thread.posts}
     return [
         _build_option(f"A{number}", title, summary, items, order)
-        for number, (title, summary, items) in enumerate(_merged_groups(registry, llm), start=1)
+        for number, (title, summary, items) in enumerate(_merged_groups(registry), start=1)
     ]
 
 
-def _ask_merge(registry: AltRegistry, llm: LLM) -> list[list[str]]:
-    """Groups from the ``merge`` call, kept only when they name known keys, each key at most once."""
-    try:
-        data = llm.complete_json("merge", merge_messages(registry.known()), MergeOutput, think=False)
-        groups = MergeOutput.model_validate(data).groups
-    except (LLMOutputError, ValidationError) as exc:
-        log.warning("merge step skipped: %s", exc)
-        return []
-    used: set[str] = set()
-    valid: list[list[str]] = []
-    for group in groups:
-        keys: list[str] = []
-        for raw in group:
-            key = str(raw).strip().upper()
-            if key in registry.titles and key not in used and key not in keys:
-                keys.append(key)
-        if len(keys) >= 2:
-            valid.append(keys)
-            used.update(keys)
-    return valid
-
-
-def _merged_groups(registry: AltRegistry, llm: LLM | None) -> list[tuple[str, str, list[GatedCandidate]]]:
-    """``(title, summary, members in thread order)`` per alternative, after merging duplicates into the lowest key.
+def _merged_groups(registry: AltRegistry) -> list[tuple[str, str, list[GatedCandidate]]]:
+    """``(title, summary, members in thread order)`` per alternative, after merging same titles into the lowest key.
 
     The title is the lowest key's; the summary is the first non-empty summary
     of the merged keys, lowest key first.
@@ -202,15 +183,10 @@ def _merged_groups(registry: AltRegistry, llm: LLM | None) -> list[tuple[str, st
         low, high = sorted((root(first), root(second)), key=key_number)
         parent[high] = low
 
-    if llm is not None and len(registry.titles) >= 2:
-        for group in _ask_merge(registry, llm):
-            for key in group[1:]:
-                join(group[0], key)
-
     roots = sorted({root(key) for key in parent}, key=key_number)
     for index, first in enumerate(roots):
         for second in roots[index + 1 :]:
-            close = similarity(registry.normalized[first], registry.normalized[second]) >= TITLE_SIMILARITY
+            close = same_title(registry.normalized[first], registry.normalized[second])
             if close and root(first) != root(second):
                 join(first, second)
 
@@ -258,7 +234,7 @@ def _build_option(key: str, title: str, summary: str, items: list[GatedCandidate
     events = _events(items, order)
     reasons: list[Reason] = []
     for item in items:
-        text = " ".join(item.candidate.reason.split())
+        text = reason_text(item)
         if text:
             stance = "con" if item.candidate.act in CON_ACTS else "pro"
             add_reason(reasons, Reason(stance=stance, text=text, evidence=_copies(item.evidence)), order)
@@ -276,6 +252,14 @@ def _build_option(key: str, title: str, summary: str, items: list[GatedCandidate
     )
     decide(option)
     return option
+
+
+def reason_text(item: GatedCandidate) -> str:
+    """The MAP item's reason; when it gave none and the act is not "propose", its first quote (300 chars at most)."""
+    text = " ".join((item.candidate.reason or "").split())
+    if not text and item.candidate.act != "propose" and item.evidence:
+        text = " ".join(item.evidence[0].quote.split())[:MAX_QUOTE_REASON_CHARS]
+    return text
 
 
 def add_reason(reasons: list[Reason], new: Reason, order: dict[str, int]) -> None:
@@ -363,10 +347,10 @@ def _from_statements(events: list[StatusEvent]) -> Ruling | None:
 
     if any(disagrees(later) for later in events[current + 1 :]):
         kind = "contested"
-    elif event.support == "supported":
-        kind = "confirmed"
-    else:
+    elif event.support == "unsupported":
         kind = "inferred"
+    else:
+        kind = "confirmed"  # supported, partial, or unchecked when the support check is off
     basis = "decider_statement" if event.role == "decider" else "author_statement"
     return Ruling(status, kind, basis, event, [event])
 
@@ -403,9 +387,12 @@ def _from_consensus(events: list[StatusEvent]) -> Ruling | None:
 
 
 def status_ruling(events: list[StatusEvent]) -> Ruling:
-    """Apply the status rules to ``events`` (in thread order), ignoring events whose support is "unsupported"."""
+    """Apply the status rules to ``events`` (in thread order).
+
+    Rule 1 reads every event; rules 2-4 ignore events whose support is "unsupported".
+    """
     counted = [event for event in events if event.support != "unsupported"]
-    ruling = _from_statements(counted) or _from_author(counted) or _from_consensus(counted)
+    ruling = _from_statements(events) or _from_author(counted) or _from_consensus(counted)
     if ruling is not None:
         return ruling
     # Rule 4: nothing decided. "proposed" when every counted event is a proposal.
@@ -414,10 +401,14 @@ def status_ruling(events: list[StatusEvent]) -> Ruling:
 
 
 def _confidence(ruling: Ruling) -> str:
-    """confirmed + supported -> high; inferred + every event it rests on supported -> medium; else low."""
+    """confirmed: high when supported or unchecked, medium when partial.
+
+    inferred: medium when every event it rests on is supported, else low.
+    contested and unresolved: low.
+    """
+    if ruling.kind == "confirmed" and ruling.event is not None:
+        return "medium" if ruling.event.support == "partial" else "high"
     supported = bool(ruling.grounds) and all(event.support == "supported" for event in ruling.grounds)
-    if supported and ruling.kind == "confirmed":
-        return "high"
     if supported and ruling.kind == "inferred":
         return "medium"
     return "low"
@@ -427,11 +418,12 @@ def decide(option: Option) -> None:
     """Recompute the option's status fields, each event's ``status_after`` and the confidence from its events.
 
     ``option.status_history`` must be in thread order (``consolidate`` builds it
-    so). Rules, first match wins (events with support "unsupported" are ignored):
+    so). Rules, first match wins (rules 2-4 ignore events with support "unsupported"):
 
-    1. Authoritative decision statements (see ``_from_statements``): basis
-       decider_statement or author_statement; kind confirmed when the deciding
-       statement's support is "supported", inferred otherwise, or contested.
+    1. Authoritative decision statements (see ``_from_statements``), over all
+       events: basis decider_statement or author_statement; kind contested,
+       else inferred when the deciding statement's support is "unsupported",
+       else confirmed (supported, partial, or unchecked with the check off).
     2. The author's latest objection, rejection, deferral or withdrawal that
        no author or decider backed afterwards: inferred, author_statement.
     3. Objections from at least 2 other people with no author or decider
@@ -468,71 +460,3 @@ def summarize_outcome(options: list[Option]) -> str:
     noun = "option" if len(options) == 1 else "options"
     return f"{len(options)} {noun}: " + ", ".join(parts)
 
-
-# Refined reasons
-
-
-def reason_context(thread: Thread, option: Option, max_tokens: int) -> list[Post]:
-    """The full posts behind the option's evidence plus its status post, in thread order, within ``max_tokens``.
-
-    Posts are found by id. The status post always stays; when the others do
-    not all fit, the posts closest to it are kept first.
-    """
-    wanted = {evidence.post_id for evidence in option.evidence}
-    if option.status_post is not None:
-        wanted.add(option.status_post)
-    found = [post for post in thread.posts if post.id in wanted and post.spans]
-    if not found:
-        return []
-    anchor = next((post.seq for post in found if post.id == option.status_post), max(post.seq for post in found))
-    chosen: list[Post] = []
-    used = 0
-    for post in sorted(found, key=lambda post: (abs(post.seq - anchor), post.seq)):
-        cost = estimate_tokens(render_post(post))
-        if chosen and used + cost > max_tokens:
-            continue
-        chosen.append(post)
-        used += cost
-    return sorted(chosen, key=lambda post: post.seq)
-
-
-def refine_reasons(llm: LLM, thread: Thread, options: list[Option], max_tokens: int = 12000) -> None:
-    """Rewrite the reasons of decided options from their own posts; every new reason must cite that context.
-
-    The context is cut to ``max_tokens`` but kept in thread order: NVIDIA's
-    order-preserving RAG result found a capped context in original order beat
-    both a long context and a relevance-sorted one. The prompt also lists every
-    option with its summary, so reasons about the others can be left out. The
-    model sees the context posts' aliases (``p12.s3``) only, so a cite outside
-    the context resolves to nothing. An option keeps its MAP reasons when the
-    output is invalid or no new reason cites its context. New reasons are
-    "unchecked" until ``check_support`` runs.
-    """
-    order = {post.id: post.seq for post in thread.posts}
-    known = [(option.key, option.title, option.summary) for option in options]
-    for option in options:
-        if option.status not in DECIDED_STATUSES:
-            continue
-        context = reason_context(thread, option, max_tokens)
-        if not context:
-            continue
-        aliases = build_aliases([(post, 1, len(post.spans)) for post in context])
-        messages = refine_messages(option.title, option.status, context, thread_title=thread.title, known=known)
-        try:
-            data = llm.complete_json("refine_reasons", messages, RefineOutput, think=False)
-            proposals = RefineOutput.model_validate(data).reasons
-        except (LLMOutputError, ValidationError) as exc:
-            log.warning("refine_reasons skipped for %s: %s", option.key, exc)
-            continue
-        reasons: list[Reason] = []
-        for proposal in proposals:
-            text = " ".join(proposal.text.split())
-            pairs = resolve_aliases(aliases, split_cites(proposal.cites))
-            evidence = evidence_for(pairs, evidence_type="other")
-            if text and evidence:
-                add_reason(reasons, Reason(stance=proposal.stance, text=text, evidence=evidence), order)
-        if reasons:
-            option.reasons = reasons
-            new_evidence = [item for reason in reasons for item in reason.evidence]
-            option.evidence = merge_evidence(option.evidence + new_evidence, order)
-        decide(option)

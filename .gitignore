@@ -15,7 +15,6 @@ htmlcov/
 *.db
 *.db-wal
 *.db-shm
-decrack.toml
 
 # Editors and OS
 .idea/

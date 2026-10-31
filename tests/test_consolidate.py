@@ -7,12 +7,14 @@ from decrack.pipeline.consolidate import (
     AltRegistry,
     consolidate,
     decide,
+    jaccard,
+    normalize_text,
     rate_confidence,
-    refine_reasons,
+    same_title,
+    similarity,
     summarize_outcome,
 )
 from decrack.pipeline.gate import GatedCandidate, make_evidence
-from decrack.pipeline.llm import ScriptedLLM
 
 STATEMENT = "decision_statement"
 
@@ -23,15 +25,13 @@ def item(
     act: str,
     title: str = "Soft keyword",
     evidence_type: str = "other",
-    reason: str = "",
+    reason: str | None = "",
     sentences: tuple[int, ...] = (1,),
     alt_ref: str = "new",
 ) -> GatedCandidate:
     """A gated candidate citing sentences of the post at ``seq``; role and author are that post's."""
     post = thread.post_by_seq(seq)
-    candidate = Candidate(
-        alt_ref=alt_ref, alternative=title, act=act, evidence_type=evidence_type, reason=reason, cites=[]
-    )
+    candidate = Candidate(alt_ref=alt_ref, alternative=title, act=act, reason=reason, cites=[])
     return GatedCandidate(
         candidate=candidate,
         evidence=[make_evidence(post, list(sentences), evidence_type=evidence_type)],
@@ -225,34 +225,51 @@ def test_objections_from_two_participants_are_a_weaker_inferred_rejection():
     assert state(backed_by_the_author) == ("unresolved", "unresolved", "none", None)
 
 
-def test_unsupported_events_are_ignored():
+def test_rule_one_reads_unsupported_statements_and_the_other_rules_ignore_them():
     option = decided(
         event(7, "propose", "participant", "frank", "proposal"),
         event(8, "accept", "decider", "sam", STATEMENT, support="unsupported"),
     )
-    assert state(option) == ("proposed", "unresolved", "none", None)
-    assert after(option) == ["proposed", "proposed"]
+    assert state(option) == ("accepted", "inferred", "decider_statement", pid(8))
+    assert option.confidence == "low"
+    assert after(option) == ["proposed", "accepted"]
 
-    not_contested = decided(
+    # Rule 1 walks every event, so an unsupported later statement still contests.
+    contested = decided(
         event(3, "reject", "decider", "sam", STATEMENT),
         event(5, "accept", "author", "alice", STATEMENT, support="unsupported"),
     )
-    assert state(not_contested) == ("rejected", "confirmed", "decider_statement", pid(3))
+    assert state(contested) == ("rejected", "contested", "decider_statement", pid(3))
+
+    # Rules 2-4 still ignore unsupported events.
+    ignored = decided(event(5, "object", "author", "alice", "objection", support="unsupported"))
+    assert state(ignored) == ("unresolved", "unresolved", "none", None)
 
 
-def test_an_unchecked_or_partial_statement_is_only_inferred():
-    unchecked = decided(event(8, "accept", "decider", "sam", STATEMENT, support="unchecked"))
-    assert state(unchecked) == ("accepted", "inferred", "decider_statement", pid(8))
-    assert unchecked.confidence == "low"
+def test_a_decision_statement_is_confirmed_unless_the_support_check_says_unsupported():
+    # Support check off: every event stays "unchecked", and an author or decider statement is confirmed.
+    by_author = decided(event(5, "reject", "author", "alice", STATEMENT, support="unchecked"))
+    assert state(by_author) == ("rejected", "confirmed", "author_statement", pid(5))
+    assert by_author.confidence == "high"
+    by_decider = decided(event(8, "accept", "decider", "sam", STATEMENT, support="unchecked"))
+    assert state(by_decider) == ("accepted", "confirmed", "decider_statement", pid(8))
+    assert by_decider.confidence == "high"
 
+    # Support check on.
+    unsupported = decided(event(8, "accept", "decider", "sam", STATEMENT, support="unsupported"))
+    assert (unsupported.status_kind, unsupported.confidence) == ("inferred", "low")
+    supported = decided(event(8, "accept", "decider", "sam", STATEMENT, support="supported"))
+    assert (supported.status_kind, supported.confidence) == ("confirmed", "high")
     partial = decided(event(5, "reject", "author", "alice", STATEMENT, support="partial"))
-    assert state(partial) == ("rejected", "inferred", "author_statement", pid(5))
-    assert partial.confidence == "low"
+    assert (partial.status_kind, partial.confidence) == ("confirmed", "medium")
 
 
 def test_confidence_tiers():
     cases = [
         ([event(8, "accept", "decider", "sam", STATEMENT)], "confirmed", "high"),
+        ([event(8, "accept", "decider", "sam", STATEMENT, support="unchecked")], "confirmed", "high"),
+        ([event(8, "accept", "decider", "sam", STATEMENT, support="partial")], "confirmed", "medium"),
+        ([event(8, "accept", "decider", "sam", STATEMENT, support="unsupported")], "inferred", "low"),
         ([event(5, "object", "author", "alice", "objection")], "inferred", "medium"),
         ([event(5, "object", "author", "alice", "objection", support="partial")], "inferred", "low"),
         (
@@ -319,14 +336,17 @@ def test_consolidate_builds_events_in_thread_order(synthetic_thread):
     assert cited(option.status_history[0].evidence) == [(frank, [1]), (frank, [2])]
     assert cited(option.evidence) == [(frank, [1]), (frank, [2]), (sam, [1])]
     assert option.summary == "It keeps lazy usable as a normal name."
+    # Items without a reason (other than proposals) fall back to their first quote.
     assert [(reason.stance, reason.text, reason.support) for reason in option.reasons] == [
-        ("pro", "It keeps lazy usable as a normal name.", "unchecked")
+        ("pro", "It keeps lazy usable as a normal name.", "unchecked"),
+        ("pro", "A soft keyword keeps lazy usable as a normal name.", "unchecked"),
+        ("pro", "The Steering Council accepts PEP 9999 with the soft keyword.", "unchecked"),
     ]
 
-    # Nothing is support-checked yet, so the decider's statement is only inferred.
-    assert state(option) == ("accepted", "inferred", "decider_statement", sam)
+    # Nothing is support-checked (the check is off): the decider's statement is confirmed.
+    assert state(option) == ("accepted", "confirmed", "decider_statement", sam)
     assert option.decided_by == DecidedBy(handle="sam", role="decider")
-    assert option.confidence == "low"
+    assert option.confidence == "high"
 
     for item_event in option.status_history:
         item_event.support = "supported"
@@ -346,10 +366,19 @@ def test_reasons_get_stances_and_near_duplicates_merge(synthetic_thread):
     first, third, eighth = (t.post_by_seq(seq).id for seq in (1, 3, 8))
     assert [(reason.stance, reason.text) for reason in option.reasons] == [
         ("pro", "Widgets are created on first access."),
+        ("pro", "Widgets would be created on first access with a new lazy keyword."),  # the support's quote
         ("con", "It breaks existing code."),
     ]
-    assert cited(option.reasons[1].evidence) == [(third, [2]), (eighth, [2])]
+    assert cited(option.reasons[2].evidence) == [(third, [2]), (eighth, [2])]
     assert cited(option.evidence) == [(first, [2]), (third, [2]), (eighth, [2])]
+
+
+def test_a_missing_reason_falls_back_to_the_first_quote_clipped(synthetic_thread):
+    t = synthetic_thread
+    option = only(consolidate(t, [item(t, 5, "reject", reason=None, sentences=(2, 3)), item(t, 4, "propose")]))
+    quote = " ".join(t.post_by_seq(5).sentences[1:3])
+    assert len(quote) > 150
+    assert [(reason.stance, reason.text) for reason in option.reasons] == [("con", quote[:300])]
 
 
 def test_defer_reasons_are_con(synthetic_thread):
@@ -389,54 +418,29 @@ def test_registry_keeps_known_keys_reuses_similar_titles_and_keeps_summaries(syn
     ]
 
 
-def test_llm_merge_joins_alternatives_into_the_lowest_key(synthetic_thread):
+def test_titles_sharing_most_words_merge_without_a_model(synthetic_thread):
     t = synthetic_thread
+    first, second = normalize_text("Lazy imports by default"), normalize_text("lazy imports default")
+    assert jaccard(first, second) == 0.75 and same_title(first, second)
+    # Reordered words: difflib alone misses them, the token-set Jaccard (3 of 4 words) does not.
+    reordered = normalize_text("Default lazy imports")
+    assert similarity(first, reordered) < 0.85 and jaccard(first, reordered) == 0.75
+    assert not same_title(normalize_text("Soft keyword"), normalize_text("Hard keyword"))
+
+    registry = AltRegistry()
+    assert registry.assign(item(t, 2, "propose", title="Lazy imports by default")) == "A1"
+    assert registry.assign(item(t, 4, "propose", title="lazy imports default")) == "A1"
+    assert registry.assign(item(t, 5, "reject", title="Default lazy imports")) == "A1"
+    assert registry.assign(item(t, 7, "propose", title="Soft keyword")) == "A2"
+
     gated = [
-        item(t, 2, "propose", title="Use a decorator", evidence_type="proposal"),
-        item(t, 4, "propose", title="Global flag", evidence_type="proposal"),
-        item(
-            t,
-            5,
-            "reject",
-            title="Decorator approach",
-            evidence_type=STATEMENT,
-            reason="Decorators cannot apply to import statements.",
-            sentences=(2,),
-        ),
+        item(t, 2, "propose", title="Lazy imports by default"),
+        item(t, 7, "propose", title="Soft keyword"),
+        item(t, 5, "reject", title="Default lazy imports"),
     ]
-    # Valid group: A3 with A1. Ignored: an unknown key (A7) and a key that is already in a group (A1).
-    llm = ScriptedLLM({"merge": [{"groups": [["a3", "A1"], ["A2", "A7"], ["A1", "A2"]]}]})
-    options = consolidate(t, gated, llm)
-
-    assert llm.calls == 1
-    step, messages = llm.requests[0][0], llm.requests[0][1]
-    assert step == "merge"
-    content = messages[-1]["content"]
-    for key, title in (("A1", "Use a decorator"), ("A2", "Global flag"), ("A3", "Decorator approach")):
-        assert key in content and title in content
-    assert "Decorators cannot apply to import statements." in content  # A3's summary
-
-    second, fourth, fifth = (t.post_by_seq(seq).id for seq in (2, 4, 5))
-    assert [(o.key, o.title, o.status, o.status_kind, o.status_basis, o.status_post) for o in options] == [
-        ("A1", "Use a decorator", "rejected", "inferred", "author_statement", fifth),
-        ("A2", "Global flag", "proposed", "unresolved", "none", None),
-    ]
-    assert [(e.post_id, e.act) for e in options[0].status_history] == [(second, "propose"), (fifth, "reject")]
-    assert [(e.post_id, e.act) for e in options[1].status_history] == [(fourth, "propose")]
-    # A1 had no reason of its own; the summary comes from the merged A3.
-    assert [o.summary for o in options] == ["Decorators cannot apply to import statements.", ""]
-
-
-def test_merge_is_skipped_for_one_option_and_survives_bad_output(synthetic_thread):
-    t = synthetic_thread
-    silent = ScriptedLLM()  # it has no responses, so any call would fail
-    assert len(consolidate(t, [item(t, 7, "propose")], silent)) == 1
-    assert silent.calls == 0
-
-    gated = [item(t, 2, "propose", title="Use a decorator"), item(t, 4, "propose", title="Global flag")]
-    bad = ScriptedLLM({"merge": [{"groups": "not a list"}]})
-    assert [option.title for option in consolidate(t, gated, bad)] == ["Use a decorator", "Global flag"]
-    assert bad.calls == 1
+    options = consolidate(t, gated)
+    assert [(o.key, o.title) for o in options] == [("A1", "Lazy imports by default"), ("A2", "Soft keyword")]
+    assert [(t.post_by_id(e.post_id).seq, e.act) for e in options[0].status_history] == [(2, "propose"), (5, "reject")]
 
 
 def test_summarize_outcome():
@@ -451,101 +455,3 @@ def test_summarize_outcome():
         "3 options: 1 withdrawn, 1 deferred, 1 proposed"
     )
 
-
-# Refined reasons
-
-
-def decided_option(thread: Thread) -> list[Option]:
-    """One option, rejected by the author's statement in post 5, with evidence in posts 2 and 5."""
-    gated = [
-        item(
-            thread,
-            2,
-            "propose",
-            title="Decorator",
-            evidence_type="proposal",
-            reason="A decorator would avoid adding new syntax.",
-            sentences=(1, 2),
-        ),
-        item(
-            thread,
-            5,
-            "reject",
-            title="Decorator",
-            evidence_type=STATEMENT,
-            reason="Decorators cannot apply.",
-            sentences=(2,),
-        ),
-    ]
-    return consolidate(thread, gated)
-
-
-def test_refine_reasons_keeps_only_reasons_cited_from_the_context(synthetic_thread):
-    t = synthetic_thread
-    options = decided_option(t)
-    reply = {
-        "reasons": [
-            {"stance": "con", "text": "Decorators cannot apply to import statements.", "cites": ["p5.s2"]},
-            {"stance": "pro", "text": "It avoids new syntax.", "cites": ["p2.s2"]},
-            {"stance": "con", "text": "This cites a post outside the context.", "cites": ["p8.s2"]},
-            {"stance": "con", "text": "No cites at all.", "cites": []},
-        ]
-    }
-    llm = ScriptedLLM({"refine_reasons": [reply]})
-    refine_reasons(llm, t, options)
-
-    option = options[0]
-    second, fifth = t.post_by_seq(2).id, t.post_by_seq(5).id
-    assert [(r.stance, r.text, r.support, cited(r.evidence)) for r in option.reasons] == [
-        ("con", "Decorators cannot apply to import statements.", "unchecked", [(fifth, [2])]),
-        ("pro", "It avoids new syntax.", "unchecked", [(second, [2])]),
-    ]
-    assert all((e.support, e.evidence_type) == ("unchecked", "other") for r in option.reasons for e in r.evidence)
-    assert cited(option.evidence) == [(second, [1, 2]), (second, [2]), (fifth, [2])]
-    assert state(option) == ("rejected", "inferred", "author_statement", fifth)
-
-    # The context is the option's own posts (2 and 5), in thread order.
-    assert llm.calls == 1
-    step, messages = llm.requests[0][0], llm.requests[0][1]
-    assert step == "refine_reasons"
-    content = messages[-1]["content"]
-    assert "Decorator" in content and "rejected" in content
-    assert "[p2.s2]" in content and "[p5.s2]" in content
-    assert content.index("[p2.s1]") < content.index("[p5.s1]")
-    assert "[p8." not in content
-
-
-def test_refine_reasons_keeps_map_reasons_when_nothing_usable_comes_back(synthetic_thread):
-    t = synthetic_thread
-    options = decided_option(t)
-    before = [reason.model_copy(deep=True) for reason in options[0].reasons]
-    assert [(reason.stance, reason.text) for reason in before] == [
-        ("pro", "A decorator would avoid adding new syntax."),
-        ("con", "Decorators cannot apply."),
-    ]
-
-    refine_reasons(ScriptedLLM({"refine_reasons": [{"reasons": "oops"}]}), t, options)
-    assert options[0].reasons == before
-
-    outside_context = {"reasons": [{"stance": "pro", "text": "Unrelated.", "cites": ["p1.s1", "p8.s1"]}]}
-    refine_reasons(ScriptedLLM({"refine_reasons": [outside_context]}), t, options)
-    assert options[0].reasons == before
-
-
-def test_refine_context_keeps_the_status_post_within_the_budget(synthetic_thread):
-    t = synthetic_thread
-    options = decided_option(t)
-    llm = ScriptedLLM({"refine_reasons": [{"reasons": []}]})
-    refine_reasons(llm, t, options, max_tokens=1)
-    content = llm.requests[0][1][-1]["content"]
-    assert "[p5.s1]" in content
-    assert "[p2.s1]" not in content
-
-
-def test_refine_reasons_skips_undecided_options(synthetic_thread):
-    t = synthetic_thread
-    options = consolidate(t, [item(t, 7, "propose")])
-    assert options[0].status == "proposed"
-    llm = ScriptedLLM()
-    refine_reasons(llm, t, options)
-    assert llm.calls == 0

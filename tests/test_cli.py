@@ -7,8 +7,9 @@ import pytest
 from typer.testing import CliRunner
 
 import decrack.cli as cli
+from decrack import linking
 from decrack.models import make_record_id
-from decrack.pipeline.llm import ScriptedLLM
+from decrack.pipeline.llm import LLMError, ScriptedLLM
 from decrack.search import NOTICE
 from decrack.store import Store
 
@@ -57,16 +58,13 @@ def map_response(messages: list[dict]) -> dict:
 
 @pytest.fixture
 def workdir(tmp_path, monkeypatch):
-    """A tmp project folder with decrack.toml, a discussion file and a scripted model.
+    """A tmp project folder with a discussion file and a scripted model.
 
-    The optional model steps (merge, refine_reasons, support) are off, so "map" is the only step called.
+    The optional support check is off by default, so "map" is the only model step called.
     """
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("DECRACK_DB", raising=False)
     monkeypatch.delenv("DECRACK_LLM", raising=False)
-    (tmp_path / "decrack.toml").write_text(
-        "[decrack]\nmerge_with_llm = false\nrefine_reasons = false\nsupport_check = false\n", encoding="utf-8"
-    )
     (tmp_path / "lazy-imports.json").write_text(json.dumps(POSTS), encoding="utf-8")
     monkeypatch.setattr(cli, "make_llm", lambda settings, store=None: ScriptedLLM({"map": map_response}))
     return tmp_path
@@ -111,21 +109,6 @@ def test_run_writes_example_then_why_and_verify(workdir):
 
     verified = invoke(workdir, "verify", "out")
     assert verified.exit_code == 0, verified.output
-
-
-def test_ingest_then_extract(workdir):
-    ingested = invoke(workdir, "ingest", str(workdir / "lazy-imports.json"))
-    assert ingested.exit_code == 0, ingested.output
-    result = invoke(workdir, "extract", THREAD_ID)
-    assert result.exit_code == 0, result.output
-    with Store(workdir / "t.db") as store:
-        assert store.get_record(RECORD_ID) is not None
-
-
-def test_extract_unknown_thread(workdir):
-    result = invoke(workdir, "extract", "file:nothing")
-    assert result.exit_code == 1
-    assert "no stored thread 'file:nothing'" in result.output
 
 
 def test_db_option_is_respected(workdir):
@@ -194,16 +177,44 @@ def test_check_pr_wording_is_history_not_a_verdict(saved_sample, workdir):
     assert "violat" not in text
 
 
-def test_search_evidence(saved_sample, workdir):
-    result = invoke(workdir, "search-evidence", "decorator", "--limit", "3")
+def test_why_raw_searches_the_uncompiled_posts(saved_sample, workdir):
+    result = invoke(workdir, "why", "decorator", "--raw", "--limit", "3")
     assert result.exit_code == 0, result.output
     assert NOTICE in result.output
     assert "uncompiled" in result.output.lower()
     assert "decorator" in result.output.lower()
 
-    nothing = invoke(workdir, "search-evidence", "qwertyzzz")
+    nothing = invoke(workdir, "why", "qwertyzzz", "--raw")
     assert nothing.exit_code == 0, nothing.output
     assert 'No stored posts match "qwertyzzz".' in nothing.output
+
+
+def test_check_pr_diff_blames_only_with_the_flag(saved_sample, workdir, monkeypatch):
+    def no_blame(repo_dir, base, head):
+        raise AssertionError("prs_for_change must not run without --blame")
+
+    monkeypatch.setattr(linking, "changed_files", lambda repo_dir, base, head: ["Lib/widgets.py"])
+    monkeypatch.setattr(linking, "follow_renames", lambda repo_dir, path: [path])
+    monkeypatch.setattr(linking, "origin_repo", lambda repo_dir: "example/widgets")
+    monkeypatch.setattr(linking, "prs_for_change", no_blame)
+    result = invoke(workdir, "check-pr", "--diff", "main..feature", "--format", "json")
+    assert result.exit_code == 0, result.output
+    data = json.loads(result.stdout)
+    assert data["paths"] == ["Lib/widgets.py"]
+    assert data["prs"] == []
+    assert data["matches"]
+
+    blamed: list[tuple[str, str]] = []
+
+    def blame_walk(repo_dir, base, head):
+        blamed.append((base, head))
+        return ["Lib/widgets.py"], [42]
+
+    monkeypatch.setattr(linking, "prs_for_change", blame_walk)
+    result = invoke(workdir, "check-pr", "--diff", "main..feature", "--blame", "--format", "json")
+    assert result.exit_code == 0, result.output
+    assert blamed == [("main", "feature")]
+    assert json.loads(result.stdout)["prs"] == [42]
 
 
 def test_check_pr_needs_input(workdir):
@@ -259,6 +270,21 @@ def test_doctor_gets_global_options(workdir, monkeypatch):
     assert f"[ok] db={db} model=gemma4:e4b host=http://10.0.0.5:11434" in result.output.splitlines()
 
 
+def test_support_check_flag_turns_the_check_on(workdir, monkeypatch):
+    """--support-check is a global option; without it the check stays off."""
+    seen: list[bool] = []
+
+    def capture(settings, store=None):
+        seen.append(settings.support_check)
+        raise LLMError("stop once the settings are seen")
+
+    monkeypatch.setattr(cli, "make_llm", capture)
+    source = str(workdir / "lazy-imports.json")
+    assert invoke(workdir, "--support-check", "run", source, "--out", "out").exit_code == 1
+    assert invoke(workdir, "run", source, "--out", "out").exit_code == 1
+    assert seen == [True, False]
+
+
 def test_doctor_exit_code(workdir, monkeypatch):
     monkeypatch.setattr(cli, "run_doctor", lambda settings: (["[missing] Ollama is not reachable"], 1))
     result = invoke(workdir, "doctor")
@@ -291,7 +317,7 @@ def test_eval_writes_to_examples_runs_by_default(workdir, monkeypatch, synthetic
     assert result.exit_code == 0, result.output
     assert loaded == [("pep:9999", True)]  # the leak guard is on while loading
     runs = workdir / "examples" / "runs"
-    for name in ("thread.json", "records.json", "run.json", "scores.json"):
+    for name in ("thread.json", "records.json", "run.json", "scores.json", "matches.json"):
         assert (runs / "pep-9999" / name).is_file()
     assert (runs / "eval-summary.md").is_file()
     assert (runs / "eval-summary.json").is_file()

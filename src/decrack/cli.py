@@ -20,7 +20,7 @@ import typer
 from pydantic import BaseModel
 
 from decrack import export_okf, search, surface, verify
-from decrack.config import Settings, load_settings
+from decrack.config import DEFAULT_MODEL, Settings, load_settings
 from decrack.doctor import run_doctor
 from decrack.models import DecisionRecord, Thread
 from decrack.pipeline.llm import LLMError, make_llm
@@ -135,15 +135,28 @@ def to_jsonable(value: Any) -> Any:
 def global_options(
     ctx: typer.Context,
     db: Annotated[
-        Optional[str], typer.Option("--db", help="SQLite file (default: decrack.toml, $DECRACK_DB or decrack.db).")
+        Optional[str], typer.Option("--db", help="SQLite file (default: $DECRACK_DB or decrack.db).")
     ] = None,
-    model: Annotated[Optional[str], typer.Option("--model", help="Ollama model tag (default: qwen3.5:4b).")] = None,
+    model: Annotated[
+        Optional[str], typer.Option("--model", help=f"Ollama model tag (default: {DEFAULT_MODEL}).")
+    ] = None,
     ollama_host: Annotated[
         Optional[str], typer.Option("--ollama-host", help="Ollama server address (default: http://127.0.0.1:11434).")
     ] = None,
+    support_check: Annotated[
+        bool,
+        typer.Option(
+            "--support-check",
+            help="Also let the model check that each claim's quotes support it "
+            "(off by default: claims stay unchecked).",
+        ),
+    ] = False,
 ) -> None:
     # Every command, including the export subcommands, finds these settings on the context.
-    ctx.obj = load_settings(db=db, model=model, ollama_host=ollama_host)
+    # Without the flag, support_check keeps its default (off).
+    ctx.obj = load_settings(
+        db=db, model=model, ollama_host=ollama_host, support_check=True if support_check else None
+    )
 
 
 @app.command("ingest")
@@ -164,22 +177,6 @@ def ingest_cmd(
     typer.echo(f"Stored {thread.id}: {len(thread.posts)} posts — {thread.title}")
 
 
-@app.command("extract")
-def extract_cmd(
-    ctx: typer.Context,
-    thread_id: Annotated[str, typer.Argument(help="Id printed by ingest, such as pep:830 or file:notes.")],
-) -> None:
-    """Extract the decision record of a stored thread with the local model."""
-    settings = settings_of(ctx)
-    with expected_errors(), Store(settings.db_path) as store:
-        thread = store.load_thread(thread_id)
-        if thread is None:
-            typer.echo(f"error: no stored thread {thread_id!r}; run `decrack ingest` first.", err=True)
-            raise typer.Exit(1)
-        record = compile_and_save(store, thread, settings)
-    typer.echo(search.render_card(record))
-
-
 @app.command("run")
 def run_cmd(
     ctx: typer.Context,
@@ -189,7 +186,7 @@ def run_cmd(
         typer.Option("--out", help="Also write DIR/thread.json, DIR/records.json and DIR/run.json."),
     ] = None,
 ) -> None:
-    """Ingest and extract in one step."""
+    """Ingest and extract in one step; running it again reuses the model calls cached in the database."""
     settings = settings_of(ctx)
     written: list[Path] = []
     with expected_errors(), Store(settings.db_path) as store:
@@ -207,36 +204,28 @@ def run_cmd(
 def why_cmd(
     ctx: typer.Context,
     query: Annotated[str, typer.Argument(help="Words, a question or a file path.")],
-    limit: Annotated[int, typer.Option("--limit", min=1, help="Most records to show.")] = 5,
+    limit: Annotated[int, typer.Option("--limit", min=1, help="Most records (or posts, with --raw) to show.")] = 5,
+    raw: Annotated[
+        bool,
+        typer.Option("--raw", help="Search the raw stored posts instead (uncompiled, unchecked): the fallback."),
+    ] = False,
 ) -> None:
-    """Search decision records; print their compact cards."""
+    """Search decision records; print their compact cards. With --raw, search the raw stored posts."""
     settings = settings_of(ctx)
     with expected_errors(), Store(settings.db_path) as store:
-        hits = search.why(store, query, limit=limit)
-    if not hits:
-        typer.echo(f'No recorded decisions match "{query}".')
+        if raw:
+            rows = store.search_posts(query, limit)
+            blocks = [search.render_posts(rows)] if rows else []
+            empty = f'No stored posts match "{query}".'
+        else:
+            blocks = [hit_block(hit.record, hit.why) for hit in search.why(store, query, limit=limit)]
+            empty = f'No recorded decisions match "{query}".'
+    if not blocks:
+        typer.echo(empty)
         return
     typer.echo(search.NOTICE)
     typer.echo("")
-    typer.echo(search.pack([hit_block(hit.record, hit.why) for hit in hits], settings.budget_tokens))
-
-
-@app.command("search-evidence")
-def search_evidence_cmd(
-    ctx: typer.Context,
-    query: Annotated[str, typer.Argument(help="Words to look for in the stored posts.")],
-    limit: Annotated[int, typer.Option("--limit", min=1, help="Most posts to show.")] = 10,
-) -> None:
-    """Search the raw stored posts (uncompiled, unchecked): the fallback when `why` finds no record."""
-    settings = settings_of(ctx)
-    with expected_errors(), Store(settings.db_path) as store:
-        rows = store.search_posts(query, limit)
-    if not rows:
-        typer.echo(f'No stored posts match "{query}".')
-        return
-    typer.echo(search.NOTICE)
-    typer.echo("")
-    typer.echo(search.pack([search.render_posts(rows)], settings.budget_tokens))
+    typer.echo(search.pack(blocks, settings.budget_tokens))
 
 
 @app.command("check-pr")
@@ -252,6 +241,13 @@ def check_pr_cmd(
         Optional[Path], typer.Option("--repo", help="Local git clone for --diff (default: current directory).")
     ] = None,
     description: Annotated[Optional[str], typer.Option("--description", help="What the change does.")] = None,
+    blame: Annotated[
+        bool,
+        typer.Option(
+            "--blame",
+            help="With --diff, also blame the changed lines for the PRs that last touched them (slower).",
+        ),
+    ] = False,
     fmt: Annotated[str, typer.Option("--format", help="md or json.")] = "md",
 ) -> None:
     """Show related history and possible conflicts: recorded decisions and rejected options for a change.
@@ -277,6 +273,7 @@ def check_pr_cmd(
             diff=diff,
             repo_dir=repo_dir,
             budget_tokens=settings.budget_tokens,
+            blame=blame,
         )
     if fmt == "json":
         typer.echo(json.dumps(result, indent=2, ensure_ascii=False, default=to_jsonable))
@@ -330,7 +327,6 @@ def eval_cmd(
     closed_book: Annotated[
         bool, typer.Option("--closed-book", help="Also ask the model from memory alone, as a baseline.")
     ] = False,
-    judge: Annotated[bool, typer.Option("--judge", help="Let the model judge near matches against gold.")] = False,
 ) -> None:
     """Run the withheld-PEP evaluation and print its summary."""
     settings = settings_of(ctx)
@@ -356,7 +352,6 @@ def eval_cmd(
             make_llm(settings, store),
             store,
             closed_book_baseline=closed_book,
-            judge=judge,
             progress=progress,
         )
     summary = out / "eval-summary.md"

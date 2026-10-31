@@ -41,8 +41,8 @@ def test_model_installed(settings):
 def test_model_missing(settings):
     lines, code = run_doctor(settings, client=tags_client(["gemma4:e4b"]))
     assert code == 1
-    assert any("ollama pull qwen3.5:4b" in line for line in lines)
-    assert any(line.startswith("[missing] model qwen3.5:4b") for line in lines)
+    assert any(f"ollama pull {DEFAULT_MODEL}" in line for line in lines)
+    assert any(line.startswith(f"[missing] model {DEFAULT_MODEL}") for line in lines)
 
 
 def test_untagged_model_means_latest(settings):

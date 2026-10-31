@@ -9,17 +9,16 @@ pytest.importorskip("mcp")
 
 from decrack.config import Settings  # noqa: E402
 from decrack.mcp_server import (  # noqa: E402
+    INSTRUCTIONS,
     PROMPT_NAMES,
     TOOL_NAMES,
     build_server,
     main,
     review_prompt,
     self_check,
-    tool_analyze_discussion,
     tool_check_change,
     tool_decisions_for_files,
     tool_get_decision,
-    tool_job_status,
     tool_search_decisions,
     tool_search_evidence,
 )
@@ -57,8 +56,16 @@ def settings(tmp_path, store, synthetic_thread, sample_record) -> Settings:
 
 
 def test_tools_and_prompt_registered(settings):
-    assert len(TOOL_NAMES) == 7
-    assert "search_evidence" in TOOL_NAMES
+    # Read-only: adding a discussion is the CLI's `decrack run`, not a tool.
+    assert TOOL_NAMES == (
+        "search_decisions",
+        "get_decision",
+        "decisions_for_files",
+        "check_change",
+        "search_evidence",
+    )
+    assert "`decrack run <ref>`" in INSTRUCTIONS
+    assert "job_status" not in INSTRUCTIONS
     server = build_server(settings)
     assert names(asyncio.run(server.list_tools()), "tools") == set(TOOL_NAMES)
     assert names(asyncio.run(server.list_prompts()), "prompts") == set(PROMPT_NAMES)
@@ -73,7 +80,9 @@ def test_self_check(capsys):
 
 def test_main_self_check(capsys):
     assert main(["--self-check"]) == 0
-    assert "analyze_discussion" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert "search_evidence" in out
+    assert "analyze_discussion" not in out
 
 
 def test_search_decisions(settings, sample_record):
@@ -210,27 +219,6 @@ def test_budget_cap(settings, sample_record):
     assert len(tool_get_decision(settings, sample_record.id, detail="full", budget_tokens=10**9)) <= 10000 * 4
 
 
-def test_job_status_unknown(settings):
-    assert tool_job_status(settings, "nope") == {"error": "unknown job nope"}
-
-
-def test_analyze_discussion_returns_at_once(settings, monkeypatch):
-    started = []
-
-    def fake_start(source, settings):
-        started.append(source)
-        return "job-1"
-
-    monkeypatch.setattr("decrack.jobs.start_job", fake_start)
-    result = tool_analyze_discussion(settings, " pep:830 ")
-    assert started == ["pep:830"]
-    assert result == {
-        "job_id": "job-1",
-        "status": "queued",
-        "message": "Ingesting and extracting with local model qwen3.5:4b; poll job_status.",
-    }
-
-
 def test_tools_through_the_server(settings, sample_record):
     server = build_server(settings)
     text = flatten(asyncio.run(server.call_tool("get_decision", {"decision_id": sample_record.id})))
@@ -240,8 +228,6 @@ def test_tools_through_the_server(settings, sample_record):
     assert DECORATOR_QUOTE in text
     text = flatten(asyncio.run(server.call_tool("search_evidence", {"query": "decorator", "limit": 3})))
     assert "uncompiled" in text.lower()
-    text = flatten(asyncio.run(server.call_tool("job_status", {"job_id": "nope"})))
-    assert "unknown job nope" in text
 
 
 def test_review_prompt():

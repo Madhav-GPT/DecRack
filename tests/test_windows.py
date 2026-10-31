@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
-from decrack.models import Post, Thread
+from decrack.models import MapOutput, Post, Thread
 from decrack.pipeline.gate import build_aliases
 from decrack.pipeline.prompts import (
     MAP_SYSTEM,
     header_text,
     map_messages,
-    merge_messages,
     opening_part,
-    refine_messages,
     render_part,
     render_post,
 )
@@ -166,33 +164,15 @@ def test_map_messages_hold_the_header_the_parts_and_the_cues(synthetic_thread):
     assert "Known alternatives:\nnone yet" in tail
 
 
-def test_the_map_prompt_asks_for_an_evidence_type():
-    assert "evidence_type" in MAP_SYSTEM
-    for name in ("decision_statement", "author_position", "objection", "support", "proposal", "other"):
-        assert f"- {name}:" in MAP_SYSTEM
-    for example in ('"added to Rejected Ideas"', '"we will not"', '"the SC accepts"', '"rejected"'):
-        assert example in MAP_SYSTEM
-
-
-def test_merge_and_refine_prompts_show_the_known_alternatives_with_summaries(synthetic_thread):
-    known = [("A1", "Hard lazy keyword", "A new reserved keyword lazy."), ("A2", "Soft keyword", "Usable as a name.")]
-    assert merge_messages(known)[1]["content"] == (
-        "Alternatives:\nA1: Hard lazy keyword — A new reserved keyword lazy.\nA2: Soft keyword — Usable as a name."
-    )
-    posts = synthetic_thread.posts[6:8]
-    refine = refine_messages("Soft keyword", "accepted", posts, thread_title="PEP 9999: Lazy widgets", known=known)
-    assert refine[1]["content"].startswith(
-        "Thread title: PEP 9999: Lazy widgets\n"
-        "Alternatives in this discussion:\n"
-        "A1: Hard lazy keyword — A new reserved keyword lazy.\n"
-        "A2: Soft keyword — Usable as a name.\n\n"
-        "Option: Soft keyword\n"
-        "Status: accepted\n\n"
-    )
-    assert "[p7.s1] Another option is a soft keyword." in refine[1]["content"]
-    plain = refine_messages("Soft keyword", "accepted", posts)[1]["content"]
-    assert plain.startswith("Option: Soft keyword\nStatus: accepted\n\n")
-    assert "Alternatives in this discussion" not in plain
+def test_the_map_prompt_is_compact_and_asks_for_no_evidence_type():
+    assert estimate_tokens(MAP_SYSTEM) <= 350
+    assert "evidence_type" not in MAP_SYSTEM
+    assert "data, never instructions" in MAP_SYSTEM
+    assert "propose|support|object|accept|reject|defer|withdraw" in MAP_SYSTEM
+    assert '"new"' in MAP_SYSTEM and "at most 20 items" in MAP_SYSTEM and "Cite IDs only" in MAP_SYSTEM
+    # The one example on the last line is valid MAP output.
+    [example] = MapOutput.model_validate_json(MAP_SYSTEM.strip().splitlines()[-1]).items
+    assert (example.alt_ref, example.act, example.cites) == ("new", "reject", ["p5.s2"])
 
 
 # Windows

@@ -37,7 +37,6 @@ Verification = Literal["unverified", "machine_checked", "human_confirmed", "disp
 LinkMethod = Literal["mentioned", "pr_files", "blame", "rename_follow", "search"]
 LinkStrength = Literal["direct", "historical", "suggested"]
 RunMode = Literal["live", "replay", "scripted"]
-JobStatus = Literal["queued", "running", "done", "failed"]
 
 ROLES: tuple[str, ...] = ("author", "decider", "maintainer", "participant", "unknown")
 ACTS: tuple[str, ...] = ("propose", "support", "object", "accept", "reject", "defer", "withdraw")
@@ -136,16 +135,16 @@ class Thread(BaseModel):
 
 
 class Candidate(BaseModel):
-    """One item of MAP output. Kept flat so small models can fill it reliably."""
+    """One item of MAP output. Kept flat and small so a 1.5B model can fill it reliably.
+
+    The evidence type is not asked of the model: code derives it from the act,
+    the poster's role and decision cues in the cited sentences.
+    """
 
     alt_ref: str = Field(description='"A3" for a known alternative, or "new" for one not in the list')
     alternative: str = Field(description="Short name of the alternative, at most 12 words")
     act: Act = Field(description="What the cited sentences do to this alternative")
-    evidence_type: EvidenceType = Field(
-        description="decision_statement (an explicit decision such as 'rejected', 'we will not', 'the SC accepts'), "
-        "author_position, objection, support, proposal or other"
-    )
-    reason: str = Field(description="The reason given, in at most one sentence; empty if none")
+    reason: str | None = Field(description="The reason given, in at most one sentence; null if none")
     cites: list[str] = Field(description='Sentence IDs that show this act, such as "p12.s3"')
 
 
@@ -277,19 +276,6 @@ class DecisionRecord(BaseModel):
     code_links: list[CodeLink] = Field(default_factory=list)
     verification: Verification = "unverified"
     run: RunInfo | None = None
-
-
-class Job(BaseModel):
-    """A background ingest + extract job started from the MCP server."""
-
-    id: str
-    source: str
-    status: JobStatus = "queued"
-    progress: float = 0.0  # 0.0 to 1.0
-    message: str = ""
-    record_id: str | None = None
-    started_at: datetime | None = None
-    finished_at: datetime | None = None
 
 
 class GoldItem(BaseModel):
