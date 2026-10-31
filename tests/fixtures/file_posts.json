@@ -1,0 +1,22 @@
+[
+  {
+    "username": "bob",
+    "body": "I would keep the INI format. It is well tested and every tool reads it.",
+    "created_at": "2025-03-02T09:00:00Z"
+  },
+  {
+    "username": "alice",
+    "body": "Should we move the config file from INI to TOML? Nested settings are awkward in INI.",
+    "created_at": "2025-03-01T08:00:00Z"
+  },
+  {
+    "username": "carol",
+    "body": "   ",
+    "created_at": "2025-03-02T10:00:00Z"
+  },
+  {
+    "user": {"login": "dave", "id": 7},
+    "cooked": "<p>TOML has been in the standard library since 3.11, so the cost is low.</p>",
+    "date": "2025-03-03T12:30:00+00:00"
+  }
+]

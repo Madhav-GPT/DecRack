@@ -1,0 +1,42 @@
+# Copy to decrack.toml to change DecRack's defaults. Every key is optional.
+# Precedence, lowest first: these values, then the DECRACK_LLM and DECRACK_DB
+# environment variables, then CLI flags (--db, --model, --ollama-host).
+#
+# The model always runs in local Ollama at http://127.0.0.1:11434.
+# Use the --ollama-host CLI flag to point at another Ollama server.
+
+[decrack]
+# SQLite file holding threads, posts, LLM calls and decision records.
+db_path = "decrack.db"
+
+# Open-weight model tag in Ollama. Alternatives: "gemma4:e4b", "qwen3.5:9b".
+model = "qwen3.5:4b"
+
+# Context size sent to Ollama on every call. Set it explicitly: Ollama
+# otherwise truncates prompts to 4K tokens on machines with < 24 GB of VRAM.
+num_ctx = 32768
+
+# Thread windows for the MAP step (tokens are estimated as characters / 4).
+# A post longer than half a window is split at sentence boundaries.
+window_max_tokens = 6000
+window_overlap_tokens = 800
+
+# Optional model steps: one "merge" call per thread to join duplicate
+# alternatives, and "refine_reasons" calls for options that were decided.
+merge_with_llm = true
+refine_reasons = true
+reasons_max_tokens = 12000
+
+# Semantic support check: batched "support" calls ask whether each cited quote
+# supports its claim. Off means every claim stays "unchecked" (never "confirmed").
+support_check = true
+support_batch_size = 8
+
+# Seconds to wait for one Ollama reply.
+request_timeout = 600
+
+# Recorded model responses used when DECRACK_LLM=replay (CI never calls a model).
+replay_file = "tests/fixtures/llm_calls.jsonl"
+
+# Size cap, in tokens, for MCP tool results and CLI search output.
+budget_tokens = 10000

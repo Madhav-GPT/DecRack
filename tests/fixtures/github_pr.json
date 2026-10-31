@@ -1,0 +1,112 @@
+{
+  "/repos/octo/widgets/issues/12": {
+    "url": "https://api.github.com/repos/octo/widgets/issues/12",
+    "html_url": "https://github.com/octo/widgets/pull/12",
+    "id": 2100000012,
+    "number": 12,
+    "title": "Fix crash when a widget list is empty",
+    "user": {"login": "dana", "id": 601, "type": "User"},
+    "labels": [{"id": 13, "name": "bug", "color": "d73a4a"}],
+    "state": "closed",
+    "state_reason": null,
+    "locked": false,
+    "comments": 3,
+    "created_at": "2025-04-01T10:00:00Z",
+    "updated_at": "2025-04-02T11:05:00Z",
+    "closed_at": "2025-04-02T11:05:00Z",
+    "closed_by": {"login": "maya", "id": 602, "type": "User"},
+    "author_association": "CONTRIBUTOR",
+    "body": "Rendering an empty widget list raised IndexError. This change returns an empty frame instead.",
+    "pull_request": {
+      "url": "https://api.github.com/repos/octo/widgets/pulls/12",
+      "html_url": "https://github.com/octo/widgets/pull/12",
+      "diff_url": "https://github.com/octo/widgets/pull/12.diff",
+      "patch_url": "https://github.com/octo/widgets/pull/12.patch",
+      "merged_at": "2025-04-02T11:05:00Z"
+    }
+  },
+  "/repos/octo/widgets/issues/12/comments": [
+    {
+      "id": 2001,
+      "html_url": "https://github.com/octo/widgets/pull/12#issuecomment-2001",
+      "user": {"login": "eli", "id": 603, "type": "User"},
+      "created_at": "2025-04-01T12:00:00Z",
+      "author_association": "NONE",
+      "body": "Thanks, this fixes the crash for me."
+    },
+    {
+      "id": 2002,
+      "html_url": "https://github.com/octo/widgets/pull/12#issuecomment-2002",
+      "user": {"login": "dana", "id": 601, "type": "User"},
+      "created_at": "2025-04-02T09:00:00Z",
+      "author_association": "CONTRIBUTOR",
+      "body": "I added a test for the empty case."
+    }
+  ],
+  "/repos/octo/widgets/issues/12/comments?page=2": [
+    {
+      "id": 2003,
+      "html_url": "https://github.com/octo/widgets/pull/12#issuecomment-2003",
+      "user": {"login": "maya", "id": 602, "type": "User"},
+      "created_at": "2025-04-02T11:00:00Z",
+      "author_association": "MEMBER",
+      "body": "Looks good now. Merging."
+    }
+  ],
+  "/repos/octo/widgets/pulls/12": {
+    "url": "https://api.github.com/repos/octo/widgets/pulls/12",
+    "html_url": "https://github.com/octo/widgets/pull/12",
+    "number": 12,
+    "state": "closed",
+    "title": "Fix crash when a widget list is empty",
+    "user": {"login": "dana", "id": 601, "type": "User"},
+    "merged": true,
+    "merged_at": "2025-04-02T11:05:00Z",
+    "merged_by": {"login": "maya", "id": 602, "type": "User"},
+    "merge_commit_sha": "e5bd3914e2e596debea16f433f57875b5b90bcd6",
+    "comments": 3,
+    "review_comments": 1,
+    "commits": 2,
+    "additions": 14,
+    "deletions": 2,
+    "changed_files": 2
+  },
+  "/repos/octo/widgets/pulls/12/reviews": [
+    {
+      "id": 3001,
+      "user": {"login": "maya", "id": 602, "type": "User"},
+      "body": "Please add a test for the empty case.",
+      "state": "CHANGES_REQUESTED",
+      "html_url": "https://github.com/octo/widgets/pull/12#pullrequestreview-3001",
+      "submitted_at": "2025-04-01T13:00:00Z",
+      "author_association": "MEMBER"
+    },
+    {
+      "id": 3002,
+      "user": {"login": "maya", "id": 602, "type": "User"},
+      "body": "",
+      "state": "APPROVED",
+      "html_url": "https://github.com/octo/widgets/pull/12#pullrequestreview-3002",
+      "submitted_at": "2025-04-02T10:00:00Z",
+      "author_association": "MEMBER"
+    }
+  ],
+  "/repos/octo/widgets/pulls/12/comments": [
+    {
+      "id": 4001,
+      "pull_request_review_id": 3001,
+      "path": "src/widgets/render.py",
+      "diff_hunk": "@@ -10,6 +10,8 @@ def render(widgets):",
+      "user": {"login": "maya", "id": 602, "type": "User"},
+      "body": "This branch should return early.",
+      "created_at": "2025-04-01T13:00:00Z",
+      "html_url": "https://github.com/octo/widgets/pull/12#discussion_r4001",
+      "author_association": "MEMBER",
+      "line": 12
+    }
+  ],
+  "/repos/octo/widgets/pulls/12/files": [
+    {"filename": "src/widgets/render.py", "status": "modified", "additions": 6, "deletions": 2, "changes": 8},
+    {"filename": "tests/test_render.py", "status": "modified", "additions": 8, "deletions": 0, "changes": 8}
+  ]
+}

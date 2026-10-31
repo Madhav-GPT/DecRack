@@ -1,0 +1,49 @@
+name: DecRack CI
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  DECRACK_LLM: replay   # CI never calls a model; recorded responses only
+jobs:
+  checks:
+    name: DecRack checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - name: Install
+        run: uv sync
+      - name: Lint and compile
+        run: |
+          uv run ruff check src tests scripts
+          uv run python -m compileall -q src
+      - name: Tests (offline, recorded model responses)
+        run: uv run pytest -q
+      - name: Verify example evidence
+        if: hashFiles('src/decrack/cli.py') != ''
+        run: uv run decrack verify examples
+      - name: Open-model compliance and secret scan
+        run: uv run python scripts/compliance_check.py
+      - name: MCP server self-check
+        if: hashFiles('src/decrack/mcp_server.py') != ''
+        run: uv run python -m decrack.mcp_server --self-check
+      - name: Build package
+        run: uv build
+      - name: Upload build (main only)
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: decrack-dist-${{ github.sha }}
+          path: dist/

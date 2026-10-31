@@ -1,0 +1,23 @@
+{
+  "id": 4242,
+  "slug": "pep-9998-frozen-widgets",
+  "title": "PEP 9998: Frozen widgets",
+  "post_stream": {
+    "posts": [
+      {
+        "id": 90001,
+        "post_number": 1,
+        "username": "alice",
+        "created_at": "2025-06-01T09:00:00.000Z",
+        "cooked": "<p>I propose frozen widgets for the standard library.</p>"
+      },
+      {
+        "id": 90002,
+        "post_number": 2,
+        "username": "bob",
+        "created_at": "2025-06-02T09:00:00.000Z",
+        "cooked": "<p>Why not use a frozen dataclass instead?</p>"
+      }
+    ]
+  }
+}

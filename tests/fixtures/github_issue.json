@@ -1,0 +1,44 @@
+{
+  "/repos/octo/widgets/issues/7": {
+    "url": "https://api.github.com/repos/octo/widgets/issues/7",
+    "html_url": "https://github.com/octo/widgets/issues/7",
+    "id": 2100000007,
+    "number": 7,
+    "title": "Add a YAML loader for widget configs",
+    "user": {"login": "riley", "id": 501, "type": "User"},
+    "labels": [
+      {"id": 11, "name": "enhancement", "color": "a2eeef"},
+      {"id": 12, "name": "wontfix", "color": "ffffff"}
+    ],
+    "state": "closed",
+    "state_reason": "not_planned",
+    "locked": false,
+    "comments": 2,
+    "created_at": "2025-02-10T09:00:00Z",
+    "updated_at": "2025-02-12T16:00:00Z",
+    "closed_at": "2025-02-12T16:00:00Z",
+    "closed_by": {"login": "morgan", "id": 502, "type": "User"},
+    "author_association": "CONTRIBUTOR",
+    "body": "Widget configs are JSON only. I propose a YAML loader so configs can have comments.\r\n\r\n<!-- Describe your use case here. -->"
+  },
+  "/repos/octo/widgets/issues/7/comments": [
+    {
+      "id": 1001,
+      "html_url": "https://github.com/octo/widgets/issues/7#issuecomment-1001",
+      "user": {"login": "morgan", "id": 502, "type": "User"},
+      "created_at": "2025-02-11T10:00:00Z",
+      "updated_at": "2025-02-11T10:00:00Z",
+      "author_association": "MEMBER",
+      "body": "We do not want a YAML dependency in the core package. JSON with a comment key covers most cases."
+    },
+    {
+      "id": 1002,
+      "html_url": "https://github.com/octo/widgets/issues/7#issuecomment-1002",
+      "user": null,
+      "created_at": "2025-02-12T15:00:00Z",
+      "updated_at": "2025-02-12T15:00:00Z",
+      "author_association": "NONE",
+      "body": "A plugin could add YAML support outside the core."
+    }
+  ]
+}

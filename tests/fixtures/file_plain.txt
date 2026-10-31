@@ -1,0 +1,8 @@
+We could read the settings from environment variables instead of a config file.
+
+```sh
+# set the cache size
+export WIDGET_CACHE=512
+```
+
+That keeps secrets out of the repository, but the settings get harder to discover.
