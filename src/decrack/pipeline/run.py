@@ -33,7 +33,7 @@ from decrack.models import (
 from decrack.pipeline.consolidate import AltRegistry, consolidate, decide, summarize_outcome
 from decrack.pipeline.extract import map_window, prepare_map
 from decrack.pipeline.gate import GatedCandidate, build_aliases, gate_candidates
-from decrack.pipeline.llm import LLM, LLMOutputError
+from decrack.pipeline.llm import NUM_PREDICT, LLM, LLMOutputError
 from decrack.pipeline.prompts import PROMPT_VERSION, opening_part
 from decrack.pipeline.roles import assign_roles
 from decrack.pipeline.support import check_support
@@ -123,6 +123,7 @@ def compile_thread(
             params={
                 "num_ctx": settings.num_ctx,
                 "temperature": 0,
+                "num_predict": NUM_PREDICT,
                 "think": False,
                 "window_max_tokens": settings.window_max_tokens,
                 "window_overlap_tokens": settings.window_overlap_tokens,

@@ -28,6 +28,9 @@ from decrack.config import DEFAULT_MODEL, DEFAULT_OLLAMA_HOST, Settings
 Schema = type[BaseModel] | dict
 ScriptedResponse = dict | Callable[[list[dict]], dict]
 
+# Cap on tokens per answer. A healthy MAP answer is well under 1,500 tokens; without a cap a
+# small model caught in a repetition loop never stops (Ollama's own default is unlimited).
+NUM_PREDICT = 2048
 RECORD_HINT = "Record it first: run DecRack with Ollama, then `decrack export calls --out <path>`."
 THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
 THINK_END_RE = re.compile(r"</think>", re.IGNORECASE)
@@ -125,6 +128,11 @@ def build_request(
     if extra is not None:
         request["extra"] = extra
     return request
+
+
+def call_options(num_ctx: int) -> dict:
+    """Ollama ``options`` for every call: context size, greedy decoding and the answer-length cap."""
+    return {"num_ctx": num_ctx, "temperature": 0, "num_predict": NUM_PREDICT}
 
 
 def canonical_json(value: Any) -> str:
@@ -232,7 +240,7 @@ class OllamaLLM:
         """
         self.calls += 1
         model_name = model or self.model
-        options = {"num_ctx": self.num_ctx, "temperature": 0}
+        options = call_options(self.num_ctx)
         request = build_request(model_name, step, messages, schema, options, think, key_extra)
         key = call_key(request)
         if self.store is not None:
@@ -250,7 +258,10 @@ class OllamaLLM:
             tokens_in, tokens_out = tokens_in + used_in, tokens_out + used_out
             self.tokens_in, self.tokens_out = self.tokens_in + used_in, self.tokens_out + used_out
             reply = strip_think(str((body.get("message") or {}).get("content") or ""))
+            cut_off = body.get("done_reason") == "length"
             try:
+                if cut_off:
+                    raise ValueError(f"the answer was cut off at {NUM_PREDICT} tokens")
                 result = conform(parse_json(reply), schema)
                 break
             except (ValueError, ValidationError) as exc:
@@ -260,6 +271,16 @@ class OllamaLLM:
                         f"Step '{step}': {model_name} gave output that does not match the schema, "
                         f"also after one retry: {problem}"
                     ) from exc
+                if cut_off:
+                    # The cut-off answer is usually a repetition loop: ask for a shorter one without echoing it.
+                    conversation = conversation + [
+                        {
+                            "role": "user",
+                            "content": f"Your previous answer was cut off at {NUM_PREDICT} tokens. Answer again "
+                            "with a shorter JSON object: fewer items, short names, one-sentence reasons.",
+                        }
+                    ]
+                    continue
                 # One retry with the error, which small models usually fix (re-prompting on bad output).
                 conversation = conversation + [
                     {"role": "assistant", "content": reply},
@@ -322,6 +343,11 @@ class OllamaLLM:
                 # This model refuses thinking; ask again without it.
                 payload.pop("think")
                 response = self.client.post(url, json=payload, timeout=self.timeout)
+        except httpx.ReadTimeout as exc:
+            # Ollama is up but this answer never finished: a bad answer for this call, so only its window is skipped.
+            raise LLMOutputError(
+                f"Ollama at {self.host} did not finish an answer within {self.timeout:g} seconds."
+            ) from exc
         except httpx.TimeoutException as exc:
             raise LLMUnavailableError(
                 f"Ollama at {self.host} did not answer within {self.timeout:g} seconds. "
@@ -394,7 +420,7 @@ class ReplayLLM:
         self.calls += 1
         if not self.found:
             raise ReplayMissError(f"Replay file {self.path} does not exist. {RECORD_HINT}")
-        options = {"num_ctx": self.num_ctx, "temperature": 0}
+        options = call_options(self.num_ctx)
         request = build_request(model or self.model, step, messages, schema, options, think, key_extra)
         key = call_key(request)
         response = self.by_key.get(key)
