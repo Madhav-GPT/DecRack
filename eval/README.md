@@ -195,3 +195,16 @@ Picking the reason sentences was a judgment call, so check them during the
 - **The gold sets are frozen at the pinned commit.** Draft PEPs (830, 822, 844)
   can still change upstream. Re-parse from a newer commit only on purpose,
   and update `python_peps_commit` when you do.
+
+## How `decrack eval` uses these files
+
+- **Who reads them.** `decrack eval pep:830 … --gold eval/gold --out examples/runs` reads these files only after extraction, so the extractor never sees them. The model is `qwen2.5:1.5b` via Ollama.
+- **How predictions are matched.** Matching is deterministic fuzzy string matching, with no model judge.
+- **What it writes.** Each PEP gets a run folder, `examples/runs/pep-NNNN/`, holding:
+  - `thread.json`;
+  - `records.json`;
+  - `run.json`;
+  - `scores.json`;
+  - `matches.json`, which lists every predicted-to-gold pair for a human to review.
+
+  The results across all PEPs go to `examples/runs/eval-summary.md`.

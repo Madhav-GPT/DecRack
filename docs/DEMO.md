@@ -20,13 +20,13 @@ Do these 30 minutes before the slot, on the demo laptop, from the **tagged freez
   - the eval PEPs (`decrack eval`, see [TESTING.md](TESTING.md));
   - the GitHub example used for `check-pr`.
 - [ ] **A card prints.** `uv run decrack why "exception notes"` shows the PEP 830 card. Note which rejected option you will point at, its status kind and its sentence alias.
-- [ ] **OpenCode.** It shows DecRack's seven tools. The demo project has the `AGENTS.md` block from [OPENCODE.md](OPENCODE.md).
+- [ ] **OpenCode.** It shows DecRack's five read-only tools, and its shell tool can run `decrack run` against the same `--db`. The demo project has the `AGENTS.md` block from [OPENCODE.md](OPENCODE.md).
 - [ ] **`check-pr` input.** Find a path that is linked to a record (`uv run decrack why <path>` should return it), or prepare a branch for `--diff`.
 - [ ] **Browser tabs:**
   - the PEP 830 thread, <https://discuss.python.org/t/106942>;
   - the green CI run on GitHub;
   - `examples/runs/eval-summary.md` and one `run.json` on GitHub.
-- [ ] **Decide one thing in advance:** whether to run `decrack run pep:830` live or on the cache. A cold run takes a few minutes, which is too long for the slot, so precompute it and explain the cache.
+- [ ] **Decide one thing in advance:** whether to run `decrack run pep:830` live or on the cache. A cold run should take under a minute on a base M4 with 16 GB, but that is an estimate until measured. Time it in rehearsal; if it is slower, precompute it and explain the cache.
 
 ---
 
@@ -61,7 +61,7 @@ Each member presents the part they built, and each must be able to answer questi
 - DecRack is decision memory for open-source projects: an MCP server and a CLI, with no UI.
 - Context7 gives agents library docs; DecRack gives agents a project's decisions and rejected ideas.
 - In one line: an open model compiles discussions into verified decision records once. Code is connected by git facts, not embeddings. OKF is just the file format we export. Lookups are exact search, and any explanation is written by your agent from cited evidence.
-- The open model is Qwen 3.5 4B, running locally in Ollama on DecRack's own code path.
+- The open model is Qwen 2.5 1.5B (`qwen2.5:1.5b`), running locally in Ollama on DecRack's own code path. By default it does one job, the map step, and code does the rest.
 
 **Show:** the "How it works" diagram in the README.
 
@@ -76,11 +76,12 @@ uv run decrack why "exception notes"
 **Say, while it runs:**
 - **Acquire:** one request fetches the whole topic through the official JSON API. Every post keeps its stable ID and version, and every sentence its character offsets.
 - **Roles:** they come from metadata. A Steering Council member is a decider because of their group membership, not because a post says so.
-- **Map:** the open model reads the thread in token-budget windows, about 6,000 tokens each. For every act (propose, object, reject…) it gives a reason, an evidence type and the sentences it relies on.
+- **Map:** the open model reads the thread in token-budget windows, about 3,000 tokens each. For every post it labels the act (propose, object, reject…), names the alternatives and cites the sentences it relies on. That is its only job by default.
+- **Everything else is code:** merging duplicates, collecting reasons, the status rules and confidence.
 - **Three checks:**
   - the **gate** checks that each cited sentence exists in that post version, and slices the quote from the post;
-  - a batched **support check** asks the model whether those sentences really support the claim;
-  - the **status rules** decide whether it was a decision at all.
+  - the **status rules** decide whether it was a decision at all. That needs explicit decision language, such as "rejected" or "we will not", from the author or a decider;
+  - an optional **support check**, off by default, can ask the model whether those sentences really support the claim.
 
 **Say, if it's cached:** "We compiled this earlier. Every model call is cached by a hash of its exact inputs, so this re-run replays instantly, and the database keeps every prompt and response as an audit log."
 
@@ -103,7 +104,9 @@ uv run decrack why "exception notes"
 **Say:**
 - **Compact first, then expand.** The agent gets short cards, and asks for the evidence only when it needs it.
 - **No model on the lookup.** The answer comes from stored records, so it is fast. The agent's own model writes the explanation, from cited evidence.
-- **The agent can compile too.** `analyze_discussion` lets it compile a new thread itself, as a background job polled with `job_status`.
+- **The agent can compile too.** For a thread DecRack hasn't seen, the agent runs `decrack run <ref>` through its shell tool, and you see the command before it runs. The MCP server itself is read-only: five tools that only read.
+
+**Optional, if time allows:** ask *"Run `decrack run https://discuss.python.org/t/106942` in the shell, then search DecRack for the rejected ideas"*, and show the shell call followed by the MCP calls.
 - **Agents are told to check first.** The `AGENTS.md` block tells any agent to consult DecRack before it changes code.
 
 ### 5:00–6:00 · Live: the PR check
@@ -118,7 +121,7 @@ uv run decrack check-pr --diff main..demo-change --repo ../DEMO-REPO
 - `check-pr` takes the files a change touches and finds the recorded decisions behind them.
 - Links come only from exact facts, with three strengths:
   - **direct**: files and PRs the thread names;
-  - **historical**: what git records, meaning the PR that changed the file, or `git blame` on the changed lines;
+  - **historical**: what git records, meaning the PR that changed the file, or, with `--blame`, `git blame` on the changed lines;
   - **suggested**: a search match.
 - It reports related history and possible conflicts. It never says a change is invalid: a rejected idea can come back for good reasons, and that is the reviewers' call.
 - It never posts on real projects: it is read-only by design.
@@ -131,8 +134,8 @@ uv run decrack check-pr --diff main..demo-change --repo ../DEMO-REPO
 - **The method:** this is the withheld-PEP test, run ourselves. The gold comes from each PEP's Rejected Ideas section, with 59 items across 8 PEPs.
 - **The metrics:**
   - the headline numbers are recall, precision per status kind, and evidence-backed recall;
-  - the verification numbers are reported separately: the pre-gate citation validity of the model's real outputs, and the support rate;
-  - a human checks 20 support verdicts per run.
+  - the verification numbers are reported separately: the pre-gate citation validity of the model's real outputs, and the support rate when the support check ran;
+  - matching to the gold is deterministic fuzzy matching, and a human reviews every pair in `matches.json`.
 - **search@5:** for each matched idea, we run a plain keyword search over the extracted options, with the PEP's heading as the query, and ask whether the right option is in the top 5.
   - This number decides whether we need embeddings.
   - If keyword search misses ideas because the thread words them differently, we add vectors inside the same SQLite file, with an open embedding model through Ollama. Otherwise FTS stays as it is.
@@ -145,7 +148,7 @@ uv run decrack check-pr --diff main..demo-change --repo ../DEMO-REPO
 
 **Show:**
 1. One `run.json`: the model tag, its digest, the Ollama version and the source allowlist.
-2. The green CI run, with five jobs: lint and compile, offline tests on recorded responses, `verify` plus the compliance scan, the MCP self-check, and the build.
+2. The green CI run: one job, "DecRack checks". Its steps lint and compile, run the offline tests on recorded responses, verify the examples, run the compliance scan and the MCP self-check, and build the package.
 
 **Say:** "CI proves the logic with replayed responses. The real runs prove the model, and we keep the two apart."
 
@@ -154,17 +157,18 @@ uv run decrack check-pr --diff main..demo-change --repo ../DEMO-REPO
 **Show:** the one architecture diagram (Acquire → Compile → Serve, around one SQLite file).
 
 **Models and tools:**
-- The product uses `qwen3.5:4b` through local Ollama. It is the same tag in `HACKATHON.md`, in every PR and in every `run.json`.
+- The product uses `qwen2.5:1.5b` through local Ollama, on a base M4 MacBook Pro with 16 GB. It is the same tag in `HACKATHON.md`, in every PR and in every `run.json`.
+- **The trade-off, honestly:** we chose a 1.5B model so the whole pipeline runs quickly on a base laptop. Accuracy is measured by the eval, not assumed. Every claim stays citation-checked, so lower recall means missed ideas, not unsupported claims. Bigger open models still work through `--model`.
 - Name the AI coding assistants the team used during development, exactly as listed in the PRs.
 
 **What we learned:**
 1. Ollama silently cuts prompts to 4K tokens on small GPUs, so DecRack sets the context size on every call.
 2. "Verified" is three questions: does the text exist, does it support the claim, and is it a decision? We check and report each one separately.
-3. Small models are reliable when code owns the structure: IDs, roles, status rules and quotes.
-4. "Latest message wins" over-claims. A decision needs an explicit statement from someone with authority; otherwise the answer is `inferred`, `contested` or `unresolved`.
+3. Small models are reliable when code owns the structure: IDs, roles, merging, status rules and quotes. That is why one narrow job is enough for a 1.5B model.
+4. "Latest message wins" over-claims. A decision needs explicit decision language from someone with authority; otherwise the answer is `inferred`, `contested` or `unresolved`.
 5. A fair evaluation needs leak controls, because many opening posts paste the PEP or preview it.
 
-**Limitations:** small models miss ideas, and recall is measured rather than assumed; support checks are model judgments, sampled by a human; code links are file-level.
+**Limitations:** a small model misses ideas, and recall is measured rather than assumed; the support check is optional and off by default; code links are file-level.
 
 **Deferred, not abandoned:** a web UI, ACP harness control, timelines and graphs. They sit behind the same core/adapter boundary as the CLI and the MCP server.
 
@@ -180,8 +184,8 @@ uv run decrack check-pr --diff main..demo-change --repo ../DEMO-REPO
 | The model is slow, or Ollama crashes | Use the cached run, which replays instantly, or open the committed outputs in `examples/runs/` and `examples/okf/`. Explain the cache: that is the "compile once" principle. |
 | OpenCode doesn't call the tool | Ask it explicitly ("use the decrack tools"), or run `/why exception notes`. If needed, show the same answer with `uv run decrack why "exception notes"` and run `uv run python -m decrack.mcp_server --self-check` to show the tools. |
 | `check-pr` finds nothing | Use `--paths` with a path you checked beforehand with `decrack why <path>`. |
-| `why` finds no record for a judge's question | Run `uv run decrack search-evidence "..."`. It searches the raw posts and labels them uncompiled, so say clearly that they haven't been through the checks. |
-| A judge asks for another PEP | If it's small (under about 50 posts), run `decrack run pep:N` in the second tab while you keep talking. Otherwise start it from OpenCode with `analyze_discussion`, show the job ID and `job_status`, and move on. |
+| `why` finds no record for a judge's question | Run `uv run decrack why --raw "..."`. It searches the raw posts and labels them uncompiled, so say clearly that they haven't been through the checks. |
+| A judge asks for another PEP | Run `decrack run pep:N` in the second tab while you keep talking, or ask the OpenCode agent to run it through its shell. Small threads should finish in about a minute (an estimate); for a long one, move on and come back to it. |
 
 ---
 
@@ -210,7 +214,7 @@ Context7 serves library documentation. Code chatbots answer questions about the 
 **Is this RAG? A knowledge graph?**
 Neither.
 - **No RAG over code:** we never embed the codebase.
-- **Extraction, once:** an open model reads the discussion once and extracts decision records that cite exact sentences.
+- **Extraction, once:** an open model reads the discussion once, labeling posts and citing exact sentences, and code builds the decision records.
 - **Linking by facts:** code is linked by git facts (which PR changed which file, `git blame`) and by paths the thread names.
 - **OKF is only a format:** one markdown file per decision. It isn't a graph engine and doesn't retrieve anything.
 - **Lookups are exact or keyword search, with no model.** If the user's agent explains anything, it does so from the cited evidence we return.
@@ -218,26 +222,27 @@ Neither.
 **How do you know a "rejected idea" is real?**
 Three separate checks:
 1. **Source validity.** The cited sentence exists in that version of the post. That is checked by code, and the quote is sliced from the post.
-2. **Semantic support.** A batched model check asks whether those sentences support the claim; a human samples 20 verdicts per eval run.
-3. **Decision authority.** It counts as a decision only if the author or a decider made an explicit decision statement.
+2. **Decision authority.** It counts as a decision only if the author or a decider used explicit decision language in the cited sentence, such as "rejected", "added to rejected ideas", "we will not" or "decided". Code matches a fixed cue list; the model doesn't decide this.
+3. **Semantic support, optional.** With `--support-check`, a batched model call asks whether those sentences support the claim. It is off by default, and records then say `support: unchecked`.
 
 Click the link to see the sentence in the thread.
 
 **How do you tell accepted from rejected?**
 Every option has a status and a status kind:
-- **confirmed:** an explicit decision statement by the author or a decider, which the support check marked supported;
-- **inferred:** the author's objection, or objections from at least two participants, with no authoritative support;
-- **contested:** authoritative statements that conflict;
+- **confirmed:** an accept, reject or defer by the author or a decider, in explicit decision language from the cue list;
+- **inferred:** the author's objection without that language, or objections from at least two participants, with no authoritative backing;
+- **contested:** a later post by the author or a decider points the other way;
 - **unresolved:** everything else.
 
-A later statement replaces an earlier one only if it is an explicit decision statement from the same or higher authority. We don't do "latest message wins".
+A later statement replaces an earlier one only if it uses explicit decision language and comes from the same or higher authority. We don't do "latest message wins".
 
 **What if the model hallucinates?**
 - **Citations to text that doesn't exist** are dropped by code.
-- **A real but wrong citation** is the harder case, so we check it separately: the support check sees only the claim and the cited sentences. Unsupported items are downgraded or dropped.
-- **With the check off,** records say `unchecked`, never "verified".
+- **A real but wrong citation** is the harder case. Status needs explicit decision language from someone with authority, which a stray citation rarely has.
+- **The optional support check** (the global `--support-check` flag) sees only the claim and the cited sentences. A claim it judges unsupported is downgraded from `confirmed` to `inferred`.
+- **With the check off,** which is the default, records say `support: unchecked`, never "verified".
 
-We measure the model's pre-gate citation validity and its support rate, and report both, instead of assuming them.
+We measure the model's pre-gate citation validity, and its support rate when the check runs, and report them instead of assuming them.
 
 **What if a discussion has no clear outcome?**
 Then DecRack says so: `inferred`, `contested` and `unresolved` are first-class, and confidence comes from evidence, never from the model's own estimate.
@@ -246,7 +251,7 @@ Then DecRack says so: `inferred`, `contested` and `unresolved` are first-class, 
 - Extraction calls have no tools and no secrets.
 - Posts are wrapped in tags and datamarked.
 - The model can only return schema-shaped JSON, and only citations that pass the gate survive.
-- A decision needs an authoritative role plus an explicit decision statement, so a post claiming "the Council accepted this" does nothing unless a decider wrote it.
+- A decision needs an authoritative role plus explicit decision language, so a post claiming "the Council accepted this" does nothing unless a decider wrote it.
 - MCP output is labeled as quoted community content.
 
 **Why no vector database?**
@@ -256,6 +261,9 @@ Our search runs over a few hundred verified records with exact identifiers, and 
 
 **Why OKF?**
 It's a portable markdown file format with provenance fields that people and agents can read. It stays a generated export; SQLite is the source of truth.
+
+**Why is the MCP server read-only?**
+So an agent's tool call can never start a model run, write to the database or leave work running in the background. Compiling is one explicit command, `decrack run`. The agent runs it through its shell, where the user sees it and can approve it. That also made a job system unnecessary.
 
 **Why only an MCP server and a CLI, with no UI?**
 Developers already work in their agent, their terminal, their repo and CI, and MCP reaches any MCP-capable agent. The UI is deferred, not abandoned: a web UI, ACP harness control, timelines and graphs would be one more adapter over the same core library.
@@ -272,14 +280,17 @@ No. A ten-year-old rejected idea can be the most relevant record there is. Age i
 
 It's a design write-up, not a benchmark, so we treat its ideas as things to test.
 
-**Why a 4B model?**
-- It fits on a 16 GB laptop, with no credentials and no data leaving the machine.
-- Qwen 3.5 4B has the strongest vendor-reported long-context scores in its class.
-- The design keeps its job small: label acts, name alternatives and check support; code does the rest.
-- Gemma 4 is supported with `--model gemma4:e4b`, and any larger open model can be swapped in.
+**Why a 1.5B model?**
+We chose `qwen2.5:1.5b` so the whole pipeline runs quickly on a base laptop: a base M4 MacBook Pro with 16 GB and a download of about 1 GB, with no credentials and no data leaving the machine.
+- **We measure accuracy instead of assuming it.** The eval reports recall, precision and the closed-book baseline for this exact model.
+- **Lower recall never means unsupported claims.** Every claim stays citation-checked, so lower recall means missed ideas, not unsupported claims.
+- **The design keeps the model's job narrow.** It labels posts in short windows; code does everything else.
+- **Bigger open models still work** through `--model`, and the same eval shows what they would buy.
 
 **Where does the open model do meaningful work?**
-It is the extractor on DecRack's main path: it reads every window, labels the acts and evidence types, names the alternatives, merges duplicates, refines the reasons and runs the support check. Every run in `examples/runs/` was produced by it. Each `run.json` records the model tag, its digest and the Ollama version, and `HACKATHON.md` names the same tag.
+It is the extractor on DecRack's main path. By default it does exactly one job, the map step: it reads every window, labels what each post does, names the alternatives and cites the sentences. Every decision record is built from that output, and code does the rest. The optional support check and closed-book baseline also use it.
+
+Every run in `examples/runs/` was produced by it. Each `run.json` records the model tag, its digest and the Ollama version, and `HACKATHON.md` names the same tag.
 
 **Did the PEP leak into your evaluation?**
 - The resolver uses the PEP index only to find the discussion URLs.
@@ -294,7 +305,7 @@ It is the extractor on DecRack's main path: it reads every window, labels the ac
 - That proves the logic, not the model. The model's evidence is the real runs in `examples/runs/`, which CI re-checks with `decrack verify`. We never mix the two.
 
 **What happens when files are renamed?**
-A link stores the path it had at the time. With a local clone, `git log --follow` resolves it to the current path, and `check-pr --diff` also blames the changed lines back to the PRs that last touched them.
+A link stores the path it had at the time. With a local clone, `git log --follow` resolves it to the current path. `check-pr --diff … --blame` also blames the changed lines back to the PRs that last touched them; the blame-walk is opt-in because it is slow on big repositories.
 
 **Can you recognize the same person across platforms?**
 No, deliberately. We'd only link accounts from exact evidence, such as a linked profile or the same commit email. Guessing from similar names risks false merges.
@@ -303,7 +314,12 @@ No, deliberately. We'd only link accounts from exact evidence, such as a linked 
 Never. `check-pr` prints related history and possible conflicts, or writes JSON. The rules forbid automated comments on real projects, and the design doesn't need them.
 
 **How fast is it?**
-Lookups are instant: they are SQLite reads with no model. A compile takes about one model call per window, plus a merge call, reason calls and about one support call per 8 claims; each call takes roughly 30–60 seconds on a 16 GB laptop. That's a few minutes for PEP 830's 29 posts. Re-runs are free, because every call is cached. The measured numbers are in each `run.json`.
+Lookups are instant: they are SQLite reads with no model. A compile makes one model call per window of about 3,000 tokens. Our estimates, until measured, for a base M4 with 16 GB:
+- about 6–8 seconds per call;
+- under a minute for PEP 830's 29 posts;
+- about 5–7 minutes for the whole 5-PEP evaluation.
+
+Re-runs are free, because every call is cached. The measured numbers are in each `run.json`.
 
 **What's not finished?**
 Be honest and specific:
@@ -329,27 +345,27 @@ Rehearse until every member can say each line without notes.
 | Module | One-breath explanation |
 |---|---|
 | `models.py` | The shared contracts: Thread, Post, Evidence, Option, DecisionRecord. Every module builds against them. |
-| `config.py` | Settings from defaults, then `decrack.toml`, then the environment, then flags. The Ollama host can only be changed with `--ollama-host`. |
+| `config.py` | Settings from defaults, the environment (`DECRACK_DB`, `DECRACK_LLM`) and flags; there is no config file. The Ollama host can only be changed with `--ollama-host`. |
 | `text.py` | Splits posts into sentences with character offsets, and hashes the normalized text. |
 | `sources/discourse.py` | One request per topic (`/t/{id}.json?print=true`). It converts rendered HTML to text and keeps quotes as reply edges. |
 | `sources/peps.py` | The PEP index's discussion links only. It merges the PEP's topics into one thread, never fetches the PEP, and keeps its status and resolution out of prompts. |
 | `sources/github.py` | The REST API for issues, PRs, reviews and files, with a read-only token from the environment. |
 | `sources/files.py` | Loads an exported thread from disk: the safety net for unknown input formats. |
 | `pipeline/roles.py` | Roles from metadata: Steering Council group means decider; topic creator or PEP author means author; committers means maintainer. |
-| `pipeline/windows.py` | Token-budget windows of about 6,000 tokens, overlapping by about 800, splitting oversized posts at sentence boundaries. |
-| `pipeline/llm.py` | Ollama's `/api/chat` with a JSON schema, an explicit context size and reasoning off. Every call is cached by a hash of its inputs, and replay mode serves the tests. |
-| `pipeline/extract.py` | One map call per window, carrying a header and the alternatives found so far. |
+| `pipeline/windows.py` | Token-budget windows of about 3,000 tokens, with a small overlap of whole posts, splitting oversized posts at sentence boundaries. |
+| `pipeline/llm.py` | Ollama's `/api/chat` with a JSON schema and an explicit context size (8,192). Every call is cached by a hash of its inputs, and replay mode serves the tests. |
+| `pipeline/extract.py` | The map step, the model's one job by default: one call per window, carrying a header and the alternatives found so far. |
 | `pipeline/gate.py` | Source validity: resolves citations to stable references, checks the post version and slices the quote. |
-| `pipeline/support.py` | Semantic support: batches of about 8 claims, each judged supported, partial or unsupported from only the claim and its cited sentences. Switched off, every claim stays `unchecked`. |
-| `pipeline/consolidate.py` | Merges duplicates, collects reasons, applies the conservative status rules and derives confidence. |
-| `store.py` | One SQLite file in WAL mode: threads, posts and their versions, decisions, code links, jobs, every model call, and FTS5 search. |
-| `search.py` | `why`: compact cards first, from FTS5 search or path lookup, within a token budget. |
-| `linking.py`, `surface.py` | Code links (direct, historical, suggested) and the `check-pr` report of related history and possible conflicts. |
+| `pipeline/support.py` | The optional support check, off by default (`--support-check`). Batches of about 8 claims, each judged supported, partial or unsupported from only the claim and its cited sentences. Off, every claim says `support: unchecked`. |
+| `pipeline/consolidate.py` | All code: merges duplicates by string similarity, collects reasons, applies the status rules (decision language from the cue list, plus the speaker's role) and derives confidence. |
+| `store.py` | One SQLite file in WAL mode: threads, posts and their versions, decisions, code links, every model call, and FTS5 search. |
+| `search.py` | `why`: compact cards first, from FTS5 search or path lookup, within a token budget. `why --raw` searches the raw posts. |
+| `linking.py`, `surface.py` | Code links (direct, historical, suggested) and the `check-pr` report of related history and possible conflicts. The blame-walk is opt-in with `--blame`. |
 | `export_okf.py` | Writes the OKF v0.2 bundle with a MADR-style body. |
 | `verify.py` | Re-checks every quote in every run folder against its thread. |
-| `evaluate.py` | The withheld-PEP evaluation: gold matching, metrics per status kind, and the closed-book baseline. |
-| `jobs.py`, `mcp_server.py` | The seven MCP tools and one prompt. `analyze_discussion` runs as a background job. |
-| `cli.py`, `doctor.py` | The `decrack` command, and the environment check. |
+| `evaluate.py` | The withheld-PEP evaluation: deterministic fuzzy matching to the gold (with `matches.json` for human review), metrics per status kind, and the optional closed-book baseline. |
+| `mcp_server.py` | The read-only MCP server: five tools and one prompt. It never runs a model or writes. |
+| `cli.py`, `doctor.py` | The `decrack` command (nine commands; `run` is how new discussions get in), and the environment check. |
 
 ---
 
@@ -359,14 +375,16 @@ Rehearse until every member can say each line without notes.
 |---|---|---|
 | 29 / 464 | Posts in the PEP 830 thread / the PEP 810 thread | Fact (counted 1 Nov 2026) |
 | 4K | Ollama's default context below 24 GiB of VRAM | Fact (Ollama docs) |
-| 32,768 | The context size DecRack sets on every call | Fact (our setting) |
-| ~6,000 / ~800 | Window budget and overlap, in tokens | Fact (our setting) |
-| ~8 | Claims per batched support call | Fact (our setting) |
-| 20 | Support verdicts a human checks per eval run | Fact (our process) |
+| `qwen2.5:1.5b`, ~1 GB | The model and its download size | Fact |
+| 8,192 | The context size DecRack sets on every call | Fact (our setting) |
+| ~3,000 | Window budget, in tokens | Fact (our setting) |
+| 6–8 s / 5–7 min | Per model call / the full 5-PEP eval, on a base M4 with 16 GB | Estimate until measured |
+| ~8 | Claims per batched support call, only with `--support-check` | Fact (our setting) |
 | 59 (43 + 16) | Gold rejected ideas: the dev and stretch PEPs, plus the control | Fact (`eval/gold`) |
 | search@5 | Matched gold ideas whose option ranks in the top 5 of a keyword search on the PEP heading | Read it from `eval-summary.md`; it decides whether embeddings are needed |
-| 7 + 1 | MCP tools, plus the one prompt | Fact |
-| 5 | CI jobs | Fact |
+| 5 + 1 | Read-only MCP tools, plus the one prompt | Fact |
+| 9 | CLI commands | Fact |
+| 1 | CI job ("DecRack checks"), with lint, tests, verify, compliance, MCP self-check and build steps | Fact |
 | ~32K | Where Llama-3.1-8B stops being reliable on RULER | A synthetic benchmark; used for window sizing only |
 | 44.4 vs 34.3 | OP-RAG F1: 16K tokens of in-order context vs a 70B model reading 117K | QA datasets; motivation, not proof for our task |
 | 60 / 5,000 | GitHub requests per hour, anonymous / with a token | Fact (GitHub docs) |

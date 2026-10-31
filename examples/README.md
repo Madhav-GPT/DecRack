@@ -20,9 +20,10 @@ examples/
 ├── runs/                        one folder per real run
 │   ├── pep-0830/                an evaluation run (decrack eval)
 │   │   ├── thread.json          the input, as DecRack ingested it
-│   │   ├── records.json         the decision records the model and the checks produced
+│   │   ├── records.json         the decision records built from the model's map output
 │   │   ├── run.json             model, digest, Ollama version, settings, source allowlist, timings
-│   │   └── scores.json          the scores against eval/gold/pep-0830.json
+│   │   ├── scores.json          the scores against eval/gold/pep-0830.json
+│   │   └── matches.json         every predicted-to-gold pair, for human review
 │   ├── pep-0799/ …              one folder per evaluated PEP
 │   ├── github-REPO-NUMBER/      a single run (decrack run REF --out examples/runs/<name>), no scores
 │   ├── eval-summary.md          the evaluation results across all PEPs
@@ -40,15 +41,16 @@ examples/
 | File | Contents |
 |---|---|
 | `thread.json` | The thread exactly as DecRack ingested it. Every post has its stable source ID, version, author, role, permalink, own text, sentence offsets and hash. For evaluation runs, the leak controls have already run: links to the PEP are refused, and an opening post that pastes the PEP is stripped. |
-| `records.json` | A list of decision records. Each option has a status, a status kind (`confirmed`, `inferred`, `contested` or `unresolved`), a basis, a status history, reasons and a confidence tier. Each piece of evidence holds the post ID and version, the sentence indexes and offsets, the quote, the link, and three checks: `source_check`, `support` (or `unchecked`) and `evidence_type`. |
-| `run.json` | How the run was made: the model tag, the model digest (from Ollama's `/api/show`), the Ollama version, `num_ctx`, temperature and think settings, the prompt and schema versions, the **source allowlist** (every post ID, version and hash given to the model), timings, model calls and tokens |
-| `scores.json` | Evaluation runs only: recall, precision per status kind, reason agreement, evidence-backed recall, matches with evidence outside the opening post, the closed-book baseline when it was run, and the verification metrics (pre-gate citation validity and support rate), with every predicted-to-gold pair listed for review |
+| `records.json` | A list of decision records. Each option has a status, a status kind (`confirmed`, `inferred`, `contested` or `unresolved`), a basis, a status history, reasons and a confidence tier. Each piece of evidence holds the post ID and version, the sentence indexes and offsets, the quote, the link, `source_check`, and `support`. `support` is `unchecked` unless the optional support check ran. |
+| `run.json` | How the run was made: the model tag (`qwen2.5:1.5b`), the model digest (from Ollama's `/api/show`), the Ollama version, `num_ctx` and the other model parameters, whether the optional support check ran, the prompt and schema versions, the **source allowlist** (every post ID, version and hash given to the model), timings, model calls and tokens |
+| `scores.json` | Evaluation runs only: recall, precision per status kind, reason agreement, evidence-backed recall, matches with evidence outside the opening post, search@5 with its `search_misses`, the closed-book baseline when it ran, and the verification metrics (pre-gate citation validity, and the support rate when the support check ran) |
+| `matches.json` | Evaluation runs only: every predicted-to-gold pair from the deterministic fuzzy matching (there is no model judge), for a human to review |
 | `eval-summary.md`, `eval-summary.json` | The same metrics across all evaluated PEPs. The README's results table comes from here. |
 | `okf/` | The records rendered as an [Open Knowledge Format](https://github.com/GoogleCloudPlatform/open-knowledge-format) v0.2 bundle: OKF frontmatter, DecRack's fields under `decrack:`, and a MADR-style body (Question, Decision outcome, Considered options, Rejected ideas, Code, Evidence). OKF is only the file format; the records' source of truth is DecRack's SQLite database. |
 
 ## How to reproduce
 
-On a machine with Ollama and `qwen3.5:4b` (see [docs/TESTING.md](../docs/TESTING.md)):
+On a machine with Ollama and `qwen2.5:1.5b` (see [docs/TESTING.md](../docs/TESTING.md)). The five dev PEPs should take about 5–7 minutes on a base M4 with 16 GB, an estimate until measured:
 
 ```bash
 uv run decrack eval pep:830 pep:799 pep:806 pep:836 pep:822 pep:844 pep:842 pep:810 \
@@ -70,5 +72,5 @@ A run calls the model only the first time; every call is cached by a hash of its
 1. Pick an option in `records.json` and one of its evidence entries.
 2. Find the post with that `post_id` in `thread.json`, or open the entry's `url`.
 3. Check the quote. It is exactly the post's text from `start` to `end`: the sentences named by `sentence_indexes`. The model chose which sentences to cite, but code cut the quote from the post, so it is always the poster's exact words.
-4. Check the claim. The `support` field says whether the batched support check found that these sentences support the claim. `unchecked` means the check was off.
+4. Check the claim. The `support` field says whether the optional support check found that these sentences support the claim. `unchecked`, the default, means the check didn't run.
 5. Check the authority. The option's `status_kind` and `status_basis` say whether this was an explicit decision by the author or a decider (`confirmed`), or something weaker.
