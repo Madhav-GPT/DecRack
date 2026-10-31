@@ -142,14 +142,22 @@ class Candidate(BaseModel):
     """
 
     alt_ref: str = Field(description='"A3" for a known alternative, or "new" for one not in the list')
-    alternative: str = Field(description="Short name of the alternative, at most 12 words")
+    alternative: str = Field(
+        description="Short name of the alternative, at most 12 words",
+        json_schema_extra={"maxLength": 100},  # grammar bound for Ollama; not validated
+    )
     act: Act = Field(description="What the cited sentences do to this alternative")
     reason: str | None = Field(description="The reason given, in at most one sentence; null if none")
-    cites: list[str] = Field(description='Sentence IDs that show this act, such as "p12.s3"')
+    cites: list[str] = Field(
+        description='Sentence IDs that show this act, such as "p12.s3"',
+        json_schema_extra={"maxItems": 6},  # grammar bound for Ollama; not validated
+    )
 
 
 class MapOutput(BaseModel):
-    items: list[Candidate] = Field(default_factory=list)
+    # maxItems goes into the JSON schema Ollama turns into a grammar, so a small model that starts
+    # repeating items must close the array. Pydantic does not enforce it.
+    items: list[Candidate] = Field(default_factory=list, json_schema_extra={"maxItems": 20})
 
 
 class Evidence(BaseModel):

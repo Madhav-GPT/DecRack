@@ -11,7 +11,7 @@ from decrack.config import Settings
 from decrack.models import SCHEMA_VERSION, CodeLink, DecidedBy, DecisionRecord, Post, Thread, make_record_id
 from decrack.pipeline import run as run_module
 from decrack.pipeline.extract import map_request_key
-from decrack.pipeline.llm import LLMError, ScriptedLLM
+from decrack.pipeline.llm import NUM_PREDICT, LLMError, ScriptedLLM
 from decrack.pipeline.prompts import MAP_SYSTEM, PROMPT_VERSION, render_post
 from decrack.pipeline.run import compile_thread
 from decrack.pipeline.support import claims_for
@@ -274,6 +274,7 @@ def test_compile_thread_end_to_end(synthetic_thread, links):
     assert run.params == {
         "num_ctx": 8192,
         "temperature": 0,
+        "num_predict": NUM_PREDICT,
         "think": False,
         "window_max_tokens": 3000,
         "window_overlap_tokens": 300,

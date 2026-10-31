@@ -11,6 +11,7 @@ import pytest
 from decrack.config import DEFAULT_MODEL, DEFAULT_OLLAMA_HOST, Settings
 from decrack.models import ACTS, MapOutput
 from decrack.pipeline.llm import (
+    NUM_PREDICT,
     LLMError,
     LLMOutputError,
     LLMUnavailableError,
@@ -39,7 +40,7 @@ GOOD = {
     ]
 }
 OTHER = {"items": []}
-OPTIONS = {"num_ctx": 32768, "temperature": 0}
+OPTIONS = {"num_ctx": 32768, "temperature": 0, "num_predict": NUM_PREDICT}
 EXTRA = {
     "digest": "sha256:" + "a" * 64,
     "prompt_version": "decrack-prompts-2",
@@ -117,7 +118,9 @@ def test_ollama_request_shape_and_think_stripping():
     assert body["messages"] == MESSAGES
     assert body["stream"] is False
     assert "think" not in body  # sent only when think=True
-    assert body["options"] == {"num_ctx": 8192, "temperature": 0}
+    assert body["options"] == {"num_ctx": 8192, "temperature": 0, "num_predict": NUM_PREDICT}
+    # Grammar bounds: a looping small model must close the items array and its names.
+    assert body["format"]["properties"]["items"]["maxItems"] == 20
     assert isinstance(body["format"], dict)
     assert "$ref" not in json.dumps(body["format"])
     assert "$defs" not in body["format"]
@@ -140,6 +143,45 @@ def test_ollama_retries_once_with_the_error():
     assert retry[3]["role"] == "user"
     assert "not valid" in retry[3]["content"]
     assert (llm.tokens_in, llm.tokens_out) == (240, 60)  # both attempts count
+
+
+def cut_off(content: str) -> httpx.Response:
+    """An Ollama answer that stopped at the num_predict cap."""
+    body = {"message": {"role": "assistant", "content": content}, "done": True, "done_reason": "length"}
+    return httpx.Response(200, json={**body, "prompt_eval_count": 120, "eval_count": NUM_PREDICT})
+
+
+def test_a_cut_off_answer_is_retried_without_echoing_it():
+    looping = '{"items": [' + '{"alt_ref": "new", "alternative": "x", ' * 50
+    client, sent = mock_client(cut_off(looping), reply(json.dumps(GOOD)))
+    llm = OllamaLLM(client=client)
+    assert llm.complete_json("map", MESSAGES, MapOutput) == GOOD
+    retry = sent[1][1]["messages"]
+    assert retry[:2] == MESSAGES
+    assert len(retry) == 3  # no assistant turn: the cut-off loop is not sent back
+    assert retry[2]["role"] == "user" and "cut off" in retry[2]["content"]
+
+
+def test_two_cut_off_answers_skip_the_call():
+    client, sent = mock_client(cut_off("{"), cut_off("{"))
+    with pytest.raises(LLMOutputError, match="cut off"):
+        OllamaLLM(client=client).complete_json("map", MESSAGES, MapOutput)
+    assert len(sent) == 2
+
+
+def test_a_read_timeout_costs_one_call_but_a_connect_timeout_stops_the_run():
+    def slow(request: httpx.Request) -> httpx.Response:
+        raise httpx.ReadTimeout("no answer", request=request)
+
+    with pytest.raises(LLMOutputError):
+        OllamaLLM(client=httpx.Client(transport=httpx.MockTransport(slow))).complete_json("map", MESSAGES, MapOutput)
+
+    def unreachable(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectTimeout("no route", request=request)
+
+    with pytest.raises(LLMUnavailableError):
+        llm = OllamaLLM(client=httpx.Client(transport=httpx.MockTransport(unreachable)))
+        llm.complete_json("map", MESSAGES, MapOutput)
 
 
 def test_ollama_gives_up_after_one_retry():
@@ -277,7 +319,7 @@ def test_runtime_info_gives_empty_strings_when_anything_fails():
 
 def recorded(response: dict, model: str = "qwen2.5:1.5b", num_ctx: int = 32768, extra: dict | None = None) -> dict:
     """One JSONL row as ``Store.export_llm_calls`` writes it."""
-    request = map_request(model, {"num_ctx": num_ctx, "temperature": 0}, extra)
+    request = map_request(model, {"num_ctx": num_ctx, "temperature": 0, "num_predict": NUM_PREDICT}, extra)
     return {"key": call_key(request), "step": "map", "model": model, "request": request, "response": response}
 
 
