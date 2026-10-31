@@ -6,7 +6,7 @@
     {
       "decision_id": "dr-3054722d",
       "title": "Support `--user` flag from pip",
-      "outcome": "3 options: 2 accepted, 1 unresolved",
+      "outcome": "3 options: 1 accepted, 1 rejected, 1 unresolved",
       "link": "https://github.com/astral-sh/uv/issues/2077",
       "matched": "text match",
       "options": [
@@ -22,8 +22,8 @@
         {
           "key": "A2",
           "title": "Support `--user` flag from pip",
-          "status": "accepted",
-          "status_kind": "contested",
+          "status": "rejected",
+          "status_kind": "inferred",
           "confidence": "low",
           "reason": "The proposal to support `--user` flag from pip is a good solution that addresses the side effects of `--user` flag in `pip`.",
           "link": "https://github.com/astral-sh/uv/issues/2077"

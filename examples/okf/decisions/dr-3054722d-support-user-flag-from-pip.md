@@ -1,17 +1,18 @@
 ---
 type: "Decision Record"
 title: "Support `--user` flag from pip"
-description: "3 options: 2 accepted, 1 unresolved. Question: Support `--user` flag from pip"
+description: "3 options: 1 accepted, 1 rejected, 1 unresolved. Question: Support `--user` flag from pip"
 resource: "https://github.com/astral-sh/uv/issues/2077"
 tags:
   - "decrack"
   - "github-issue"
   - "accepted"
+  - "rejected"
   - "unresolved"
 status: "draft"
 generated:
   by: "decrack/0.1.0"
-  at: "2026-10-31T23:00:17Z"
+  at: "2026-10-31T23:09:01Z"
 sources:
   - id: "gh-astral-sh-uv-2077"
     resource: "https://github.com/astral-sh/uv/issues/2077"
@@ -282,14 +283,12 @@ decrack:
     - key: "A2"
       title: "Support `--user` flag from pip"
       summary: "The proposal to support `--user` flag from pip is a good solution that addresses the side effects of `--user` flag"
-      status: "accepted"
-      status_kind: "contested"
-      status_basis: "author_statement"
-      status_post: "gh:astral-sh/uv#2077:c1994014387"
-      decided_by:
-        handle: "potiuk"
-        role: "author"
-      status_note: "Accepted in the discussion, but the thread was closed as not planned."
+      status: "rejected"
+      status_kind: "inferred"
+      status_basis: "none"
+      status_post: null
+      decided_by: null
+      status_note: "closed as not planned by @zanieb (GitHub metadata)"
       confidence: "low"
       evidence:
         - "ev-2"
@@ -984,19 +983,26 @@ Support `--user` flag from pip
 
 # Decision outcome
 
-3 options: 2 accepted, 1 unresolved. No deciding post was identified.
+3 options: 1 accepted, 1 rejected, 1 unresolved. No deciding post was identified.
 
 # Considered options
 
 | Option | Status | Kind | Confidence | Main reason |
 |---|---|---|---|---|
 | Documenting how to get an equivalent by creating ~/.local venv (A1) | accepted | contested | low | The proposal to document the equivalent of `--user` flag by creating a `~/.local` venv is a good solution that addresses the side effects of `--user` and simplifies the user experience. |
-| Support `--user` flag from pip (A2) | accepted | contested | low | The proposal to support `--user` flag from pip is a good solution that addresses the side effects of `--user` flag in `pip`. |
+| Support `--user` flag from pip (A2) | rejected | inferred | low | The proposal to document the equivalent of `--user` flag by creating a `~/.local` venv is not a good solution that does not address the side effects of `--user` flag in `pip`. |
 | Default virtualenv (A3) | unresolved | unresolved | low | The proposal to default to a virtualenv in `~/.venvs/default` is a good solution that addresses the need for a default virtualenv. |
 
 # Rejected ideas
 
-None recorded.
+## Support `--user` flag from pip
+
+Status: rejected (inferred, confidence low). closed as not planned by @zanieb (GitHub metadata).
+
+- pro: The proposal to support `--user` flag from pip is a good solution that addresses the side effects of `--user` flag in `pip`.[^gh-astral-sh-uv-2077][^gh-astral-sh-uv-2077-c1992033240][^gh-astral-sh-uv-2077-c1992501848][^gh-astral-sh-uv-2077-c1994014387][^gh-astral-sh-uv-2077-c2151870474][^gh-astral-sh-uv-2077-c2181705827][^gh-astral-sh-uv-2077-c2310797361][^gh-astral-sh-uv-2077-c2310832765][^gh-astral-sh-uv-2077-c2312410060][^gh-astral-sh-uv-2077-c2557685742][^gh-astral-sh-uv-2077-c2666536502][^gh-astral-sh-uv-2077-c2666636085]
+- con: The proposal to document the equivalent of `--user` flag by creating a `~/.local` venv is not a good solution that does not address the side effects of `--user` flag in `pip`.[^gh-astral-sh-uv-2077-c1992033240][^gh-astral-sh-uv-2077-c1992501848]
+- con: The proposal to support `--user` flag from pip is not a good solution that does not address the side effects of `--user` flag in `pip`.[^gh-astral-sh-uv-2077-c1992033240][^gh-astral-sh-uv-2077-c1992501848]
+- pro: The workaround provided by @imfing is the best solution until the `--user` flag is available.[^gh-astral-sh-uv-2077-c2150008781][^gh-astral-sh-uv-2077-c2150040638][^gh-astral-sh-uv-2077-c2150075420][^gh-astral-sh-uv-2077-c2150093171][^gh-astral-sh-uv-2077-c2150232739][^gh-astral-sh-uv-2077-c2150276312]
 
 # Code
 

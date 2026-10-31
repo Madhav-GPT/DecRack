@@ -10,6 +10,7 @@ from decrack.pipeline.consolidate import (
     jaccard,
     normalize_text,
     rate_confidence,
+    reconcile_with_outcome,
     same_title,
     similarity,
     summarize_outcome,
@@ -458,9 +459,6 @@ def test_summarize_outcome():
 
 
 def test_a_not_planned_thread_cannot_confirm_an_author_only_acceptance():
-    from decrack.models import Option, Thread
-    from decrack.pipeline.consolidate import reconcile_with_outcome
-
     def accepted(key: str, basis: str) -> Option:
         return Option(
             key=key, title=key, status="accepted", status_kind="confirmed", status_basis=basis, confidence="high"
@@ -482,3 +480,31 @@ def test_a_not_planned_thread_cannot_confirm_an_author_only_acceptance():
     kept = accepted("A1", "author_statement")
     reconcile_with_outcome(completed, [kept])
     assert kept.status_kind == "confirmed"
+
+
+def test_the_threads_own_proposal_is_rejected_by_github_metadata():
+    def option(key: str, title: str, status: str, basis: str) -> Option:
+        kind = "confirmed" if basis != "none" else "unresolved"
+        return Option(key=key, title=title, status=status, status_kind=kind, status_basis=basis, confidence="high")
+
+    issue = Thread(
+        id="gh:astral-sh/uv#2077",
+        kind="github_issue",
+        title="Support `--user` flag for `uv pip install`",
+        meta={"state": "closed", "state_reason": "not_planned", "closed_by": "maint"},
+    )
+    own = option("A1", "Support --user flag", "accepted", "author_statement")
+    other = option("A2", "Use a virtual environment instead", "accepted", "author_statement")
+    decided = option("A3", "Support --user flag on Windows", "accepted", "decider_statement")
+    reconcile_with_outcome(issue, [own, other, decided])
+    assert (own.status, own.status_kind, own.confidence) == ("rejected", "inferred", "low")
+    assert own.status_note == "closed as not planned by @maint (GitHub metadata)"
+    assert (other.status, other.status_kind) == ("accepted", "contested")
+    assert (decided.status, decided.status_kind) == ("accepted", "confirmed")  # a decider statement stays
+
+    closed = {"state": "closed", "merged": False}
+    pr = Thread(id="gh:o/r#9", kind="github_pr", title="Add a caching layer for metadata", meta=closed)
+    approach = option("A1", "Caching layer", "proposed", "none")
+    reconcile_with_outcome(pr, [approach])
+    assert (approach.status, approach.status_kind) == ("rejected", "inferred")
+    assert approach.status_note == "closed without merging (GitHub metadata)"
