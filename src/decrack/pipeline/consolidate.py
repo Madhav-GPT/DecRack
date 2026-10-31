@@ -451,6 +451,24 @@ def rate_confidence(option: Option) -> str:
     return _confidence(status_ruling(option.status_history))
 
 
+def reconcile_with_outcome(thread: Thread, options: list[Option]) -> None:
+    """Let the thread's own outcome overrule an acceptance nobody with authority stated.
+
+    An issue closed as "not planned", or a pull request closed without merging, cannot
+    confirm an acceptance on the author's word alone: such options become contested.
+    """
+    not_planned = thread.meta.get("state_reason") == "not_planned"
+    unmerged = thread.kind == "github_pr" and thread.meta.get("state") == "closed" and not thread.meta.get("merged")
+    if not (not_planned or unmerged):
+        return
+    outcome = "closed as not planned" if not_planned else "closed without merging"
+    for option in options:
+        if option.status == "accepted" and option.status_basis != "decider_statement":
+            option.status_kind = "contested"
+            option.status_note = f"Accepted in the discussion, but the thread was {outcome}."
+            option.confidence = "low"
+
+
 def summarize_outcome(options: list[Option]) -> str:
     """For example "12 options: 1 accepted, 8 rejected, 3 unresolved"."""
     if not options:

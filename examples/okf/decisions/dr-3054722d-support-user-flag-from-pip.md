@@ -11,7 +11,7 @@ tags:
 status: "draft"
 generated:
   by: "decrack/0.1.0"
-  at: "2026-10-31T22:49:49Z"
+  at: "2026-10-31T23:00:17Z"
 sources:
   - id: "gh-astral-sh-uv-2077"
     resource: "https://github.com/astral-sh/uv/issues/2077"
@@ -123,10 +123,8 @@ decrack:
   id: "dr-3054722d"
   question: "Support `--user` flag from pip"
   thread_id: "gh:astral-sh/uv#2077"
-  decided_by:
-    handle: "potiuk"
-    role: "author"
-  decided_in_post: "gh:astral-sh/uv#2077:c1994014387"
+  decided_by: null
+  decided_in_post: null
   verification: "unverified"
   model: "qwen2.5:1.5b"
   run_mode: "live"
@@ -137,14 +135,14 @@ decrack:
       title: "Documenting how to get an equivalent by creating ~/.local venv"
       summary: "The proposal to document the equivalent of `--user` flag by creating a `~/.local` venv is a good solution that addresses"
       status: "accepted"
-      status_kind: "confirmed"
+      status_kind: "contested"
       status_basis: "author_statement"
       status_post: "gh:astral-sh/uv#2077:c1994014387"
       decided_by:
         handle: "potiuk"
         role: "author"
-      status_note: ""
-      confidence: "high"
+      status_note: "Accepted in the discussion, but the thread was closed as not planned."
+      confidence: "low"
       evidence:
         - "ev-1"
         - "ev-2"
@@ -285,14 +283,14 @@ decrack:
       title: "Support `--user` flag from pip"
       summary: "The proposal to support `--user` flag from pip is a good solution that addresses the side effects of `--user` flag"
       status: "accepted"
-      status_kind: "confirmed"
+      status_kind: "contested"
       status_basis: "author_statement"
       status_post: "gh:astral-sh/uv#2077:c1994014387"
       decided_by:
         handle: "potiuk"
         role: "author"
-      status_note: ""
-      confidence: "high"
+      status_note: "Accepted in the discussion, but the thread was closed as not planned."
+      confidence: "low"
       evidence:
         - "ev-2"
         - "ev-3"
@@ -986,14 +984,14 @@ Support `--user` flag from pip
 
 # Decision outcome
 
-3 options: 2 accepted, 1 unresolved. Decided in post #16 by potiuk (author).[^gh-astral-sh-uv-2077-c1994014387]
+3 options: 2 accepted, 1 unresolved. No deciding post was identified.
 
 # Considered options
 
 | Option | Status | Kind | Confidence | Main reason |
 |---|---|---|---|---|
-| Documenting how to get an equivalent by creating ~/.local venv (A1) | accepted | confirmed | high | The proposal to document the equivalent of `--user` flag by creating a `~/.local` venv is a good solution that addresses the side effects of `--user` and simplifies the user experience. |
-| Support `--user` flag from pip (A2) | accepted | confirmed | high | The proposal to support `--user` flag from pip is a good solution that addresses the side effects of `--user` flag in `pip`. |
+| Documenting how to get an equivalent by creating ~/.local venv (A1) | accepted | contested | low | The proposal to document the equivalent of `--user` flag by creating a `~/.local` venv is a good solution that addresses the side effects of `--user` and simplifies the user experience. |
+| Support `--user` flag from pip (A2) | accepted | contested | low | The proposal to support `--user` flag from pip is a good solution that addresses the side effects of `--user` flag in `pip`. |
 | Default virtualenv (A3) | unresolved | unresolved | low | The proposal to default to a virtualenv in `~/.venvs/default` is a good solution that addresses the need for a default virtualenv. |
 
 # Rejected ideas

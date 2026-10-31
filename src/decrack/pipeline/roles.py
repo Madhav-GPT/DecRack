@@ -80,11 +80,13 @@ def _discourse_roles(thread: Thread) -> None:
 
 
 def _github_roles(thread: Thread) -> None:
-    """Decider > author > maintainer > participant.
+    """Author > decider > maintainer > participant.
 
-    The decider is a member (OWNER, MEMBER or COLLABORATOR) who merged or
-    closed the issue or pull request; the author is whoever opened it (meta
-    ``opener``, else the writer of the first post by ``seq``).
+    The author is whoever opened the issue or pull request (meta ``opener``,
+    else the writer of the first post by ``seq``), and stays the author even
+    as an OWNER or MEMBER: opening, proposing and closing your own issue is
+    not an independent decision. The decider is the member (OWNER, MEMBER or
+    COLLABORATOR) who merged or closed it, other than the opener.
     """
     members = {
         post.author.casefold()
@@ -102,10 +104,10 @@ def _github_roles(thread: Thread) -> None:
         if post.role != "unknown":
             continue
         login = post.author.casefold()
-        if login in deciders:
-            post.role = "decider"
-        elif login == opener:
+        if login == opener:
             post.role = "author"
+        elif login in deciders:
+            post.role = "decider"
         elif login in members:
             post.role = "maintainer"
         else:

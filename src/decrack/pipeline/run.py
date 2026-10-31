@@ -30,7 +30,7 @@ from decrack.models import (
     Thread,
     make_record_id,
 )
-from decrack.pipeline.consolidate import AltRegistry, consolidate, decide, summarize_outcome
+from decrack.pipeline.consolidate import AltRegistry, consolidate, decide, summarize_outcome, reconcile_with_outcome
 from decrack.pipeline.extract import map_window, prepare_map
 from decrack.pipeline.gate import GatedCandidate, build_aliases, gate_candidates
 from decrack.pipeline.llm import NUM_PREDICT, LLM, LLMOutputError
@@ -100,6 +100,7 @@ def compile_thread(
         check_support(llm, options, batch_size=settings.support_batch_size)
     for option in options:
         decide(option)
+    reconcile_with_outcome(thread, options)
 
     after = usage(llm)
     decided_by, decided_in_post = decision_point(thread, options)
