@@ -131,3 +131,14 @@ Use DecRack to find recorded decisions, rejected alternatives and their reasons 
 **Answers are slow.** A first read should take about a minute for a small thread and several minutes for a long one; see the estimates in [TESTING.md](TESTING.md#7-what-to-expect). Cached calls make re-runs fast.
 
 **GitHub sources fail.** DecRack needs `GITHUB_TOKEN` in its environment. Export it in the shell you start OpenCode from, or add it to the MCP entry's `environment`, then restart OpenCode.
+
+## Small local models (qwen2.5:1.5b): make sure DecRack gets called
+
+A 1.5B model often answers from memory instead of calling a tool, especially next to OpenCode's many built-in tools. This repo's `opencode.json` fixes that. Run OpenCode inside the DecRack folder, or copy its `agent` and `command` blocks into `~/.config/opencode/opencode.json`:
+
+- **The `decrack` agent** (press Tab to switch to it) has a short prompt and one tool, `decrack_ask`, so the model calls it instead of guessing.
+- **The `/why` command** sends your message straight to that agent: `/why Why didn't uv add pip's --user flag? astral-sh/uv#2077`.
+- **`"timeout": 600000`** gives the first read of a long thread up to 10 minutes. Later questions on the same thread are cached and instant. To warm the cache first, run `decrack ask astral-sh/uv#2077 "why not --user?"` in a terminal from the same folder, since the database (`decrack.db`) lives in the folder you start from.
+- **Context length:** Ollama's default context is small (4,096 tokens on most laptops), which cuts off OpenCode's default prompt and tool list. The `decrack` agent fits in it. To use DecRack's tools from the default Build agent, start Ollama with a longer context: `OLLAMA_CONTEXT_LENGTH=16384 ollama serve`.
+- **`ask` accepts the whole message.** If the model puts the user's entire message in `source`, DecRack finds the link and the question itself.
+
