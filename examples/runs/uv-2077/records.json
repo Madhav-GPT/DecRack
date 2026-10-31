@@ -4,7 +4,7 @@
     "thread_id": "gh:astral-sh/uv#2077",
     "thread_url": "https://github.com/astral-sh/uv/issues/2077",
     "question": "Support `--user` flag from pip",
-    "outcome": "3 options: 2 accepted, 1 unresolved",
+    "outcome": "3 options: 1 accepted, 1 rejected, 1 unresolved",
     "options": [
       {
         "key": "A1",
@@ -1094,15 +1094,12 @@
         "key": "A2",
         "title": "Support `--user` flag from pip",
         "summary": "The proposal to support `--user` flag from pip is a good solution that addresses the side effects of `--user` flag",
-        "status": "accepted",
-        "status_kind": "contested",
-        "status_basis": "author_statement",
-        "status_post": "gh:astral-sh/uv#2077:c1994014387",
-        "decided_by": {
-          "handle": "potiuk",
-          "role": "author"
-        },
-        "status_note": "Accepted in the discussion, but the thread was closed as not planned.",
+        "status": "rejected",
+        "status_kind": "inferred",
+        "status_basis": "none",
+        "status_post": null,
+        "decided_by": null,
+        "status_note": "closed as not planned by @zanieb (GitHub metadata)",
         "status_history": [
           {
             "post_id": "gh:astral-sh/uv#2077:c1992501848",
@@ -2826,8 +2823,8 @@
       },
       "prompt_version": "decrack-prompts-3",
       "schema_version": "decrack-record/0.2",
-      "started_at": "2026-10-31T23:00:17.757125Z",
-      "seconds": 0.04,
+      "started_at": "2026-10-31T23:09:01.777705Z",
+      "seconds": 0.042,
       "llm_calls": 8,
       "cache_hits": 8,
       "tokens_in": 0,

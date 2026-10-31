@@ -21,6 +21,7 @@ from decrack.models import STATUSES, DecidedBy, Evidence, Option, Reason, Status
 from decrack.pipeline.gate import GatedCandidate
 
 TITLE_SIMILARITY = 0.85  # difflib ratio of normalised titles
+PROPOSAL_COVERAGE = 0.6  # share of an option's words in the thread title that marks its own proposal
 TITLE_OVERLAP = 0.6  # token-set Jaccard of normalised titles
 MAX_QUOTE_REASON_CHARS = 300  # a reason taken from a quote is clipped to this
 REASON_SIMILARITY = 0.9
@@ -451,19 +452,49 @@ def rate_confidence(option: Option) -> str:
     return _confidence(status_ruling(option.status_history))
 
 
-def reconcile_with_outcome(thread: Thread, options: list[Option]) -> None:
-    """Let the thread's own outcome overrule an acceptance nobody with authority stated.
+def own_proposal(thread: Thread, options: list[Option]) -> Option | None:
+    """The option that is the thread's own proposal: the same title, or its words mostly in the thread title."""
+    title = normalize_text(thread.title)
+    title_words = set(title.split())
+    best, best_score = None, (0.0, 0.0)
+    for option in options:
+        name = normalize_text(option.title)
+        words = set(name.split())
+        if not words or not title_words:
+            continue
+        coverage = 1.0 if same_title(name, title) else len(words & title_words) / len(words)
+        score = (coverage, jaccard(name, title))  # ties go to the closer title
+        if coverage >= PROPOSAL_COVERAGE and score > best_score:
+            best, best_score = option, score
+    return best
 
-    An issue closed as "not planned", or a pull request closed without merging, cannot
-    confirm an acceptance on the author's word alone: such options become contested.
+
+def reconcile_with_outcome(thread: Thread, options: list[Option]) -> None:
+    """Let the thread's own outcome overrule what nobody with authority stated.
+
+    An issue closed as "not planned", or a pull request closed without merging:
+    - the option that is the thread's own proposal becomes rejected (inferred from
+      the GitHub metadata, with a note naming who closed it), unless the discussion
+      already rejected, withdrew, deferred or superseded it;
+    - any other acceptance on the author's word alone becomes contested.
+    A decider's explicit statement is never changed.
     """
     not_planned = thread.meta.get("state_reason") == "not_planned"
     unmerged = thread.kind == "github_pr" and thread.meta.get("state") == "closed" and not thread.meta.get("merged")
     if not (not_planned or unmerged):
         return
     outcome = "closed as not planned" if not_planned else "closed without merging"
+    closer = str(thread.meta.get("closed_by") or "").strip()
+    own = own_proposal(thread, options)
     for option in options:
-        if option.status == "accepted" and option.status_basis != "decider_statement":
+        if option.status_basis == "decider_statement":
+            continue
+        if option is own and option.status in ("proposed", "unresolved", "accepted"):
+            option.status, option.status_kind, option.status_basis = "rejected", "inferred", "none"
+            option.status_post, option.decided_by = None, None
+            option.status_note = f"{outcome}{f' by @{closer}' if closer else ''} (GitHub metadata)"
+            option.confidence = "low"
+        elif option.status == "accepted":
             option.status_kind = "contested"
             option.status_note = f"Accepted in the discussion, but the thread was {outcome}."
             option.confidence = "low"
