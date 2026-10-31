@@ -147,3 +147,30 @@ def test_run_chat_greets_with_the_scope(tmp_path, monkeypatch):
     assert lines[0] == SCOPE
     assert lines[1] == EXAMPLE
     assert any(line.startswith("Commands:") for line in lines)
+
+
+def test_maintainer_statements_quote_the_deciders(store, synthetic_thread, sample_record):
+    thread = synthetic_thread.model_copy(deep=True)
+    post = thread.posts[-1]
+    post.role = "decider"
+    post.sentences = [
+        "> quoted words from someone else should be skipped entirely here.",
+        "We don't think a decorator is the right way to do that.",
+    ]
+    store.save_thread(thread)
+    record = sample_record.model_copy(update={"thread_id": thread.id})
+    lines = chat.maintainer_statements(store, [record], "why not a decorator?")
+    assert lines and "We don't think a decorator" in lines[0]
+    assert all("quoted words" not in line for line in lines)
+
+
+def test_cards_do_not_repeat_a_quote_or_show_template_reasons(sample_record):
+    cards = build_cards([(sample_record, "text match")])
+    quotes = [card.quote for card in cards if card.quote]
+    assert len(quotes) == len(set(quotes)) or len(set(quotes)) == 1
+    assert all("adopted, turned down" not in card.reason for card in cards)
+
+
+def test_styler_is_plain_without_a_terminal():
+    assert chat.styler(False)("    status: rejected (confirmed)") == "    status: rejected (confirmed)"
+    assert "\033[" in chat.styler(True)("    status: rejected (confirmed)")

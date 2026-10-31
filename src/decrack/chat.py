@@ -9,7 +9,9 @@ cards there is no model call. It never chats about anything else.
 
 from __future__ import annotations
 
+import os
 import re
+import sys
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
@@ -18,7 +20,7 @@ import httpx
 from pydantic import BaseModel, Field
 
 from decrack import preflight, search, surface
-from decrack.ask import run_ask
+from decrack.ask import question_keywords, run_ask
 from decrack.config import Settings
 from decrack.models import DecisionRecord
 from decrack.pipeline.llm import LLMError, LLMOutputError, make_llm
@@ -108,21 +110,70 @@ def parse_line(line: str) -> ChatInput:
     return ChatInput(None, "", source, " ".join(rest.split()).strip(" .,;:"))
 
 
+TEMPLATE_REASON = "adopted, turned down, or postponed"  # prompt wording a small model sometimes copies
+DECIDER_ROLES = ("decider", "maintainer")
+DECISION_WORDS = ("don't think", "do not think", "won't", "will not", "not going to", "decided", "decision",
+                  "rejected", "instead", "recommend", "we allow", "not planned", "prefer")
+
+
 def build_cards(ranked: list[tuple[DecisionRecord, str]], limit: int = MAX_CARDS) -> list[Card]:
-    """Numbered cards, one per option: rejected-like options of each record first."""
+    """Numbered cards, one per option: rejected-like options first, each with a quote no other card shows."""
     cards: list[Card] = []
+    shown: set[str] = set()
     for record, _ in ranked:
         options = sorted(record.options, key=lambda option: option.status not in REJECTED_LIKE)
         for option in options:
             if len(cards) >= limit:
                 return cards
             reason = " ".join(option.reasons[0].text.split()) if option.reasons else ""
-            quote = " ".join(option.evidence[0].quote.split())[:200] if option.evidence else ""
-            link = next((ev.url for ev in option.evidence if ev.url), record.thread_url)
+            if TEMPLATE_REASON in reason.lower():
+                reason = ""
+            evidence = next(
+                (ev for ev in option.evidence if " ".join(ev.quote.split())[:200] not in shown),
+                option.evidence[0] if option.evidence else None,
+            )
+            quote = " ".join(evidence.quote.split())[:200] if evidence else ""
+            shown.add(quote)
+            link = (evidence.url if evidence and evidence.url else "") or record.thread_url
             cards.append(
                 Card(len(cards) + 1, option.title, option.status, option.status_kind, reason, quote, link)
             )
     return cards
+
+
+def maintainer_statements(store: Store, records: list[DecisionRecord], question: str, limit: int = 3) -> list[str]:
+    """What the people who decide wrote, ranked by overlap with the question. Plain code, no model.
+
+    Sentences come from posts whose author is the decider (who closed or merged) or a maintainer; quoted
+    lines (starting with ">") are someone else's words and are skipped.
+    """
+    words = {word.lower() for word in question_keywords(question)}
+    scored: list[tuple[float, str]] = []
+    for record in records:
+        thread = store.load_thread(record.thread_id)
+        if thread is None:
+            continue
+        for post in thread.posts:
+            if post.role not in DECIDER_ROLES:
+                continue
+            for sentence in post.sentences:
+                text = " ".join(sentence.split())
+                if len(text) < 25 or text.startswith(">"):
+                    continue
+                lowered = text.lower()
+                overlap = sum(1 for word in words if word in lowered)
+                cue = 1.0 if any(cue in lowered for cue in DECISION_WORDS) else 0.0
+                if overlap + cue == 0:
+                    continue
+                scored.append((overlap + cue, f'@{post.author} ({post.role}): "{text[:240]}" {post.url}'))
+    scored.sort(key=lambda item: -item[0])
+    seen: list[str] = []
+    for _, line in scored:
+        if line not in seen:
+            seen.append(line)
+        if len(seen) >= limit:
+            break
+    return seen
 
 
 def render_cards(cards: list[Card]) -> list[str]:
@@ -147,11 +198,16 @@ def display_cards(cards: list[Card]) -> list[str]:
     return lines
 
 
-def answer_question(llm: Any, question: str, cards: list[Card]) -> tuple[str, list[int]]:
-    """One "answer" call from the numbered cards only; returns the answer and the valid cited numbers."""
+def answer_question(
+    llm: Any, question: str, cards: list[Card], statements: list[str] | None = None
+) -> tuple[str, list[int]]:
+    """One "answer" call from the numbered cards (and the maintainers' own words) only."""
+    content = f"Question: {question}\n\nCards:\n" + "\n".join(render_cards(cards))
+    if statements:
+        content += "\n\nWhat the maintainers wrote (most reliable):\n" + "\n".join(statements)
     messages = [
         {"role": "system", "content": ANSWER_SYSTEM},
-        {"role": "user", "content": f"Question: {question}\n\nCards:\n" + "\n".join(render_cards(cards))},
+        {"role": "user", "content": content},
     ]
     data = AnswerOutput.model_validate(llm.complete_json("answer", messages, AnswerOutput, think=False))
     numbers = {card.number for card in cards}
@@ -210,12 +266,13 @@ class ChatSession:
             return [result["markdown"]]
         return list(HELP)
 
-    def answer(self, source: str, question: str) -> list[str]:
+    def step(self, message: str) -> None:
+        """One live progress line, so a long first read never looks stuck."""
         if self.notify is not None:
-            self.notify(
-                f"Reading {source} with {self.model}... the first time takes a minute or two; "
-                "follow-up questions are instant."
-            )
+            self.notify(f"  > {message}")
+
+    def answer(self, source: str, question: str) -> list[str]:
+        self.step(f"Reading {source} with {self.model} (first read takes a minute or two; follow-ups are instant)")
         result = run_ask(
             source,
             question,
@@ -225,7 +282,9 @@ class ChatSession:
             loader=self.loader,
             compiler=self.compiler,
             client_factory=self.client_factory,
+            progress=self.step,
         )
+        self.step("Checked every quote against the source; ranking decisions for your question")
         self.last_source = source
         read = ", ".join(
             f"{record.thread_url or record.thread_id} (id {record.id})" for record in result.records
@@ -239,8 +298,12 @@ class ChatSession:
         if not cards:
             return lines + [NO_MATCH, NO_MATCH_HINT]
         lines += display_cards(cards)
+        statements = maintainer_statements(self.store, result.records, question)
+        if statements:
+            lines += ["What the maintainers said:"] + [f"  {line}" for line in statements]
+        self.step(f"Writing a short answer with {self.model}, from the cards above only")
         try:
-            text, cites = answer_question(self.llm, question, cards)
+            text, cites = answer_question(self.llm, question, cards, statements)
         except LLMOutputError:
             return lines + ["(The model's answer was unusable; the cards above are the evidence.)"]
         links = {card.number: card.link for card in cards}
@@ -264,12 +327,52 @@ def summary(records: list[DecisionRecord]) -> list[str]:
     return lines
 
 
+STATUS_COLORS = {"accepted": "32", "rejected": "31", "withdrawn": "31", "deferred": "33", "superseded": "33",
+                 "unresolved": "33", "proposed": "36"}
+SECTION_STARTS = ("Read ", "What the maintainers said", "Answer (", "Sources:")
+
+
+def styler(enabled: bool) -> Callable[[str], str]:
+    """Colors and section rules for a real terminal; plain text everywhere else (pipes, tests, NO_COLOR)."""
+
+    def paint(code: str, text: str) -> str:
+        return f"\033[{code}m{text}\033[0m" if enabled else text
+
+    def pretty(line: str) -> str:
+        if not enabled:
+            return line
+        if line.startswith("  > "):
+            return paint("2", line)
+        if re.match(r"^\[\d+\] ", line):
+            return paint("1", line)
+        if line.startswith("    status: "):
+            value = line[len("    status: ") :]
+            return "    status: " + paint(STATUS_COLORS.get(value.split()[0], "0"), value)
+        if line.startswith(SECTION_STARTS):
+            return paint("2", "─" * 64) + "\n" + paint("1;36", line)
+        if line.startswith("Tip:"):
+            return paint("2", line)
+        return line
+
+    return pretty
+
+
 def run_chat(
     settings: Settings,
     input_fn: Callable[[str], str] = input,
     print_fn: Callable[[str], None] = print,
 ) -> int:
     """The chat loop: pick an installed open model, greet, then answer line by line until /quit."""
+    fancy = print_fn is print and sys.stdout.isatty() and not os.environ.get("NO_COLOR")
+    pretty = styler(fancy)
+    raw_print = print_fn
+
+    def print_fn(text: str) -> None:  # noqa: F811 - the styled printer wraps the plain one
+        raw_print(pretty(text))
+
+    prompt = "\033[1;36mdecrack>\033[0m " if fancy else "decrack> "
+    if fancy:
+        raw_print("\033[1mDecRack\033[0m · ask why a project decided what it decided, with cited evidence")
     with Store(settings.db_path) as store:
         llm = make_llm(settings, store)
         model = getattr(llm, "model", settings.model)
@@ -289,7 +392,7 @@ def run_chat(
         session = ChatSession(settings, store, llm, model, notify=print_fn)
         while True:
             try:
-                line = input_fn("decrack> ")
+                line = input_fn(prompt)
             except (EOFError, KeyboardInterrupt):
                 return 0
             if not line.strip():
