@@ -9,6 +9,8 @@ DecRack is an open-source Python package that gives AI coding agents a project's
 
 Type a link and a question into `decrack chat`, and it answers from numbered, cited decision cards. Coding agents use the same engine through DecRack's MCP server, or through the CLI and [`AGENTS.md`](AGENTS.md).
 
+**Measured, honestly.** Every quote in the four committed real runs re-checks against its source post (`decrack verify examples`: 256 quotes, OK). `support: unverified` on a card means only that the optional model support check didn't run. On the withheld-PEP test the 1.5B model recovers 1 of 22 rejected ideas, and [Evaluation](#evaluation-the-withheld-pep-test) traces exactly where the rest are lost. No Ollama? `uv run pytest -q` and `uv run decrack verify examples` run fully offline.
+
 > **Context7 gives agents library docs. DecRack gives agents a project's decisions and rejected ideas.**
 
 Team Allied · Hacktoberfest 2026 Hack Day Sonipat · Problem Statement 6: Open Source Decision Intelligence and Knowledge Recovery
@@ -266,9 +268,7 @@ decrack show pep:830 --detail evidence
 - **No question?** `decrack ask https://github.com/owner/repo` on its own stops with *Tell DecRack what you want to know, e.g. decrack ask https://github.com/owner/repo "why not X?"*, and exits with code 2.
 - **Follow-ups.** `uv run decrack why "exception notes"` searches everything compiled so far, and `uv run decrack run <source>` compiles a discussion without asking anything.
 
-- **Timing.** These are estimates until we measure them:
-  - about 6–8 seconds per model call on a base M4 with 16 GB, so step 4 takes about a minute the first time;
-  - about 5–7 minutes for the full 5-PEP evaluation (PEPs 830, 799, 806, 836 and 822).
+- **Timing (measured, from each `run.json`).** On a base M4 with 16 GB, compiling PEP 830, 799 and 806 took 47 s, 40 s and 22 s. A 97-comment GitHub issue takes about a minute the first time; re-runs are cached.
 
   Every model call is cached by a hash of its exact inputs, so a second run makes no model calls.
 - **Other models.** DecRack picks `qwen2.5:1.5b` if it's installed, otherwise any model in your local Ollama. To choose one yourself, pass `--model TAG` before the command.
@@ -461,7 +461,7 @@ The question is the organizers' own: given only a PEP's discussion, does DecRack
 **search@5: do we need embeddings?**
 
 - **What it measures.** For each gold rejected idea that DecRack matched, the eval searches all the extracted options, using the idea's PEP heading as the query. The search is the same model-free FTS5 keyword search that serves lookups. The metric (`search_recall_at_5`, shown as "search@5") is whether the right option ranks in the top 5, and `scores.json` lists every miss under `search_misses`.
-- **What it decides.** This metric decides whether DecRack needs embeddings. If keyword search misses ideas because the thread words them differently, we add vectors inside the same SQLite file: `sqlite-vec` with an open embedding model served by Ollama, fused with the keyword results. Otherwise SQLite FTS stays as it is.
+- **What it shows so far.** search@5 is 1.000, but over a single matched idea, so it can't yet tell whether embeddings would help. If keyword search starts missing ideas that the thread words differently, the plan is vectors inside the same SQLite file (`sqlite-vec` with an open embedding model in Ollama), fused with the keyword results.
 
 **Leak controls**
 
@@ -474,17 +474,17 @@ The question is the organizers' own: given only a PEP's discussion, does DecRack
 Run it with:
 
 ```bash
-uv run decrack eval pep:830 pep:799 pep:806 pep:836 pep:822 --gold eval/gold --out examples/runs --closed-book
+uv run decrack eval pep:830 pep:799 pep:806 --gold eval/gold --out examples/runs --closed-book
 ```
 
-On a base M4 with 16 GB, the five PEPs should take about 5–7 minutes at about 6–8 seconds per model call. These are estimates until measured; each `run.json` records the real timings.
+This reproduces the committed results: about 2 minutes for the three PEPs on a base M4 with 16 GB, measured in each `run.json`. Gold sets exist for more PEPs in `eval/gold/`.
 
 **Results.** These are real runs of `qwen2.5:1.5b` on a base M4 MacBook Pro, over PEPs 830, 799 and 806; the full table is in [`examples/runs/eval-summary.md`](examples/runs/eval-summary.md).
 - **Recall:** the macro recall is **0.026**, 1 of 22 gold rejected ideas.
 - **Strict precision:** **0.111**.
 - **The closed-book baseline:** **0.144**. That is the same model shown only the PEP's title, and its recall is higher than DecRack's.
 
-The small model extracted few alternatives (13 options across 80 posts), so recall is low. The one idea it did recover comes with a checked quote. There is also a real `decrack ask` run on astral-sh/uv#2077 in [`examples/runs/uv-2077/`](examples/runs/uv-2077/).
+**Where recall is lost.** We traced every missed idea through the recorded model calls. 19 of the 22 were never named by the 1.5B model in the map step; the citation gate, the merge and the matcher lost none. The model often repeats one item until it fills its 20-item limit (34 of PEP 830's 44 raw items are duplicates). The other 2 it named but labelled accepted. The one idea it recovered comes with a checked quote. So the bottleneck is the small model's extraction, not the checks; a larger open model (`--model`) or a de-duplicating prompt is the next step. The closed-book number is inflated by loose matches (for example "Add timestamps to database queries" counted for "Timestamp in the Traceback Header Line"); see each `matches.json`. PEP 799's only predicted rejection, "Use a decorator", is the prompt's own example copied by the model: a false positive whose citations are valid but don't support it, which is what the optional `--support-check` is for. There is also a real `decrack run` plus `why` on astral-sh/uv#2077 in [`examples/runs/uv-2077/`](examples/runs/uv-2077/).
 
 ---
 

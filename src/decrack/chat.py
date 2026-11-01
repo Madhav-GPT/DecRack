@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import os
 import re
+import sqlite3
 import sys
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -311,7 +312,7 @@ class ChatSession:
             return self.answer(source, parsed.question)
         except preflight.GateError as gate:
             return [gate.text()]
-        except (LLMError, ValueError, RuntimeError, httpx.HTTPError, OSError) as exc:
+        except (LLMError, ValueError, RuntimeError, httpx.HTTPError, OSError, sqlite3.Error) as exc:
             return [f"Couldn't finish that: {exc}", "Check the link and try again, or type /help for examples."]
 
     def command(self, parsed: ChatInput) -> list[str] | None:
