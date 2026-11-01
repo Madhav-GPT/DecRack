@@ -283,17 +283,17 @@ decrack show pep:830 --detail evidence
 
 - **It stays on topic.** The chat accepts normal prompts, but only about decisions in a linked discussion.
 - **Its scope line.** With no link, with off-topic text, or when nothing matches, it replies: *"I answer questions about engineering decisions in a discussion: what was proposed, what was rejected or accepted, and why. Give me a link (a GitHub repo, issue or PR, a discuss.python.org thread, or pep:NNN) and a question."*
-- **No free chat.** It never free-chats, and the model answers only from cited cards.
+- **No free chat.** It never free-chats, and the model answers only from the maintainers' own words and the cited cards.
 
 **2. Any MCP harness, such as OpenCode.** Install DecRack with `uv tool install git+https://github.com/Madhav-GPT/DecRack`, then add it to `opencode.json`:
 
 ```json
-{"mcp": {"decrack": {"type": "local", "command": ["decrack", "mcp"], "enabled": true}}}
+{"mcp": {"decrack": {"type": "local", "command": ["decrack", "mcp"], "enabled": true, "timeout": 600000}}}
 ```
 
 The agent then gets DecRack's MCP tools: `ask`, `search_decisions`, `get_decision`, `decisions_for_files`, `check_change` and `search_evidence`, plus the `review_with_history` prompt.
 
-**You don't have to name DecRack.** OpenCode decides when to use a tool from its description. DecRack's says, for example, *"Use when the user asks why something was decided, rejected or accepted in a GitHub repo, issue or PR, a discuss.python.org thread or a PEP."*, so you type a normal prompt and OpenCode calls DecRack's `ask` tool when the request matches. For example:
+**With a small local model, use the DecRack agent.** This repo's [`opencode.json`](opencode.json) adds a `decrack` agent (press Tab) whose only tool is `ask`, plus a `/why` command, so even `qwen2.5:1.5b` calls DecRack instead of answering from memory. Larger models usually pick `ask` on their own, because its description starts *"Call this first when the user asks why something was decided, rejected or accepted and gives a link"*. For example:
 
 - *"Use DecRack on https://github.com/astral-sh/uv/issues/2077: why didn't uv add pip's --user flag?"*
 - *"Use DecRack on https://github.com/owner/repo. Why didn't they add X?"*
