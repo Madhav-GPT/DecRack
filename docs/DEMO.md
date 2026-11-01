@@ -27,7 +27,7 @@ Do these 30 minutes before the slot, on the demo laptop, from the **tagged freez
   - the PEP 830 thread, <https://discuss.python.org/t/106942>;
   - the green CI run on GitHub;
   - `examples/runs/eval-summary.md` and one `run.json` on GitHub.
-- [ ] **Decide one thing in advance:** whether to run `decrack run pep:830` live or on the cache. A cold run should take under a minute on a base M4 with 16 GB, but that is an estimate until measured. Time it in rehearsal; if it is slower, precompute it and explain the cache.
+- [ ] **Decide one thing in advance:** whether to run `decrack run pep:830` live or on the cache. A cold run of PEP 830 took 47 s on a base M4 with 16 GB (measured, `run.json`). If the venue is slower, precompute it and explain the cache.
 
 ---
 
@@ -398,7 +398,7 @@ Rehearse until every member can say each line without notes.
 | `qwen2.5:1.5b`, ~1 GB | The model and its download size | Fact |
 | 8,192 | The context size DecRack sets on every call | Fact (our setting) |
 | ~3,000 | Window budget, in tokens | Fact (our setting) |
-| 6–8 s / 5–7 min | Per model call / the full 5-PEP eval, on a base M4 with 16 GB | Estimate until measured |
+| 22–47 s | One PEP compile (806, 799, 830), on a base M4 with 16 GB | Measured, `run.json` |
 | ~8 | Claims per batched support call, only with `--support-check` | Fact (our setting) |
 | 59 (43 + 16) | Gold rejected ideas: the dev and stretch PEPs, plus the control | Fact (`eval/gold`) |
 | 0.026 / 0.111 / 0.144 | Macro recall, strict precision and closed-book recall for PEPs 830, 799 and 806 | Measured, in `examples/runs/eval-summary.md` |
