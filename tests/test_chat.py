@@ -216,3 +216,19 @@ def test_model_command_lists_local_models_and_switches(tmp_path, store, monkeypa
     assert session.handle(f"/model {DEFAULT_MODEL}") == [preflight.using_line(DEFAULT_MODEL)]
     assert session.handle("/model big:cloud")[0].startswith("big:cloud isn't installed locally")
     assert session.handle("/model 9")[0].startswith("9 isn't installed locally")
+
+
+def test_quote_markers_and_headings_never_count_as_someones_words(store, synthetic_thread, sample_record):
+    thread = synthetic_thread.model_copy(deep=True)
+    post = thread.posts[-1]
+    post.role = "decider"
+    post.sentences = [
+        "I don't want this in the tool at all. > > This is the job of each package's maintainers, not ours.",
+        "We don't think a decorator is the right way to do that.",
+    ]
+    store.save_thread(thread)
+    record = sample_record.model_copy(update={"thread_id": thread.id})
+    lines = chat.maintainer_statements(store, [record], "why not a decorator?")
+    assert lines and all("job of each package" not in line for line in lines)
+    assert not chat.useful_quote("## Issue") and not chat.useful_quote("ok")
+    assert chat.useful_quote("#123 fixed the resolver for everyone")
