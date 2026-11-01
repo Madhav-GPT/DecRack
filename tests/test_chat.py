@@ -197,3 +197,22 @@ def test_a_maintainers_wont_support_marks_the_option_rejected(sample_record):
     unrelated = [("zanieb", "decider", "We are not going to support Windows XP builds anymore.", "https://x/2")]
     card = next(c for c in build_cards([(record, "match")], deciders=unrelated) if c.title == "Default virtualenv")
     assert card.status == "unresolved"
+
+
+def test_model_command_lists_local_models_and_switches(tmp_path, store, monkeypatch):
+    monkeypatch.setattr(chat, "make_llm", lambda settings, store=None: ScriptedLLM({}))
+    session = ChatSession(
+        Settings(db_path=str(tmp_path / "t.db")),
+        store,
+        ScriptedLLM({}),
+        DEFAULT_MODEL,
+        models=lambda: [DEFAULT_MODEL, "test-model:b", "big:cloud"],
+    )
+    listing = session.handle("/model")
+    assert listing[:3] == ["Local open models (Ollama):", f"  1. {DEFAULT_MODEL}  (in use)", "  2. test-model:b"]
+    assert all("cloud" not in line for line in listing)
+    assert session.handle("/model 2") == [preflight.using_line("test-model:b")]
+    assert (session.model, session.settings.model) == ("test-model:b", "test-model:b")
+    assert session.handle(f"/model {DEFAULT_MODEL}") == [preflight.using_line(DEFAULT_MODEL)]
+    assert session.handle("/model big:cloud")[0].startswith("big:cloud isn't installed locally")
+    assert session.handle("/model 9")[0].startswith("9 isn't installed locally")

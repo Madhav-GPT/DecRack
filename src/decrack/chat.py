@@ -44,7 +44,7 @@ NO_MATCH = "No recorded decision about that in these threads."
 NO_MATCH_HINT = 'Try other words, or ask "what was rejected and why?"'
 HELP = [
     SCOPE,
-    "Commands: /show <decision id>  /check-pr <PR URL>  /help  /quit",
+    "Commands: /model [number or name]  /show <decision id>  /check-pr <PR URL>  /help  /quit",
     "A follow-up question without a link reuses the last link.",
     EXAMPLE,
 ]
@@ -294,10 +294,12 @@ class ChatSession:
         compiler: Callable[..., DecisionRecord] = compile_thread,
         client_factory: Callable[[], httpx.Client] = make_client,
         notify: Callable[[str], None] | None = None,
+        models: Callable[[], list[str]] | None = None,
     ) -> None:
         self.settings, self.store, self.llm, self.model = settings, store, llm, model
         self.loader, self.compiler, self.client_factory = loader, compiler, client_factory
         self.notify = notify
+        self.models = models or (lambda: preflight.installed_models(self.settings))
         self.last_source: str | None = None
 
     def handle(self, line: str) -> list[str] | None:
@@ -326,7 +328,29 @@ class ChatSession:
         if parsed.command == "/check-pr" and parsed.argument:
             result = surface.check_change(self.store, pr_url=parsed.argument)
             return [result["markdown"]]
+        if parsed.command == "/model":
+            return self.choose_model(parsed.argument)
         return list(HELP)
+
+    def choose_model(self, choice: str) -> list[str]:
+        """``/model`` lists the open models in the local Ollama, numbered; ``/model <number or name>`` switches."""
+        local = [name for name in self.models() if "cloud" not in name.lower()]  # local models only
+        if not local:
+            return [preflight.NO_MODEL]
+        if not choice:
+            lines = ["Local open models (Ollama):"]
+            lines += [f"  {n}. {name}{'  (in use)' if name == self.model else ''}" for n, name in enumerate(local, 1)]
+            return lines + ["Switch with /model <number or name>, for example /model 1."]
+        if choice.isdigit() and 1 <= int(choice) <= len(local):
+            wanted = local[int(choice) - 1]
+        elif preflight.has_model(choice, local):
+            wanted = choice
+        else:
+            return [f"{choice} isn't installed locally. Type /model to see your models, or run: ollama pull {choice}"]
+        self.settings = self.settings.model_copy(update={"model": wanted})
+        self.llm = make_llm(self.settings, self.store)
+        self.model = wanted
+        return [preflight.using_line(wanted)]
 
     def step(self, message: str) -> None:
         """One live progress line, so a long first read never looks stuck."""
@@ -454,7 +478,7 @@ def run_chat(
                 llm = make_llm(settings, store)
         print_fn(SCOPE)
         print_fn(EXAMPLE)
-        print_fn("Type /help for commands, /quit to exit.")
+        print_fn("Type /model to pick a local model, /help for commands, /quit to exit.")
         session = ChatSession(settings, store, llm, model, notify=print_fn)
         while True:
             try:

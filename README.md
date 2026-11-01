@@ -327,7 +327,7 @@ The global options go **before** the command, for example `decrack --db demo.db 
 
 | Command | What it does | Model |
 |---|---|---|
-| `decrack chat` (or plain `decrack`) | The interactive terminal. Type a link and a question; it answers from numbered, cited decision cards. With no link, it asks for one, and follow-ups reuse the last link. It also takes `/show <decision id>`, `/check-pr <PR URL>`, `/help` and `/quit`. | yes |
+| `decrack chat` (or plain `decrack`) | The interactive terminal. Type a link and a question; it answers from numbered, cited decision cards. With no link, it asks for one, and follow-ups reuse the last link. It also takes `/model` (lists the open models in your local Ollama, numbered; `/model 2` or `/model <name>` switches), `/show <decision id>`, `/check-pr <PR URL>`, `/help` and `/quit`. | yes |
 | `decrack ask SOURCE ["QUESTION"] [--max-threads N] [--format md\|json]` | Answer a question with cited decision cards. SOURCE is anything `run` accepts, or a GitHub repo URL, which needs a question. For a repo, DecRack searches its issues and PRs with the question's keywords (stopwords removed, at most 6). It runs the top N matches (default 3, at most 5), skips threads with nothing to analyze, and says which threads it read. Cached model calls are reused. | yes |
 | `decrack ingest REF` | Fetch a discussion and store its posts, without compiling | no |
 | `decrack run REF [--out DIR]` | Fetch a discussion and compile it into a decision record. This is how every new discussion gets in. With `--out`, it also writes the run folder (`thread.json`, `records.json`, `run.json`) to DIR. | yes |
