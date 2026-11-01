@@ -25,7 +25,7 @@ examples/
 │   │   ├── scores.json          the scores against eval/gold/pep-0830.json
 │   │   └── matches.json         every predicted-to-gold pair, for human review
 │   ├── pep-0799/ …              one folder per evaluated PEP
-│   ├── github-REPO-NUMBER/      a single run (decrack run REF --out examples/runs/<name>), no scores
+│   ├── uv-2077/                 a single run (decrack run REF --out examples/runs/<name>), no scores
 │   ├── eval-summary.md          the evaluation results across all PEPs
 │   └── eval-summary.json        the same, as JSON
 └── okf/                         the OKF + MADR knowledge bundle (decrack export okf)
@@ -50,7 +50,7 @@ examples/
 
 ## How to reproduce
 
-On a machine with Ollama and `qwen2.5:1.5b` (see [docs/TESTING.md](../docs/TESTING.md)). The five dev PEPs should take about 5–7 minutes on a base M4 with 16 GB, an estimate until measured:
+On a machine with Ollama and `qwen2.5:1.5b` (see [docs/TESTING.md](../docs/TESTING.md)). The committed results cover PEPs 830, 799 and 806, which took 47 s, 40 s and 22 s to compile on a base M4 with 16 GB (measured in each `run.json`). The command below runs all eight PEPs that have gold sets:
 
 ```bash
 uv run decrack eval pep:830 pep:799 pep:806 pep:836 pep:822 pep:844 pep:842 pep:810 \

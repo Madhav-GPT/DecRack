@@ -9,7 +9,7 @@ This runbook is for the team laptop that runs Ollama. It covers:
 
 Run every command from the repository root. `uv run` uses the project's own environment, so there is nothing to activate.
 
-**Contents:** [Setup](#1-one-time-setup) · [Smoke test](#2-smoke-test) · [Produce examples](#3-produce-examples) · [Record for CI](#4-record-model-responses-for-ci) · [Offline checks](#5-run-the-offline-checks) · [Before the freeze](#6-before-the-freeze) · [Timings](#7-what-to-expect) · [Troubleshooting](#8-troubleshooting)
+**Contents:** [Setup](#1-one-time-setup) · [Smoke test](#2-smoke-test) · [Produce examples](#3-produce-examples) · [Record for CI](#4-record-model-responses-for-the-tests) · [Offline checks](#5-run-the-offline-checks) · [Before the freeze](#6-before-the-freeze) · [Timings](#7-what-to-expect) · [Troubleshooting](#8-troubleshooting)
 
 ---
 
